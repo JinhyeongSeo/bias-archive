@@ -53,8 +53,8 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 03-01: 최애(bias) 관리 CRUD
-- [ ] 03-02: 자동 태그 추출 로직
+- [x] 03-01: 최애(bias) 관리 CRUD
+- [x] 03-02: 자동 태그 추출 로직
 - [ ] 03-03: 수동 태그 편집 UI
 
 ### Phase 4: Search & Filter
@@ -103,7 +103,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2026-01-13 |
 | 2. Link Management | 3/3 | Complete | 2026-01-13 |
-| 3. Tagging & Multi-Bias | 0/3 | Not started | - |
+| 3. Tagging & Multi-Bias | 2/3 | In progress | - |
 | 4. Search & Filter | 0/3 | Not started | - |
 | 5. Viewer & Timeline | 0/5 | Not started | - |
 | 6. GIF & Export | 0/3 | Not started | - |
