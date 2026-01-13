@@ -14,7 +14,7 @@ None
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Foundation** - Next.js + Supabase 프로젝트 셋업, DB 스키마, 기본 UI
+- [x] **Phase 1: Foundation** - Next.js + Supabase 프로젝트 셋업, DB 스키마, 기본 UI ✓
 - [ ] **Phase 2: Link Management** - URL 입력, 메타데이터 자동 추출, 저장 (핵심)
 - [ ] **Phase 3: Tagging & Multi-Bias** - 자동 태그 추출, 여러 최애 지원
 - [ ] **Phase 4: Search & Filter** - 아카이브 검색, 태그 필터링, 통합 검색
@@ -30,9 +30,9 @@ None
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: Next.js 프로젝트 생성 및 기본 설정
-- [ ] 01-02: Supabase 연동 및 DB 스키마 생성
-- [ ] 01-03: 기본 UI 레이아웃 및 네비게이션
+- [x] 01-01: Next.js 프로젝트 생성 및 기본 설정
+- [x] 01-02: Supabase 연동 및 DB 스키마 생성
+- [x] 01-03: 기본 UI 레이아웃 및 네비게이션
 
 ### Phase 2: Link Management
 **Goal**: URL 입력 시 메타데이터 자동 추출 및 저장 — 앱의 핵심 기능
@@ -99,7 +99,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/3 | Not started | - |
+| 1. Foundation | 3/3 | Complete | 2026-01-13 |
 | 2. Link Management | 0/3 | Not started | - |
 | 3. Tagging & Multi-Bias | 0/3 | Not started | - |
 | 4. Search & Filter | 0/3 | Not started | - |
