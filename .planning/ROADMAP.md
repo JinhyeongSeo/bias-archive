@@ -58,16 +58,15 @@ Plans:
 - [x] 03-03: 수동 태그 편집 UI
 
 ### Phase 4: Search & Filter
-**Goal**: 저장된 아카이브 검색/필터링 + 외부 플랫폼 통합 검색
+**Goal**: 저장된 아카이브 검색/필터링 + YouTube 통합 검색
 **Depends on**: Phase 3
-**Research**: Likely (external APIs)
-**Research topics**: YouTube Data API 검색, Twitter API v2 검색 엔드포인트, API 키 관리
-**Plans**: TBD
+**Research**: Complete (DISCOVERY.md)
+**Research topics**: YouTube Data API 검색 (무료 가능), Twitter API v2 (무료 불가 → 제외)
+**Plans**: 2
 
 Plans:
 - [ ] 04-01: 아카이브 검색 및 태그 필터링
 - [ ] 04-02: YouTube 통합 검색
-- [ ] 04-03: Twitter/X 통합 검색
 
 ### Phase 5: Viewer & Timeline
 **Goal**: 임베드 플레이어, 그리드/리스트 전환, '과거의 오늘' 타임라인, 태그별 앨범
@@ -104,6 +103,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Foundation | 3/3 | Complete | 2026-01-13 |
 | 2. Link Management | 3/3 | Complete | 2026-01-13 |
 | 3. Tagging & Multi-Bias | 3/3 | Complete | 2026-01-13 |
-| 4. Search & Filter | 0/3 | Not started | - |
+| 4. Search & Filter | 0/2 | Not started | - |
 | 5. Viewer & Timeline | 0/5 | Not started | - |
 | 6. GIF & Export | 0/3 | Not started | - |
