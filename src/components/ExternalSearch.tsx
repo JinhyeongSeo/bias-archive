@@ -226,7 +226,13 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         body: JSON.stringify({ url: result.url }),
       })
 
-      let metadata = {
+      let metadata: {
+        title: string
+        thumbnailUrl: string | null
+        platform: Platform
+        authorName: string
+        media?: { type: string; url: string }[]
+      } = {
         title: result.title,
         thumbnailUrl: result.thumbnailUrl,
         platform: result.platform,
