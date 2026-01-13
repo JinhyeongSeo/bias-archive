@@ -43,7 +43,7 @@ Plans:
 
 Plans:
 - [x] 02-01: URL 입력 폼 및 메타데이터 추출 API
-- [ ] 02-02: 링크 저장 CRUD 및 목록 UI
+- [x] 02-02: 링크 저장 CRUD 및 목록 UI
 - [ ] 02-03: 플랫폼별 파서 모듈화 및 고도화
 
 ### Phase 3: Tagging & Multi-Bias
@@ -100,7 +100,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2026-01-13 |
-| 2. Link Management | 1/3 | In progress | - |
+| 2. Link Management | 2/3 | In progress | - |
 | 3. Tagging & Multi-Bias | 0/3 | Not started | - |
 | 4. Search & Filter | 0/3 | Not started | - |
 | 5. Viewer & Timeline | 0/3 | Not started | - |
