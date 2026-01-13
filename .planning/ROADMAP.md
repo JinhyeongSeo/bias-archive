@@ -21,7 +21,7 @@ None
 - [x] **Phase 5: Viewer & Timeline** - 임베드 뷰어, 레이아웃 전환, 과거의 오늘 ✓
 - [x] **Phase 6: GIF & Export** - 브라우저 GIF 생성, JSON 내보내기, 다국어 ✓
 - [x] **Phase 7: Deploy & PWA** - Vercel 배포 + PWA(앱처럼 설치 가능) 지원 ✓
-- [ ] **Phase 8: heye.kr Parser** - heye.kr 커뮤니티 게시판에서 이미지/GIF 추출
+- [x] **Phase 8: heye.kr Parser** - heye.kr 커뮤니티 게시판에서 이미지/GIF 추출 ✓
 
 ## Phase Details
 
@@ -124,8 +124,8 @@ Plans:
 - 검색 파라미터: `sfl=wr_subject&stx=검색어`
 
 Plans:
-- [ ] 08-01: heye.kr 파서 모듈 및 플랫폼 통합
-- [ ] 08-02: heye.kr 검색 기능 (외부 검색 모달에 추가)
+- [x] 08-01: heye.kr 파서 모듈 및 플랫폼 통합 ✓
+- [x] 08-02: heye.kr 검색 기능 (외부 검색 모달에 추가) ✓
 
 ## Progress
 
@@ -141,4 +141,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Viewer & Timeline | 5/5 | Complete | 2026-01-13 |
 | 6. GIF & Export | 3/3 | Complete | 2026-01-13 |
 | 7. Deploy & PWA | 2/2 | Complete | 2026-01-13 |
-| 8. heye.kr Parser | 0/2 | Planning | — |
+| 8. heye.kr Parser | 2/2 | Complete | 2026-01-14 |
