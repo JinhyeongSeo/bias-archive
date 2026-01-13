@@ -67,65 +67,59 @@ export async function GET(request: NextRequest) {
     const results: KgirlsSearchResult[] = []
     const seenUrls = new Set<string>()
 
-    // Parse search results
-    // kgirls.net uses list items with thumbnails and links
-    // Pattern: <a href="/mgall/123456?search_target=...">Title</a>
-    $('a[href^="/' + board + '/"]').each((_, el) => {
-      const $link = $(el)
-      const href = $link.attr('href')
-      if (!href) return
+    // Collect all thumbnails using regex (more reliable than Cheerio selectors)
+    const thumbnails: string[] = []
+    const thumbPattern = /src="(\/files\/thumbnails\/[^"]+)"/g
+    let thumbMatch
+    while ((thumbMatch = thumbPattern.exec(html)) !== null) {
+      const src = thumbMatch[1]
+      const absoluteUrl = `https://www.kgirls.net${src}`
+      thumbnails.push(convertThumbnailToLarger(absoluteUrl))
+    }
+    console.log('[Kgirls Search] Found thumbnails:', thumbnails.length)
 
-      // Extract post ID from href - pattern: /mgall/123456 or /issue/123456
-      const postMatch = href.match(new RegExp(`^/${board}/(\\d+)`))
-      if (!postMatch) return
-
+    // Collect all post IDs in order using regex
+    const postIds: string[] = []
+    const postPattern = new RegExp(`href="/${board}/(\\d+)[^"]*"`, 'g')
+    let postMatch
+    while ((postMatch = postPattern.exec(html)) !== null) {
       const postId = postMatch[1]
+      if (!postIds.includes(postId)) {
+        postIds.push(postId)
+      }
+    }
+    console.log('[Kgirls Search] Found postIds:', postIds.length)
 
-      // Get title from link text
-      let title = $link.text().trim()
+    // Build results by matching postIds with thumbnails (same order)
+    postIds.forEach((postId, index) => {
+      // Find the title for this post
+      const $links = $(`a[href^="/${board}/${postId}"]`)
+      let title = ''
+      $links.each((_, el) => {
+        const text = $(el).text().trim()
+        // Skip navigation, numbers, empty titles
+        if (!text || text.length < 2) return
+        if (/^\d+$/.test(text)) return
+        if (['이전', '다음', '처음', '마지막', '_NEW_'].includes(text)) return
+        if (!title) {
+          title = text.replace(/_NEW_/g, '').trim()
+        }
+      })
 
-      // Skip navigation links and empty titles
-      if (!title || title.length < 2) return
-      // Skip if it's just a number (thumbnail link)
-      if (/^\d+$/.test(title)) return
-      // Skip common navigation text
-      if (['이전', '다음', '처음', '마지막'].includes(title)) return
+      if (!title) return
 
-      // Build clean URL (without search params)
       const url = `https://www.kgirls.net/${board}/${postId}`
-
-      // Skip duplicates
       if (seenUrls.has(url)) return
       seenUrls.add(url)
-
-      // Try to find thumbnail - look for img in the same container or nearby
-      let thumbnailUrl: string | null = null
-      const $parent = $link.closest('li, tr, div')
-      const $img = $parent.find('img[src*="/files/"]').first()
-      if ($img.length) {
-        const src = $img.attr('src')
-        if (src) {
-          // Convert relative URL to absolute and use larger size
-          const absoluteUrl = src.startsWith('http') ? src : `https://www.kgirls.net${src}`
-          thumbnailUrl = convertThumbnailToLarger(absoluteUrl)
-        }
-      }
-
-      // Try to find author
-      let author = ''
-      // Look for author text in the same list item
-      const $authorArea = $parent.find('.no_img, .nick, [class*="author"]')
-      if ($authorArea.length) {
-        author = $authorArea.first().text().trim()
-      }
 
       results.push({
         url,
         title,
-        thumbnailUrl,
-        author,
+        thumbnailUrl: thumbnails[index] || null,
+        author: '',
       })
     })
+    console.log('[Kgirls Search] Final results:', results.length, 'with thumbnails:', results.filter(r => r.thumbnailUrl).length)
 
     // Extract total pages from pagination
     // XE CMS pagination typically uses numbered links
@@ -152,10 +146,15 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const responseData: KgirlsSearchResponse = {
+    const responseData = {
       results,
       totalPages,
       currentPage: page,
+      _debug: {
+        thumbnailsFound: thumbnails.length,
+        postIdsFound: postIds.length,
+        resultsWithThumbnails: results.filter(r => r.thumbnailUrl).length,
+      }
     }
 
     return NextResponse.json(responseData)

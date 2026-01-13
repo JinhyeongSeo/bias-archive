@@ -261,7 +261,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     return (data.results as KgirlsResult[]).map(item => ({
       url: item.url,
       title: item.title,
-      thumbnailUrl: item.thumbnailUrl,
+      // Use image proxy for kgirls thumbnails to bypass hotlink protection (403 Forbidden)
+      thumbnailUrl: item.thumbnailUrl ? `/api/proxy/image?url=${encodeURIComponent(item.thumbnailUrl)}` : null,
       author: item.author,
       platform: 'kgirls' as Platform,
       isSaved: checkIfSaved(item.url),

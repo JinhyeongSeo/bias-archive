@@ -95,41 +95,59 @@ export async function parseKgirls(url: string): Promise<VideoMetadata> {
       media.push({ url: absoluteUrl, type })
     }
 
-    // Pattern 1: Video tags with src and poster attributes
-    // <video src="/files/attach/images/.../xxx.mp4" poster="/files/attach/images/.../xxx.jpg">
-    $('video[src*="/files/attach/"]').each((_, el) => {
+    // Only extract media with data-file-srl attribute (actual post content)
+    // This excludes site logos, member icons, and other site chrome
+
+    // Track poster images from videos for thumbnail fallback
+    let posterUrl: string | null = null
+
+    // Pattern 1: Video tags with data-file-srl (actual content videos)
+    $('video[data-file-srl]').each((_, el) => {
       const src = $(el).attr('src')
       const poster = $(el).attr('poster')
-
-      // Add video
       if (src) {
         addMedia(src, 'video')
       }
-      // Add poster image as well (for thumbnail)
-      if (poster && poster.includes('/files/attach/')) {
-        addMedia(poster, 'image')
+      // Save poster for thumbnail (first one found)
+      if (poster && !posterUrl) {
+        posterUrl = poster.startsWith('/') ? `https://www.kgirls.net${poster}` : poster
       }
     })
 
-    // Pattern 2: Images in /files/attach/ path (actual content images)
-    $('img[src*="/files/attach/"]').each((_, el) => {
+    // Pattern 2: Images with data-file-srl (actual content images)
+    $('img[data-file-srl]').each((_, el) => {
       const src = $(el).attr('src')
       if (src) {
         addMedia(src)
       }
     })
 
-    // Pattern 3: Regex for /files/attach/images/ URLs in raw HTML
-    // This catches any URLs that might not be in standard tags
-    const attachPattern = /\/files\/attach\/images\/[^"'\s<>]+\.(jpg|jpeg|png|gif|mp4|webm|mov)/gi
-    for (const match of html.matchAll(attachPattern)) {
-      addMedia(match[0])
+    // Pattern 3: Fallback - look inside post content area (.bd class) for media without data-file-srl
+    // This catches older posts or different formatting
+    if (media.length === 0) {
+      $('.bd video[src*="/files/attach/"]').each((_, el) => {
+        const src = $(el).attr('src')
+        const poster = $(el).attr('poster')
+        if (src) {
+          addMedia(src, 'video')
+        }
+        if (poster && !posterUrl) {
+          posterUrl = poster.startsWith('/') ? `https://www.kgirls.net${poster}` : poster
+        }
+      })
+
+      $('.bd img[src*="/files/attach/"]').each((_, el) => {
+        const src = $(el).attr('src')
+        if (src) {
+          addMedia(src)
+        }
+      })
     }
 
-    // First image is thumbnail (prefer poster images for videos)
-    const thumbnailUrl = media.length > 0
-      ? media.find(m => m.type === 'image')?.url || media[0].url
-      : null
+    // Thumbnail priority: 1) first image/gif from media, 2) video poster, 3) null
+    // Never use video URL as thumbnail (causes image loading errors)
+    const firstImage = media.find(m => m.type === 'image' || m.type === 'gif')
+    const thumbnailUrl = firstImage?.url || posterUrl || null
 
     return {
       title: title || null,
