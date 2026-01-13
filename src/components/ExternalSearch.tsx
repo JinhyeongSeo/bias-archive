@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 
-type Platform = 'youtube' | 'twitter'
+type Platform = 'youtube' | 'twitter' | 'heye'
 type YouTubeOrder = 'relevance' | 'date' | 'viewCount'
 type YouTubePeriod = '' | 'today' | 'week' | 'month' | 'year'
 
@@ -18,6 +18,13 @@ interface TwitterResult {
   link: string
   title: string
   snippet: string
+}
+
+interface HeyeResult {
+  url: string
+  title: string
+  thumbnailUrl: string | null
+  author: string
 }
 
 interface EnrichedResult {
@@ -48,6 +55,10 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
   const [youtubeOrder, setYoutubeOrder] = useState<YouTubeOrder>('relevance')
   const [youtubePeriod, setYoutubePeriod] = useState<YouTubePeriod>('')
 
+  // heye.kr pagination state
+  const [heyePage, setHeyePage] = useState(1)
+  const [heyeTotalPages, setHeyeTotalPages] = useState(0)
+
   // ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -72,6 +83,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       setNotConfigured(false)
       setYoutubeOrder('relevance')
       setYoutubePeriod('')
+      setHeyePage(1)
+      setHeyeTotalPages(0)
     }
     return () => {
       document.body.style.overflow = ''
@@ -84,6 +97,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       setPlatform(newPlatform)
       setResults([])
       setError(null)
+      setHeyePage(1)
+      setHeyeTotalPages(0)
     }
   }
 
@@ -191,6 +206,29 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     return enrichedResults
   }
 
+  const searchHeye = async (searchQuery: string, page: number = 1): Promise<EnrichedResult[]> => {
+    const response = await fetch(`/api/search/heye?q=${encodeURIComponent(searchQuery)}&page=${page}`)
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'heye.kr 검색 실패')
+    }
+
+    // Update pagination state
+    setHeyeTotalPages(data.totalPages || 0)
+    setHeyePage(data.currentPage || 1)
+
+    return (data.results as HeyeResult[]).map(item => ({
+      url: item.url,
+      title: item.title,
+      thumbnailUrl: item.thumbnailUrl,
+      author: item.author,
+      platform: 'heye' as Platform,
+      isSaved: checkIfSaved(item.url),
+      isSaving: false,
+    }))
+  }
+
   const handleSearch = async () => {
     if (!query.trim()) return
 
@@ -200,9 +238,30 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     setResults([])
 
     try {
-      const searchResults = platform === 'youtube'
-        ? await searchYouTube(query)
-        : await searchTwitter(query)
+      let searchResults: EnrichedResult[]
+      if (platform === 'youtube') {
+        searchResults = await searchYouTube(query)
+      } else if (platform === 'twitter') {
+        searchResults = await searchTwitter(query)
+      } else {
+        searchResults = await searchHeye(query, 1)
+      }
+      setResults(searchResults)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleHeyePageChange = async (newPage: number) => {
+    if (newPage < 1 || newPage > heyeTotalPages || isLoading) return
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const searchResults = await searchHeye(query, newPage)
       setResults(searchResults)
     } catch (err) {
       setError(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다')
@@ -301,6 +360,32 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     }
   }
 
+  const getPlatformBadgeStyle = (p: Platform) => {
+    switch (p) {
+      case 'youtube':
+        return 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
+      case 'twitter':
+        return 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+      case 'heye':
+        return 'bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400'
+      default:
+        return 'bg-zinc-100 dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400'
+    }
+  }
+
+  const getPlatformLabel = (p: Platform) => {
+    switch (p) {
+      case 'youtube':
+        return 'YouTube'
+      case 'twitter':
+        return 'Twitter'
+      case 'heye':
+        return 'heye.kr'
+      default:
+        return p
+    }
+  }
+
   if (!isOpen) return null
 
   return (
@@ -352,12 +437,27 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
             >
               Twitter
             </button>
+            <button
+              onClick={() => handlePlatformChange('heye')}
+              className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                platform === 'heye'
+                  ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 ring-2 ring-orange-500/20'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              heye.kr
+            </button>
           </div>
 
-          {/* Twitter Notice */}
+          {/* Platform Notice */}
           {platform === 'twitter' && (
             <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-4 py-2 rounded-lg">
               과거 인기 트윗 검색 (최신은 URL 직접 입력)
+            </p>
+          )}
+          {platform === 'heye' && (
+            <p className="text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-4 py-2 rounded-lg">
+              heye.kr 커뮤니티 게시판 검색
             </p>
           )}
 
@@ -430,6 +530,11 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
             <div className="space-y-3">
               <p className="text-sm text-zinc-500 dark:text-zinc-400">
                 {results.length}개의 결과
+                {platform === 'heye' && heyeTotalPages > 1 && (
+                  <span className="ml-2">
+                    (페이지 {heyePage}/{heyeTotalPages})
+                  </span>
+                )}
               </p>
               {results.map((result, index) => (
                 <div
@@ -456,12 +561,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                         {result.title}
                       </h4>
                       <div className="flex items-center gap-2 mt-1.5">
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${
-                          result.platform === 'youtube'
-                            ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
-                            : 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                        }`}>
-                          {result.platform === 'youtube' ? 'YouTube' : 'Twitter'}
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${getPlatformBadgeStyle(result.platform)}`}>
+                          {getPlatformLabel(result.platform)}
                         </span>
                         {result.author && (
                           <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[200px]">
@@ -495,6 +596,29 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                   </div>
                 </div>
               ))}
+
+              {/* Heye Pagination */}
+              {platform === 'heye' && heyeTotalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 pt-2">
+                  <button
+                    onClick={() => handleHeyePageChange(heyePage - 1)}
+                    disabled={heyePage <= 1 || isLoading}
+                    className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  >
+                    이전
+                  </button>
+                  <span className="text-sm text-zinc-500 dark:text-zinc-400 px-2">
+                    {heyePage} / {heyeTotalPages}
+                  </span>
+                  <button
+                    onClick={() => handleHeyePageChange(heyePage + 1)}
+                    disabled={heyePage >= heyeTotalPages || isLoading}
+                    className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  >
+                    다음
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
