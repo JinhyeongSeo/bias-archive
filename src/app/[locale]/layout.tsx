@@ -7,6 +7,7 @@ import { routing } from '@/i18n/routing';
 import "../globals.css";
 import { Providers } from "@/components/Providers";
 import { Header } from "@/components/Header";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,6 +27,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: app.title,
     description: app.description,
+    manifest: '/manifest.json',
+    themeColor: '#000000',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+      title: app.title,
+    },
   };
 }
 
@@ -58,6 +66,7 @@ export default async function LocaleLayout({
       >
         <NextIntlClientProvider messages={messages}>
           <Providers>
+            <ServiceWorkerRegistration />
             <Header />
             <main className="pt-14 min-h-[calc(100vh-3.5rem)]">
               {children}
