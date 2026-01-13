@@ -306,6 +306,14 @@ export function EmbedViewer({ url, platform, media }: EmbedViewerProps) {
     }
   }
 
+  // heye.kr - show image gallery
+  if (platform === 'heye') {
+    const hasImages = media && media.some(m => m.media_type === 'image' || m.media_type === 'gif')
+    if (hasImages) {
+      return <ImageGallery media={media!} />
+    }
+  }
+
   // Fallback for unsupported platforms
   return <FallbackEmbed url={url} />
 }
