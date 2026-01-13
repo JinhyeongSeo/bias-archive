@@ -18,7 +18,7 @@ None
 - [x] **Phase 2: Link Management** - URL 입력, 메타데이터 자동 추출, 저장 (핵심) ✓
 - [x] **Phase 3: Tagging & Multi-Bias** - 자동 태그 추출, 여러 최애 지원 ✓
 - [x] **Phase 4: Search & Filter** - 아카이브 검색, 태그 필터링, 통합 검색 ✓
-- [ ] **Phase 5: Viewer & Timeline** - 임베드 뷰어, 레이아웃 전환, 과거의 오늘
+- [x] **Phase 5: Viewer & Timeline** - 임베드 뷰어, 레이아웃 전환, 과거의 오늘 ✓
 - [ ] **Phase 6: GIF & Export** - 브라우저 GIF 생성, JSON 내보내기, 다국어
 - [ ] **Phase 7: Deploy & PWA** - Vercel 배포 + PWA(앱처럼 설치 가능) 지원
 
@@ -76,11 +76,11 @@ Plans:
 **Plans**: 5
 
 Plans:
-- [ ] 05-01: 다중 미디어 저장 (link_media 테이블, Twitter 여러 이미지)
-- [ ] 05-02: YouTube 검색 필터 (기간/정렬)
-- [ ] 05-03: 임베드 뷰어 (YouTube, Twitter)
-- [ ] 05-04: 갤러리 & 레이아웃 (그리드/리스트 전환, 태그별 앨범)
-- [ ] 05-05: '과거의 오늘' 타임라인 기능
+- [x] 05-01: 다중 미디어 저장 (link_media 테이블, Twitter 여러 이미지) ✓
+- [x] 05-02: YouTube 검색 필터 (기간/정렬) ✓
+- [x] 05-03: 임베드 뷰어 (YouTube, Twitter) ✓
+- [x] 05-04: 갤러리 & 레이아웃 (그리드/리스트 전환, 태그별 앨범) ✓
+- [x] 05-05: '과거의 오늘' 타임라인 기능 ✓
 
 ### Phase 6: GIF & Export
 **Goal**: 브라우저 GIF 생성기, JSON 내보내기, 한/영 다국어 지원
@@ -116,6 +116,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Link Management | 3/3 | Complete | 2026-01-13 |
 | 3. Tagging & Multi-Bias | 3/3 | Complete | 2026-01-13 |
 | 4. Search & Filter | 2/2 | Complete | 2026-01-13 |
-| 5. Viewer & Timeline | 0/5 | Planned | - |
+| 5. Viewer & Timeline | 5/5 | Complete | 2026-01-13 |
 | 6. GIF & Export | 0/3 | Not started | - |
 | 7. Deploy & PWA | 0/0 | Not started | - |
