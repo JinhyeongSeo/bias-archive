@@ -23,6 +23,7 @@ const platformLabels: Record<Platform, string> = {
   twitter: 'Twitter',
   weverse: 'Weverse',
   heye: 'heye.kr',
+  kgirls: 'kgirls.net',
   other: '웹사이트',
 }
 
@@ -31,6 +32,7 @@ const platformColors: Record<Platform, string> = {
   twitter: 'bg-blue-400 dark:bg-blue-500',
   weverse: 'bg-green-500 dark:bg-green-600',
   heye: 'bg-orange-500 dark:bg-orange-600',
+  kgirls: 'bg-pink-500 dark:bg-pink-600',
   other: 'bg-zinc-500 dark:bg-zinc-600',
 }
 
@@ -97,8 +99,8 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
   const hasVideo = platform === 'youtube' ||
     (platform === 'twitter' && link.media?.some(m => m.media_type === 'video'))
 
-  // Check if platform supports in-app viewing (YouTube, Twitter, heye.kr have viewers)
-  const supportsViewer = platform === 'youtube' || platform === 'twitter' || platform === 'heye'
+  // Check if platform supports in-app viewing (YouTube, Twitter, heye.kr, kgirls.net have viewers)
+  const supportsViewer = platform === 'youtube' || platform === 'twitter' || platform === 'heye' || platform === 'kgirls'
 
   // Handle thumbnail click to open viewer or navigate to link
   const handleThumbnailClick = () => {

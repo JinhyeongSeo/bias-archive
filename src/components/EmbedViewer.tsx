@@ -359,6 +359,14 @@ export function EmbedViewer({ url, platform, media }: EmbedViewerProps) {
     }
   }
 
+  // kgirls.net - show media gallery (images, GIFs, videos)
+  if (platform === 'kgirls') {
+    const hasMedia = media && media.some(m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video')
+    if (hasMedia) {
+      return <MediaGallery media={media!} />
+    }
+  }
+
   // Fallback for unsupported platforms
   return <FallbackEmbed url={url} />
 }
