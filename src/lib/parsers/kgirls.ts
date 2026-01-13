@@ -2,27 +2,13 @@
  * kgirls.net community parser
  * Custom HTML parsing for Korean idol community posts (XE CMS based)
  * Supports both /mgall and /issue boards
+ *
+ * Actual content is in /files/attach/images/ path, NOT /files/thumbnails/
+ * Video tags have: src="/files/attach/images/.../xxx.mp4" poster="/files/attach/images/.../xxx.jpg"
  */
 
 import * as cheerio from 'cheerio'
 import type { VideoMetadata, ParsedMedia, MediaType } from './index'
-
-/**
- * Convert thumbnail URL to larger size or full image
- * kgirls.net thumbnail pattern: /files/thumbnails/{id}/{id}/{num}/100x100.fill.jpg?t=...
- * Try larger sizes: 320x480, 640x960, or original
- */
-function convertThumbnailToLarger(thumbnailUrl: string): string {
-  // Remove query string
-  let url = thumbnailUrl.split('?')[0]
-
-  // Replace small thumbnail sizes with larger ones
-  // 100x100 -> 640x960 (largest commonly available)
-  url = url.replace(/\/100x100\.fill\./, '/640x960.fill.')
-  url = url.replace(/\/320x480\.fill\./, '/640x960.fill.')
-
-  return url
-}
 
 /**
  * Parse kgirls.net board post and extract images/GIFs/videos
@@ -81,6 +67,9 @@ export async function parseKgirls(url: string): Promise<VideoMetadata> {
 
     // Helper to add media if not duplicate
     const addMedia = (src: string, mediaType?: MediaType) => {
+      // Skip thumbnails path - only use /files/attach/ for actual content
+      if (src.includes('/files/thumbnails/')) return
+
       // Make URL absolute if relative
       let absoluteUrl = src
       if (src.startsWith('/')) {
@@ -106,64 +95,41 @@ export async function parseKgirls(url: string): Promise<VideoMetadata> {
       media.push({ url: absoluteUrl, type })
     }
 
-    // Pattern 1: All images with /files/ path (including thumbnails)
-    $('img[src*="/files/"]').each((_, el) => {
+    // Pattern 1: Video tags with src and poster attributes
+    // <video src="/files/attach/images/.../xxx.mp4" poster="/files/attach/images/.../xxx.jpg">
+    $('video[src*="/files/attach/"]').each((_, el) => {
+      const src = $(el).attr('src')
+      const poster = $(el).attr('poster')
+
+      // Add video
+      if (src) {
+        addMedia(src, 'video')
+      }
+      // Add poster image as well (for thumbnail)
+      if (poster && poster.includes('/files/attach/')) {
+        addMedia(poster, 'image')
+      }
+    })
+
+    // Pattern 2: Images in /files/attach/ path (actual content images)
+    $('img[src*="/files/attach/"]').each((_, el) => {
       const src = $(el).attr('src')
       if (src) {
-        // Convert thumbnail to larger size
-        const largerSrc = convertThumbnailToLarger(src)
-        addMedia(largerSrc)
-      }
-    })
-
-    // Pattern 2: Thumbnail images in specific sizes
-    // /files/thumbnails/{id}/{id}/{num}/{size}.fill.jpg
-    const thumbnailPattern = /\/files\/thumbnails\/[^"'\s]+\.(jpg|jpeg|png|gif)/gi
-    for (const match of html.matchAll(thumbnailPattern)) {
-      const src = convertThumbnailToLarger(match[0])
-      // Skip 100x100 small thumbnails after conversion
-      if (!src.includes('/100x100.')) {
         addMedia(src)
       }
-    }
-
-    // Pattern 3: Attached files links (videos, images)
-    // XE CMS download links
-    $('a[href*="file_srl"]').each((_, el) => {
-      const href = $(el).attr('href')
-      const text = $(el).text().toLowerCase()
-      if (href && (text.includes('.mp4') || text.includes('.mov') || text.includes('.webm'))) {
-        // This is a video download link
-        const fullUrl = href.startsWith('http') ? href : `https://www.kgirls.net${href}`
-        addMedia(fullUrl, 'video')
-      }
     })
 
-    // Pattern 4: Direct file attach links
-    $('a[href*="/files/attach/"]').each((_, el) => {
-      const href = $(el).attr('href')
-      if (href) {
-        const lowerHref = href.toLowerCase()
-        if (lowerHref.match(/\.(jpg|jpeg|png|gif|mp4|webm|mov)/)) {
-          addMedia(href)
-        }
-      }
-    })
-
-    // Pattern 5: Regex for any kgirls.net file URLs in raw HTML
-    const filePattern = /\/files\/[^"'\s<>]+\.(jpg|jpeg|png|gif|mp4|webm|mov)/gi
-    for (const match of html.matchAll(filePattern)) {
-      let src = match[0]
-      // Convert thumbnails to larger size
-      src = convertThumbnailToLarger(src)
-      // Skip small thumbnails
-      if (!src.includes('/100x100.')) {
-        addMedia(src)
-      }
+    // Pattern 3: Regex for /files/attach/images/ URLs in raw HTML
+    // This catches any URLs that might not be in standard tags
+    const attachPattern = /\/files\/attach\/images\/[^"'\s<>]+\.(jpg|jpeg|png|gif|mp4|webm|mov)/gi
+    for (const match of html.matchAll(attachPattern)) {
+      addMedia(match[0])
     }
 
-    // First image is thumbnail (prefer larger version)
-    const thumbnailUrl = media.length > 0 ? media[0].url : null
+    // First image is thumbnail (prefer poster images for videos)
+    const thumbnailUrl = media.length > 0
+      ? media.find(m => m.type === 'image')?.url || media[0].url
+      : null
 
     return {
       title: title || null,
