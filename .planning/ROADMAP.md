@@ -21,6 +21,7 @@ None
 - [x] **Phase 5: Viewer & Timeline** - 임베드 뷰어, 레이아웃 전환, 과거의 오늘 ✓
 - [x] **Phase 6: GIF & Export** - 브라우저 GIF 생성, JSON 내보내기, 다국어 ✓
 - [x] **Phase 7: Deploy & PWA** - Vercel 배포 + PWA(앱처럼 설치 가능) 지원 ✓
+- [ ] **Phase 8: heye.kr Parser** - heye.kr 커뮤니티 게시판에서 이미지/GIF 추출
 
 ## Phase Details
 
@@ -106,10 +107,30 @@ Plans:
 - [x] 07-01: Vercel 배포 및 환경 변수 설정 ✓
 - [x] 07-02: PWA manifest, 아이콘, 서비스 워커 설정 ✓
 
+### Phase 8: heye.kr Parser
+
+**Goal**: heye.kr 커뮤니티 게시판에서 이미지/GIF 추출하여 아카이브에 저장
+**Depends on**: Phase 7 (완료됨)
+**Research**: Complete (분석 완료)
+**Plans**: 2
+
+**분석 결과:**
+- 게시글 본문: `#div_content` selector
+- 이미지 URL 패턴: `https://img1.heye.kr/image/idol/2026/01/[timestamp].jpeg`
+- Open Graph 메타데이터: 없음 (커스텀 파싱 필요)
+- 제목: `<title>` 태그에서 추출
+- 날짜: "등록일: YY-MM-DD" 패턴
+- 작성자: 레벨 아이콘 옆 텍스트
+- 검색 파라미터: `sfl=wr_subject&stx=검색어`
+
+Plans:
+- [ ] 08-01: heye.kr 파서 모듈 및 플랫폼 통합
+- [ ] 08-02: heye.kr 검색 기능 (외부 검색 모달에 추가)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -120,3 +141,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 5. Viewer & Timeline | 5/5 | Complete | 2026-01-13 |
 | 6. GIF & Export | 3/3 | Complete | 2026-01-13 |
 | 7. Deploy & PWA | 2/2 | Complete | 2026-01-13 |
+| 8. heye.kr Parser | 0/2 | Planning | — |

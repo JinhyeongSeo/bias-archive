@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** 🎉 MILESTONE COMPLETE — All 7 Phases Done
+**Current focus:** Phase 8 — heye.kr 커뮤니티 파서 추가
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 7 of 7 (Deploy & PWA) ✓
-Plan: 2/2 complete
-Status: MILESTONE COMPLETE
-Last activity: 2026-01-13 — Completed Phase 7 (all 2 plans)
+Phase: 8 of 8 (heye.kr Parser)
+Plan: 0/1 complete
+Status: Planning → Ready for execution
+Last activity: 2026-01-13 — Created Phase 8 plan
 
-Progress: ██████████ 100%
+Progress: ███████░░░ 88% (7/8 phases complete)
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: ██████████ 100%
 - next-intl 기반 다국어 지원 (ko/en, [locale] 라우팅)
 - Vercel Hobby Plan (무료) 배포
 - 수동 PWA 설정 (next-pwa 없이, Next.js 16 호환)
+- heye.kr 커스텀 파서 추가 (OG 메타데이터 없음, HTML 파싱)
 
 ### Deferred Issues
 
