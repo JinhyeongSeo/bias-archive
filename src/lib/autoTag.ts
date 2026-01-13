@@ -81,18 +81,21 @@ export function extractAutoTags(text: string, biases: Bias[]): string[] {
  * @param title - Link title
  * @param description - Link description
  * @param authorName - Author/member name
+ * @param searchQuery - Optional search query hint (from external search)
  * @returns Combined text for tag extraction
  */
 export function combineTextForTagExtraction(
   title: string | null,
   description: string | null,
-  authorName: string | null
+  authorName: string | null,
+  searchQuery?: string | null
 ): string {
   const parts: string[] = []
 
   if (title) parts.push(title)
   if (description) parts.push(description)
   if (authorName) parts.push(authorName)
+  if (searchQuery) parts.push(searchQuery)
 
   return parts.join(' ')
 }

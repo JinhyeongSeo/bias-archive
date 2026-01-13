@@ -55,17 +55,31 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
-  // Prevent body scroll when modal is open
+  // Prevent body scroll when modal is open and reset state when closing
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
+      // Reset state when modal closes
+      setQuery('')
+      setResults([])
+      setError(null)
+      setNotConfigured(false)
     }
     return () => {
       document.body.style.overflow = ''
     }
   }, [isOpen])
+
+  // Clear results when switching platforms
+  const handlePlatformChange = (newPlatform: Platform) => {
+    if (newPlatform !== platform) {
+      setPlatform(newPlatform)
+      setResults([])
+      setError(null)
+    }
+  }
 
   const checkIfSaved = useCallback((url: string): boolean => {
     const normalizedUrl = url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
@@ -222,6 +236,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
           thumbnailUrl: metadata.thumbnailUrl,
           platform: metadata.platform,
           authorName: metadata.authorName,
+          searchQuery: query, // Pass search query as hint for auto-tagging
         }),
       })
 
@@ -294,7 +309,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
           {/* Platform Selection */}
           <div className="flex gap-2">
             <button
-              onClick={() => setPlatform('youtube')}
+              onClick={() => handlePlatformChange('youtube')}
               className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                 platform === 'youtube'
                   ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 ring-2 ring-red-500/20'
@@ -304,7 +319,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
               YouTube
             </button>
             <button
-              onClick={() => setPlatform('twitter')}
+              onClick={() => handlePlatformChange('twitter')}
               className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                 platform === 'twitter'
                   ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20'

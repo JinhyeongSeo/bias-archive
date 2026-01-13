@@ -43,12 +43,13 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/links
  * Create a new link
- * Body: { url, title, description, thumbnailUrl, platform, originalDate, biasId }
+ * Body: { url, title, description, thumbnailUrl, platform, originalDate, biasId, searchQuery }
+ * searchQuery: optional hint for auto-tagging (e.g., from external search)
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { url, title, description, thumbnailUrl, platform, originalDate, authorName, biasId } = body
+    const { url, title, description, thumbnailUrl, platform, originalDate, authorName, biasId, searchQuery } = body
 
     // Validate required field
     if (!url || typeof url !== 'string') {
@@ -91,11 +92,12 @@ export async function POST(request: NextRequest) {
 
     const link = await createLink(linkData)
 
-    // Auto-extract tags from link metadata
+    // Auto-extract tags from link metadata + searchQuery hint
     const combinedText = combineTextForTagExtraction(
       title || null,
       description || null,
-      authorName || null
+      authorName || null,
+      searchQuery || null
     )
 
     const biases = await getBiases()
