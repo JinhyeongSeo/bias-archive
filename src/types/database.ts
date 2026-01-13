@@ -22,6 +22,7 @@ export type Database = {
           group_name?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
       links: {
         Row: {
@@ -59,6 +60,15 @@ export type Database = {
           bias_id?: string | null
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: 'links_bias_id_fkey'
+            columns: ['bias_id']
+            isOneToOne: false
+            referencedRelation: 'biases'
+            referencedColumns: ['id']
+          }
+        ]
       }
       tags: {
         Row: {
@@ -75,6 +85,7 @@ export type Database = {
           id?: string
           name?: string
         }
+        Relationships: []
       }
       link_tags: {
         Row: {
@@ -89,7 +100,35 @@ export type Database = {
           link_id?: string
           tag_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: 'link_tags_link_id_fkey'
+            columns: ['link_id']
+            isOneToOne: false
+            referencedRelation: 'links'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'link_tags_tag_id_fkey'
+            columns: ['tag_id']
+            isOneToOne: false
+            referencedRelation: 'tags'
+            referencedColumns: ['id']
+          }
+        ]
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
@@ -99,3 +138,15 @@ export type Bias = Database['public']['Tables']['biases']['Row']
 export type Link = Database['public']['Tables']['links']['Row']
 export type Tag = Database['public']['Tables']['tags']['Row']
 export type LinkTag = Database['public']['Tables']['link_tags']['Row']
+
+// Insert types
+export type BiasInsert = Database['public']['Tables']['biases']['Insert']
+export type LinkInsert = Database['public']['Tables']['links']['Insert']
+export type TagInsert = Database['public']['Tables']['tags']['Insert']
+export type LinkTagInsert = Database['public']['Tables']['link_tags']['Insert']
+
+// Update types
+export type BiasUpdate = Database['public']['Tables']['biases']['Update']
+export type LinkUpdate = Database['public']['Tables']['links']['Update']
+export type TagUpdate = Database['public']['Tables']['tags']['Update']
+export type LinkTagUpdate = Database['public']['Tables']['link_tags']['Update']
