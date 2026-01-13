@@ -5,6 +5,7 @@ import type { Link, Tag } from '@/types/database'
 import { LinkCard } from './LinkCard'
 
 type LinkWithTags = Link & { tags: Tag[] }
+type LayoutType = 'grid' | 'list'
 
 interface LinkListProps {
   refreshTrigger?: number
@@ -12,9 +13,10 @@ interface LinkListProps {
   tagId?: string | null
   platform?: string | null
   onLinksLoad?: (urls: string[]) => void
+  layout?: LayoutType
 }
 
-export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinksLoad }: LinkListProps) {
+export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinksLoad, layout = 'grid' }: LinkListProps) {
   const [links, setLinks] = useState<LinkWithTags[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -139,9 +141,13 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className={
+      layout === 'grid'
+        ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'
+        : 'flex flex-col gap-3'
+    }>
       {links.map((link) => (
-        <LinkCard key={link.id} link={link} onDelete={handleDelete} />
+        <LinkCard key={link.id} link={link} onDelete={handleDelete} layout={layout} />
       ))}
     </div>
   )
