@@ -8,11 +8,32 @@ import ogs from 'open-graph-scraper'
 import type { VideoMetadata } from './index'
 
 /**
+ * Extract artist name from Weverse URL
+ * Pattern: weverse.io/{artistName}/...
+ */
+function extractArtistFromUrl(url: string): string | null {
+  try {
+    const urlObj = new URL(url)
+    const pathParts = urlObj.pathname.split('/').filter(Boolean)
+    if (pathParts.length > 0) {
+      // First path segment is the artist/community name
+      return pathParts[0].toUpperCase()
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Parse Weverse URL and extract metadata
  * @param url - Weverse URL
  * @returns VideoMetadata with Weverse-specific handling
  */
 export async function parseWeverse(url: string): Promise<VideoMetadata> {
+  // Extract artist name from URL as fallback
+  const artistFromUrl = extractArtistFromUrl(url)
+
   try {
     const { result, error } = await ogs({
       url,
@@ -43,7 +64,7 @@ export async function parseWeverse(url: string): Promise<VideoMetadata> {
       thumbnailUrl,
       platform: 'weverse',
       originalDate: result.ogDate || result.articlePublishedTime || null,
-      authorName: result.author || result.ogSiteName || null,
+      authorName: result.author || artistFromUrl || result.ogSiteName || null,
     }
   } catch (error) {
     console.error('[Weverse Parser] Error:', error)
@@ -54,7 +75,7 @@ export async function parseWeverse(url: string): Promise<VideoMetadata> {
       thumbnailUrl: null,
       platform: 'weverse',
       originalDate: null,
-      authorName: null,
+      authorName: artistFromUrl,
     }
   }
 }
