@@ -7,6 +7,7 @@ import { LinkList } from '@/components/LinkList'
 import { Sidebar } from '@/components/Sidebar'
 import { ExternalSearch } from '@/components/ExternalSearch'
 import { LayoutToggle } from '@/components/LayoutToggle'
+import { Timeline } from '@/components/Timeline'
 
 type LayoutType = 'grid' | 'list'
 
@@ -94,7 +95,12 @@ function HomeContent() {
           <LinkForm onSave={handleSave} />
         </div>
 
+        {/* Timeline - On This Day */}
         <div className="w-full max-w-6xl mt-12">
+          <Timeline refreshTrigger={refreshTrigger} />
+        </div>
+
+        <div className="w-full max-w-6xl">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-zinc-800 dark:text-zinc-200">
               저장된 링크
