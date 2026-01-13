@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createLink, getLinks, checkDuplicateUrl } from '@/lib/links'
 import type { LinkInsert } from '@/lib/links'
+import { getBiases } from '@/lib/biases'
+import { getOrCreateTag, addTagToLink, getTagsForLink } from '@/lib/tags'
+import { extractAutoTags, combineTextForTagExtraction } from '@/lib/autoTag'
 
 /**
  * GET /api/links
@@ -72,7 +75,32 @@ export async function POST(request: NextRequest) {
     }
 
     const link = await createLink(linkData)
-    return NextResponse.json(link, { status: 201 })
+
+    // Auto-extract tags from link metadata
+    const combinedText = combineTextForTagExtraction(
+      title || null,
+      description || null,
+      authorName || null
+    )
+
+    const biases = await getBiases()
+    const extractedTagNames = extractAutoTags(combinedText, biases)
+
+    // Create and link extracted tags
+    const linkedTags = []
+    for (const tagName of extractedTagNames) {
+      try {
+        const tag = await getOrCreateTag(tagName)
+        await addTagToLink(link.id, tag.id)
+        linkedTags.push(tag)
+      } catch (error) {
+        // Log but don't fail the request if tagging fails
+        console.error(`Error linking tag "${tagName}":`, error)
+      }
+    }
+
+    // Return link with tags
+    return NextResponse.json({ ...link, tags: linkedTags }, { status: 201 })
   } catch (error) {
     console.error('Error creating link:', error)
     return NextResponse.json(
