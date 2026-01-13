@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Bias, Tag } from '@/types/database'
 import { BiasManager } from './BiasManager'
-import { ExternalSearch } from './ExternalSearch'
 import { useRefresh } from '@/contexts/RefreshContext'
 
 const PLATFORMS = [
@@ -23,8 +22,7 @@ interface SidebarProps {
   onSearchChange?: (query: string) => void
   selectedPlatform?: string | null
   onSelectPlatform?: (platform: string | null) => void
-  savedUrls?: string[]
-  onLinkSaved?: () => void
+  onOpenExternalSearch?: () => void
 }
 
 export function Sidebar({
@@ -35,10 +33,8 @@ export function Sidebar({
   onSearchChange,
   selectedPlatform,
   onSelectPlatform,
-  savedUrls = [],
-  onLinkSaved,
+  onOpenExternalSearch,
 }: SidebarProps) {
-  const [isExternalSearchOpen, setIsExternalSearchOpen] = useState(false)
   const { tagRefreshTrigger } = useRefresh()
   const [biases, setBiases] = useState<Bias[]>([])
   const [tags, setTags] = useState<Tag[]>([])
@@ -107,18 +103,17 @@ export function Sidebar({
         />
       </section>
 
-      {/* External Search */}
+      {/* External Search Button */}
       <section className="mb-6">
         <button
-          onClick={() => setIsExternalSearchOpen(!isExternalSearchOpen)}
-          className="flex items-center justify-between w-full text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2 hover:text-zinc-700 dark:hover:text-zinc-300"
+          onClick={onOpenExternalSearch}
+          className="w-full px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
         >
-          <span>외부 검색</span>
-          <span className="text-xs">{isExternalSearchOpen ? '▲' : '▼'}</span>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span>외부 검색 (YouTube, Twitter)</span>
         </button>
-        {isExternalSearchOpen && (
-          <ExternalSearch savedUrls={savedUrls} onSave={onLinkSaved} />
-        )}
       </section>
 
       {/* Platform Filter */}

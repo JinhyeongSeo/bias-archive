@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { LinkForm } from '@/components/LinkForm'
 import { LinkList } from '@/components/LinkList'
 import { Sidebar } from '@/components/Sidebar'
+import { ExternalSearch } from '@/components/ExternalSearch'
 
 export default function Home() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
@@ -11,6 +12,7 @@ export default function Home() {
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
   const [savedUrls, setSavedUrls] = useState<string[]>([])
+  const [isExternalSearchOpen, setIsExternalSearchOpen] = useState(false)
 
   const handleSave = () => {
     // Increment to trigger LinkList refresh
@@ -31,8 +33,7 @@ export default function Home() {
         onSearchChange={setSearchQuery}
         selectedPlatform={selectedPlatform}
         onSelectPlatform={setSelectedPlatform}
-        savedUrls={savedUrls}
-        onLinkSaved={handleSave}
+        onOpenExternalSearch={() => setIsExternalSearchOpen(true)}
       />
 
       <main className="flex-1 flex flex-col items-center pt-12 px-4 sm:px-8">
@@ -56,6 +57,14 @@ export default function Home() {
           />
         </div>
       </main>
+
+      {/* External Search Modal */}
+      <ExternalSearch
+        isOpen={isExternalSearchOpen}
+        onClose={() => setIsExternalSearchOpen(false)}
+        savedUrls={savedUrls}
+        onSave={handleSave}
+      />
     </div>
   )
 }
