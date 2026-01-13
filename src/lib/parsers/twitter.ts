@@ -28,8 +28,11 @@ export async function parseTwitter(url: string): Promise<VideoMetadata> {
     const htmlContent = data.html || ''
 
     // Extract tweet text from the blockquote paragraph
-    const tweetTextMatch = htmlContent.match(/<p[^>]*>([^<]+)<\/p>/)
-    const tweetText = tweetTextMatch ? tweetTextMatch[1].trim() : null
+    // The paragraph may contain <a> tags for hashtags/links, so we need to capture everything inside <p>
+    const tweetTextMatch = htmlContent.match(/<p[^>]*>([\s\S]*?)<\/p>/)
+    // Strip HTML tags to get plain text
+    const rawText = tweetTextMatch ? tweetTextMatch[1].replace(/<[^>]+>/g, '').trim() : null
+    const tweetText = rawText || null
 
     // Use first line of tweet as title, or author name
     const title = tweetText
