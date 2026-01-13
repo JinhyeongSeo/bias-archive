@@ -285,3 +285,85 @@ export async function searchLinksWithTags(params: SearchLinksParams): Promise<Li
     } as LinkWithTagsAndMedia
   })
 }
+
+/**
+ * Get links saved on this day in past years ("On This Day" feature)
+ * Matches month and day of original_date or created_at with today's date
+ * @param yearsAgo - How many years back to look (default: 1)
+ * @returns Links from this day in past years, with tags
+ */
+export async function getLinksOnThisDay(yearsAgo: number = 1): Promise<LinkWithTagsAndMedia[]> {
+  const today = new Date()
+  const targetMonth = today.getMonth() + 1 // JavaScript months are 0-indexed
+  const targetDay = today.getDate()
+  const targetYear = today.getFullYear() - yearsAgo
+
+  // Query links where either original_date or created_at matches month/day
+  // We need to use raw SQL filter for date extraction
+  const { data, error } = await supabase
+    .from('links')
+    .select(`
+      *,
+      link_tags (
+        tags (*)
+      ),
+      link_media (*)
+    `)
+    .or(
+      `original_date.gte.${targetYear}-01-01,created_at.gte.${targetYear}-01-01T00:00:00`
+    )
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw error
+  }
+
+  // Filter in JavaScript since Supabase doesn't support EXTRACT in query builder
+  const filteredData = (data ?? []).filter((link) => {
+    // Check original_date
+    if (link.original_date) {
+      const originalDate = new Date(link.original_date)
+      const originalYear = originalDate.getFullYear()
+      if (
+        originalYear <= targetYear &&
+        originalDate.getMonth() + 1 === targetMonth &&
+        originalDate.getDate() === targetDay
+      ) {
+        return true
+      }
+    }
+
+    // Check created_at
+    const createdAt = new Date(link.created_at)
+    const createdYear = createdAt.getFullYear()
+    if (
+      createdYear <= targetYear &&
+      createdAt.getMonth() + 1 === targetMonth &&
+      createdAt.getDate() === targetDay
+    ) {
+      return true
+    }
+
+    return false
+  })
+
+  // Transform the nested link_tags into a flat tags array and include media
+  return filteredData.map((link) => {
+    const linkTags = (link.link_tags as Array<{ tags: Tag }>) ?? []
+    const tags = linkTags
+      .map((lt) => lt.tags)
+      .filter((tag): tag is Tag => tag !== null)
+
+    // Get media sorted by position
+    const media = ((link.link_media as LinkMedia[]) ?? []).sort((a, b) => a.position - b.position)
+
+    // Remove link_tags and link_media from the result and add tags/media arrays
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { link_tags: _lt, link_media: _lm, ...linkWithoutRelations } = link
+    return {
+      ...linkWithoutRelations,
+      tags,
+      media,
+    } as LinkWithTagsAndMedia
+  })
+}
