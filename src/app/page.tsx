@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { Suspense, useState, useCallback, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { LinkForm } from '@/components/LinkForm'
 import { LinkList } from '@/components/LinkList'
 import { Sidebar } from '@/components/Sidebar'
@@ -11,7 +12,10 @@ type LayoutType = 'grid' | 'list'
 
 const LAYOUT_STORAGE_KEY = 'bias-archive-layout'
 
-export default function Home() {
+// Inner component that uses useSearchParams
+function HomeContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
@@ -19,6 +23,16 @@ export default function Home() {
   const [savedUrls, setSavedUrls] = useState<string[]>([])
   const [isExternalSearchOpen, setIsExternalSearchOpen] = useState(false)
   const [layout, setLayout] = useState<LayoutType>('grid')
+
+  // Load tag from URL parameter on mount
+  useEffect(() => {
+    const tagsParam = searchParams.get('tags')
+    if (tagsParam) {
+      // Support single tag for now (first tag if comma-separated)
+      const tagId = tagsParam.split(',')[0]
+      setSelectedTagId(tagId || null)
+    }
+  }, [searchParams])
 
   // Load layout preference from localStorage
   useEffect(() => {
@@ -34,6 +48,22 @@ export default function Home() {
     localStorage.setItem(LAYOUT_STORAGE_KEY, newLayout)
   }, [])
 
+  // Update URL when tag is selected
+  const handleTagSelect = useCallback((tagId: string | null) => {
+    setSelectedTagId(tagId)
+
+    // Update URL parameter
+    const params = new URLSearchParams(searchParams.toString())
+    if (tagId) {
+      params.set('tags', tagId)
+    } else {
+      params.delete('tags')
+    }
+
+    const newUrl = params.toString() ? `?${params.toString()}` : '/'
+    router.push(newUrl, { scroll: false })
+  }, [router, searchParams])
+
   const handleSave = () => {
     // Increment to trigger LinkList refresh
     setRefreshTrigger((prev) => prev + 1)
@@ -48,7 +78,7 @@ export default function Home() {
       <Sidebar
         refreshTrigger={refreshTrigger}
         selectedTagId={selectedTagId}
-        onSelectTag={setSelectedTagId}
+        onSelectTag={handleTagSelect}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         selectedPlatform={selectedPlatform}
@@ -90,5 +120,18 @@ export default function Home() {
         onSave={handleSave}
       />
     </div>
+  )
+}
+
+// Wrap with Suspense for useSearchParams
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   )
 }
