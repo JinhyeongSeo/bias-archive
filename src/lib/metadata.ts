@@ -1,14 +1,51 @@
-import ogs from 'open-graph-scraper'
+/**
+ * Metadata extraction service
+ * Centralized URL metadata extraction with platform detection and error handling
+ */
 
-export type Platform = 'youtube' | 'twitter' | 'weverse' | 'other'
+import {
+  parseYouTube,
+  parseTwitter,
+  parseWeverse,
+  parseGeneric,
+  type Platform,
+  type VideoMetadata,
+} from './parsers'
 
-export interface LinkMetadata {
-  title: string | null
-  description: string | null
-  thumbnailUrl: string | null
-  platform: Platform
-  originalDate: string | null
-  authorName: string | null
+// Re-export types for backward compatibility
+export type { Platform }
+export type LinkMetadata = VideoMetadata
+
+/**
+ * Custom error class for metadata extraction errors
+ */
+export class MetadataError extends Error {
+  constructor(
+    message: string,
+    public readonly errorType: 'INVALID_URL' | 'NETWORK_ERROR' | 'PARSE_ERROR' | 'TIMEOUT',
+    public readonly originalError?: Error
+  ) {
+    super(message)
+    this.name = 'MetadataError'
+  }
+
+  /**
+   * Get user-friendly error message
+   */
+  getUserMessage(): string {
+    switch (this.errorType) {
+      case 'INVALID_URL':
+        return '유효하지 않은 URL입니다. URL 형식을 확인해주세요.'
+      case 'NETWORK_ERROR':
+        return '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      case 'PARSE_ERROR':
+        return '메타데이터를 추출할 수 없습니다. 해당 콘텐츠가 비공개이거나 삭제되었을 수 있습니다.'
+      case 'TIMEOUT':
+        return '요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.'
+      default:
+        return '알 수 없는 오류가 발생했습니다.'
+    }
+  }
 }
 
 /**
@@ -41,130 +78,128 @@ export function detectPlatform(url: string): Platform {
 }
 
 /**
- * Extract metadata from YouTube using oEmbed API
+ * Validate URL format
  */
-async function extractYouTubeMetadata(url: string): Promise<LinkMetadata> {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 5000)
-
+function isValidUrl(url: string): boolean {
   try {
-    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
-    const response = await fetch(oembedUrl, { signal: controller.signal })
-
-    if (!response.ok) {
-      throw new Error(`YouTube oEmbed failed: ${response.status}`)
-    }
-
-    const data = await response.json()
-
-    return {
-      title: data.title || null,
-      description: null, // oEmbed doesn't provide description
-      thumbnailUrl: data.thumbnail_url || null,
-      platform: 'youtube',
-      originalDate: null, // oEmbed doesn't provide date
-      authorName: data.author_name || null,
-    }
-  } finally {
-    clearTimeout(timeoutId)
-  }
-}
-
-/**
- * Extract metadata from Twitter using oEmbed API
- */
-async function extractTwitterMetadata(url: string): Promise<LinkMetadata> {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 5000)
-
-  try {
-    const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
-    const response = await fetch(oembedUrl, { signal: controller.signal })
-
-    if (!response.ok) {
-      throw new Error(`Twitter oEmbed failed: ${response.status}`)
-    }
-
-    const data = await response.json()
-
-    // Twitter oEmbed returns HTML, we extract text from it
-    const htmlContent = data.html || ''
-    // Extract tweet text from the blockquote - simple extraction
-    const tweetTextMatch = htmlContent.match(/<p[^>]*>([^<]+)<\/p>/)
-    const tweetText = tweetTextMatch ? tweetTextMatch[1] : null
-
-    return {
-      title: tweetText || data.author_name ? `${data.author_name}의 트윗` : null,
-      description: tweetText,
-      thumbnailUrl: null, // Twitter oEmbed doesn't provide thumbnail
-      platform: 'twitter',
-      originalDate: null,
-      authorName: data.author_name || null,
-    }
-  } finally {
-    clearTimeout(timeoutId)
-  }
-}
-
-/**
- * Extract metadata using Open Graph scraper for other URLs
- */
-async function extractOpenGraphMetadata(url: string): Promise<LinkMetadata> {
-  try {
-    const { result, error } = await ogs({
-      url,
-      timeout: 5000,
-      fetchOptions: {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; BiasArchiveBot/1.0)',
-        },
-      },
-    })
-
-    if (error) {
-      throw new Error('Open Graph scraping failed')
-    }
-
-    // Get best available image
-    let thumbnailUrl: string | null = null
-    if (result.ogImage && result.ogImage.length > 0) {
-      thumbnailUrl = result.ogImage[0].url
-    } else if (result.twitterImage && result.twitterImage.length > 0) {
-      thumbnailUrl = result.twitterImage[0].url
-    }
-
-    return {
-      title: result.ogTitle || result.twitterTitle || result.dcTitle || null,
-      description: result.ogDescription || result.twitterDescription || result.dcDescription || null,
-      thumbnailUrl,
-      platform: 'other',
-      originalDate: result.ogDate || result.articlePublishedTime || null,
-      authorName: result.author || result.ogArticleAuthor || null,
-    }
+    new URL(url)
+    return true
   } catch {
-    return {
-      title: null,
-      description: null,
-      thumbnailUrl: null,
-      platform: 'other',
-      originalDate: null,
-      authorName: null,
-    }
+    return false
+  }
+}
+
+/**
+ * Validate thumbnail URL
+ */
+function isValidThumbnailUrl(url: string | null): string | null {
+  if (!url) return null
+  try {
+    new URL(url)
+    return url
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Normalize metadata result
+ * - Converts empty strings to null
+ * - Validates thumbnail URL
+ */
+function normalizeMetadata(metadata: VideoMetadata): VideoMetadata {
+  return {
+    title: metadata.title?.trim() || null,
+    description: metadata.description?.trim() || null,
+    thumbnailUrl: isValidThumbnailUrl(metadata.thumbnailUrl),
+    platform: metadata.platform,
+    originalDate: metadata.originalDate?.trim() || null,
+    authorName: metadata.authorName?.trim() || null,
+  }
+}
+
+/**
+ * Sleep utility for retry delay
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Get appropriate parser for platform
+ */
+function getParser(platform: Platform): (url: string) => Promise<VideoMetadata> {
+  switch (platform) {
+    case 'youtube':
+      return parseYouTube
+    case 'twitter':
+      return parseTwitter
+    case 'weverse':
+      return parseWeverse
+    default:
+      return parseGeneric
   }
 }
 
 /**
  * Extract metadata from URL based on platform
+ * Features:
+ * - Platform detection and optimized parsing
+ * - Error handling with typed errors
+ * - Retry logic for network errors (1 retry with 1s delay)
+ * - Result normalization
+ *
+ * @param url - The URL to extract metadata from
+ * @returns LinkMetadata with normalized values
+ * @throws MetadataError for invalid URLs
  */
 export async function extractMetadata(url: string): Promise<LinkMetadata> {
-  const platform = detectPlatform(url)
-
-  switch (platform) {
-    case 'youtube':
-      return extractYouTubeMetadata(url)
-    case 'twitter':
-      return extractTwitterMetadata(url)
-    default:
-      return extractOpenGraphMetadata(url)
+  // Validate URL format
+  if (!isValidUrl(url)) {
+    throw new MetadataError(
+      'Invalid URL format',
+      'INVALID_URL'
+    )
   }
+
+  const platform = detectPlatform(url)
+  const parser = getParser(platform)
+
+  let lastError: Error | undefined
+
+  // Retry logic: try up to 2 times (initial + 1 retry)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const metadata = await parser(url)
+      return normalizeMetadata(metadata)
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+
+      // Log error in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Metadata] Attempt ${attempt + 1} failed for ${url}:`, lastError.message)
+      }
+
+      // Check if it's a timeout/abort error
+      if (lastError.name === 'AbortError') {
+        throw new MetadataError(
+          'Request timed out',
+          'TIMEOUT',
+          lastError
+        )
+      }
+
+      // Wait before retry (only if not the last attempt)
+      if (attempt < 1) {
+        await sleep(1000)
+      }
+    }
+  }
+
+  // If all retries failed, throw appropriate error
+  throw new MetadataError(
+    lastError?.message || 'Failed to extract metadata',
+    'NETWORK_ERROR',
+    lastError
+  )
 }
