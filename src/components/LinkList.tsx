@@ -8,9 +8,12 @@ type LinkWithTags = Link & { tags: Tag[] }
 
 interface LinkListProps {
   refreshTrigger?: number
+  searchQuery?: string
+  tagId?: string | null
+  platform?: string | null
 }
 
-export function LinkList({ refreshTrigger }: LinkListProps) {
+export function LinkList({ refreshTrigger, searchQuery, tagId, platform }: LinkListProps) {
   const [links, setLinks] = useState<LinkWithTags[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -20,7 +23,22 @@ export function LinkList({ refreshTrigger }: LinkListProps) {
     setError(null)
 
     try {
-      const response = await fetch('/api/links')
+      // Build query parameters
+      const params = new URLSearchParams()
+      if (searchQuery?.trim()) {
+        params.set('search', searchQuery.trim())
+      }
+      if (tagId) {
+        params.set('tags', tagId)
+      }
+      if (platform) {
+        params.set('platform', platform)
+      }
+
+      const queryString = params.toString()
+      const url = queryString ? `/api/links?${queryString}` : '/api/links'
+
+      const response = await fetch(url)
       const data = await response.json()
 
       if (!response.ok) {
@@ -33,7 +51,7 @@ export function LinkList({ refreshTrigger }: LinkListProps) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [searchQuery, tagId, platform])
 
   useEffect(() => {
     fetchLinks()

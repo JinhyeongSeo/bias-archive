@@ -5,20 +5,33 @@ import type { Bias, Tag } from '@/types/database'
 import { BiasManager } from './BiasManager'
 import { useRefresh } from '@/contexts/RefreshContext'
 
+const PLATFORMS = [
+  { id: null, label: '전체' },
+  { id: 'youtube', label: 'YouTube' },
+  { id: 'twitter', label: 'Twitter' },
+  { id: 'weverse', label: 'Weverse' },
+]
+
 interface SidebarProps {
   refreshTrigger?: number
   selectedBiasId?: string | null
   onSelectBias?: (biasId: string | null) => void
   selectedTagId?: string | null
   onSelectTag?: (tagId: string | null) => void
+  searchQuery?: string
+  onSearchChange?: (query: string) => void
+  selectedPlatform?: string | null
+  onSelectPlatform?: (platform: string | null) => void
 }
 
 export function Sidebar({
   refreshTrigger,
-  selectedBiasId,
-  onSelectBias,
   selectedTagId,
   onSelectTag,
+  searchQuery = '',
+  onSearchChange,
+  selectedPlatform,
+  onSelectPlatform,
 }: SidebarProps) {
   const { tagRefreshTrigger } = useRefresh()
   const [biases, setBiases] = useState<Bias[]>([])
@@ -73,7 +86,44 @@ export function Sidebar({
   }
 
   return (
-    <aside className="hidden md:flex flex-col w-60 h-[calc(100vh-3.5rem)] border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4">
+    <aside className="hidden md:flex flex-col w-60 h-[calc(100vh-3.5rem)] border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4 overflow-y-auto">
+      {/* Search Input */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2">
+          검색
+        </h2>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => onSearchChange?.(e.target.value)}
+          placeholder="제목, 설명, 작성자 검색..."
+          className="w-full px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+        />
+      </section>
+
+      {/* Platform Filter */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2">
+          플랫폼
+        </h2>
+        <div className="flex flex-wrap gap-1">
+          {PLATFORMS.map((platform) => (
+            <button
+              key={platform.id ?? 'all'}
+              onClick={() => onSelectPlatform?.(platform.id)}
+              className={`px-2 py-1 text-xs rounded transition-colors ${
+                selectedPlatform === platform.id
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              {platform.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Bias Manager */}
       <section className="mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2">
           최애 목록
@@ -91,6 +141,7 @@ export function Sidebar({
         )}
       </section>
 
+      {/* Tags */}
       <section>
         <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2">
           태그
