@@ -11,9 +11,10 @@ interface LinkListProps {
   searchQuery?: string
   tagId?: string | null
   platform?: string | null
+  onLinksLoad?: (urls: string[]) => void
 }
 
-export function LinkList({ refreshTrigger, searchQuery, tagId, platform }: LinkListProps) {
+export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinksLoad }: LinkListProps) {
   const [links, setLinks] = useState<LinkWithTags[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -46,12 +47,16 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform }: LinkL
       }
 
       setLinks(data)
+      // Notify parent of loaded URLs
+      if (onLinksLoad) {
+        onLinksLoad(data.map((link: LinkWithTags) => link.url))
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '오류가 발생했습니다')
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, tagId, platform])
+  }, [searchQuery, tagId, platform, onLinksLoad])
 
   useEffect(() => {
     fetchLinks()

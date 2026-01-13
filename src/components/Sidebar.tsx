@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Bias, Tag } from '@/types/database'
 import { BiasManager } from './BiasManager'
+import { ExternalSearch } from './ExternalSearch'
 import { useRefresh } from '@/contexts/RefreshContext'
 
 const PLATFORMS = [
@@ -22,6 +23,8 @@ interface SidebarProps {
   onSearchChange?: (query: string) => void
   selectedPlatform?: string | null
   onSelectPlatform?: (platform: string | null) => void
+  savedUrls?: string[]
+  onLinkSaved?: () => void
 }
 
 export function Sidebar({
@@ -32,7 +35,10 @@ export function Sidebar({
   onSearchChange,
   selectedPlatform,
   onSelectPlatform,
+  savedUrls = [],
+  onLinkSaved,
 }: SidebarProps) {
+  const [isExternalSearchOpen, setIsExternalSearchOpen] = useState(false)
   const { tagRefreshTrigger } = useRefresh()
   const [biases, setBiases] = useState<Bias[]>([])
   const [tags, setTags] = useState<Tag[]>([])
@@ -99,6 +105,20 @@ export function Sidebar({
           placeholder="제목, 설명, 작성자 검색..."
           className="w-full px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
         />
+      </section>
+
+      {/* External Search */}
+      <section className="mb-6">
+        <button
+          onClick={() => setIsExternalSearchOpen(!isExternalSearchOpen)}
+          className="flex items-center justify-between w-full text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2 hover:text-zinc-700 dark:hover:text-zinc-300"
+        >
+          <span>외부 검색</span>
+          <span className="text-xs">{isExternalSearchOpen ? '▲' : '▼'}</span>
+        </button>
+        {isExternalSearchOpen && (
+          <ExternalSearch savedUrls={savedUrls} onSave={onLinkSaved} />
+        )}
       </section>
 
       {/* Platform Filter */}
