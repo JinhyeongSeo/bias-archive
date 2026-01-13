@@ -5,7 +5,7 @@
  */
 
 import ogs from 'open-graph-scraper'
-import type { VideoMetadata } from './index'
+import type { VideoMetadata, ParsedMedia } from './index'
 
 /**
  * Extract artist/community name from Weverse URL
@@ -64,12 +64,25 @@ export async function parseWeverse(url: string): Promise<VideoMetadata> {
       throw new Error('Weverse Open Graph scraping failed')
     }
 
-    // Get best available image
+    // Get best available image and build media array
     let thumbnailUrl: string | null = null
+    const media: ParsedMedia[] = []
+
     if (result.ogImage && result.ogImage.length > 0) {
       thumbnailUrl = result.ogImage[0].url
+      // Add all ogImages as media for gallery support
+      for (const img of result.ogImage) {
+        if (img.url) {
+          media.push({ url: img.url, type: 'image' })
+        }
+      }
     } else if (result.twitterImage && result.twitterImage.length > 0) {
       thumbnailUrl = result.twitterImage[0].url
+      for (const img of result.twitterImage) {
+        if (img.url) {
+          media.push({ url: img.url, type: 'image' })
+        }
+      }
     }
 
     // Extract description
@@ -85,6 +98,7 @@ export async function parseWeverse(url: string): Promise<VideoMetadata> {
       platform: 'weverse',
       originalDate: result.ogDate || result.articlePublishedTime || null,
       authorName: memberName || communityFromUrl || result.ogSiteName || null,
+      media: media.length > 0 ? media : undefined,
     }
   } catch (error) {
     console.error('[Weverse Parser] Error:', error)

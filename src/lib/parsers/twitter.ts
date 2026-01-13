@@ -68,8 +68,21 @@ export async function parseTwitter(url: string): Promise<VideoMetadata> {
       ? data.text.split('\n')[0].substring(0, 100)
       : `${data.user_name}의 트윗`
 
-    // Get first media URL as thumbnail
-    const thumbnailUrl = data.mediaURLs?.[0] || null
+    // Get thumbnail URL - for videos, use thumbnail_url; for images, use media URL
+    let thumbnailUrl: string | null = null
+    if (data.media_extended && data.media_extended.length > 0) {
+      const firstMedia = data.media_extended[0]
+      if (firstMedia.type === 'video' || firstMedia.type === 'gif') {
+        // For video/gif, use thumbnail_url if available
+        thumbnailUrl = firstMedia.thumbnail_url || null
+      } else {
+        // For images, use the media URL directly
+        thumbnailUrl = firstMedia.url || null
+      }
+    } else if (data.mediaURLs?.[0]) {
+      // Fallback to mediaURLs
+      thumbnailUrl = data.mediaURLs[0]
+    }
 
     // Parse date
     const originalDate = data.date ? new Date(data.date).toISOString().split('T')[0] : null

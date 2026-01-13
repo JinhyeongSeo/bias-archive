@@ -60,11 +60,19 @@ function YouTubeEmbed({ videoId }: { videoId: string }) {
 // Twitter embed component using Twitter widgets.js
 function TwitterEmbed({ tweetId }: { tweetId: string }) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const renderedRef = useRef(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
   useEffect(() => {
     let mounted = true
+
+    // Prevent double rendering in StrictMode
+    if (renderedRef.current) {
+      // Already rendered, just hide loading
+      setLoading(false)
+      return
+    }
 
     const loadTwitterWidget = async () => {
       // Load Twitter widgets.js if not already loaded
@@ -87,7 +95,12 @@ function TwitterEmbed({ tweetId }: { tweetId: string }) {
       // Create the tweet embed
       if (window.twttr && containerRef.current && mounted) {
         try {
-          containerRef.current.innerHTML = ''
+          // Check if already rendered
+          if (containerRef.current.children.length > 0) {
+            setLoading(false)
+            return
+          }
+          renderedRef.current = true
           await window.twttr.widgets.createTweet(tweetId, containerRef.current, {
             theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
             align: 'center',
@@ -124,9 +137,9 @@ function TwitterEmbed({ tweetId }: { tweetId: string }) {
   }
 
   return (
-    <div className="min-h-[200px] flex items-center justify-center">
+    <div className="min-h-[200px] flex flex-col items-center justify-center">
       {loading && (
-        <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+        <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 absolute">
           <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -174,7 +187,7 @@ function ImageGallery({ media }: { media: LinkMedia[] }) {
   return (
     <div className="relative w-full">
       {/* Main image */}
-      <div className="relative w-full" style={{ aspectRatio: '16/10' }}>
+      <div className="relative w-full" style={{ aspectRatio: '4/5', maxHeight: '70vh' }}>
         <Image
           src={images[currentIndex].media_url}
           alt={`Image ${currentIndex + 1} of ${images.length}`}
@@ -269,17 +282,27 @@ export function EmbedViewer({ url, platform, media }: EmbedViewerProps) {
     }
   }
 
-  // Twitter/X - if media exists, show image gallery; otherwise embed tweet
+  // Twitter/X - show image gallery if we have images, otherwise embed tweet
   if (platform === 'twitter') {
-    // If we have media (images), show the gallery
-    if (media && media.length > 0) {
-      return <ImageGallery media={media} />
+    // Check if we have images in media
+    const hasImages = media && media.some(m => m.media_type === 'image')
+
+    if (hasImages) {
+      return <ImageGallery media={media!} />
     }
 
-    // Otherwise try to embed the tweet
+    // For tweets without images (text-only or video), embed the tweet
     const tweetId = extractTweetId(url)
     if (tweetId) {
       return <TwitterEmbed tweetId={tweetId} />
+    }
+  }
+
+  // Weverse - show image gallery if we have images
+  if (platform === 'weverse') {
+    const hasImages = media && media.some(m => m.media_type === 'image')
+    if (hasImages) {
+      return <ImageGallery media={media!} />
     }
   }
 

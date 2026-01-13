@@ -85,13 +85,19 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
     setShowConfirm(false)
   }
 
-  // Check if platform supports in-app viewing
+  // Check if link has video content (for play button display)
+  const hasVideo = platform === 'youtube' ||
+    (platform === 'twitter' && link.media?.some(m => m.media_type === 'video'))
+
+  // Check if platform supports in-app viewing (YouTube and Twitter only, Weverse opens in new tab)
   const supportsViewer = platform === 'youtube' || platform === 'twitter'
 
-  // Handle thumbnail click to open viewer
+  // Handle thumbnail click to open viewer or navigate to link
   const handleThumbnailClick = () => {
     if (supportsViewer) {
       setViewerOpen(true)
+    } else {
+      window.open(link.url, '_blank', 'noopener,noreferrer')
     }
   }
 
@@ -129,8 +135,8 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
             </div>
           )}
 
-          {/* Play button overlay for supported platforms */}
-          {supportsViewer && (
+          {/* Play button overlay for video content only */}
+          {hasVideo && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors">
               <div className="w-10 h-10 flex items-center justify-center rounded-full bg-black/60 text-white opacity-80 group-hover:opacity-100 transition-opacity">
                 <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
@@ -358,8 +364,8 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
           </div>
         )}
 
-        {/* Play button overlay for supported platforms */}
-        {supportsViewer && (
+        {/* Play button overlay for video content only */}
+        {hasVideo && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors">
             <div className="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 text-white opacity-80 group-hover:opacity-100 transition-opacity">
               <svg className="w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24">

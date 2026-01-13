@@ -240,6 +240,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
           thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
           platform: fullMetadata.platform || result.platform,
           authorName: fullMetadata.authorName || result.author,
+          media: fullMetadata.media,
         }
       }
 
@@ -253,6 +254,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
           platform: metadata.platform,
           authorName: metadata.authorName,
           searchQuery: query, // Pass search query as hint for auto-tagging
+          media: metadata.media,
         }),
       })
 
