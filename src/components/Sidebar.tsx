@@ -43,6 +43,8 @@ export function Sidebar({
     { id: 'youtube', label: t('platform.youtube') },
     { id: 'twitter', label: t('platform.twitter') },
     { id: 'weverse', label: t('platform.weverse') },
+    { id: 'heye', label: t('platform.heye') },
+    { id: 'kgirls', label: t('platform.kgirls') },
   ]
 
   const fetchBiases = useCallback(async () => {
