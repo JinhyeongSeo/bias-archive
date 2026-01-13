@@ -158,8 +158,8 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
       const membersToAdd = groupMembers
         .filter((m) => selectedMembers.has(m.id))
         .map((m) => ({
-          name: m.name,
-          groupName: selectedGroup.name,
+          name: m.name_original,
+          groupName: selectedGroup.nameOriginal,
         }))
 
       const response = await fetch('/api/biases/batch', {
