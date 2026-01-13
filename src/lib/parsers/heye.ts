@@ -90,15 +90,11 @@ export async function parseHeye(url: string): Promise<VideoMetadata> {
       addMedia(match[0])
     }
 
-    // Pattern 2: heye.kr native videos - https://img1.heye.kr/video/idol/YYYY/MM/timestamp.mp4
-    const heyeVideoPattern = /https?:\/\/img1\.heye\.kr\/video\/idol\/\d{4}\/\d{2}\/\d+\.(mp4|webm)/gi
-    for (const match of html.matchAll(heyeVideoPattern)) {
-      addMedia(match[0], 'video')
-    }
+    // Note: heye.kr videos are hotlink-protected and cannot be played externally
+    // So we skip video extraction - only images are supported
 
-    // Prefer first image as thumbnail, fallback to first video
-    const firstImage = media.find(m => m.type === 'image' || m.type === 'gif')
-    const thumbnailUrl = firstImage?.url || (media.length > 0 ? media[0].url : null)
+    // First image is thumbnail
+    const thumbnailUrl = media.length > 0 ? media[0].url : null
 
     return {
       title: title || null,
