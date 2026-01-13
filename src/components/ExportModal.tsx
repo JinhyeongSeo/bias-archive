@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslations } from 'next-intl'
 import type { ExportData, ImportResult } from '@/lib/export'
 
 interface ExportModalProps {
@@ -13,6 +14,8 @@ interface ExportModalProps {
 type TabType = 'export' | 'import'
 
 export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalProps) {
+  const t = useTranslations('export')
+  const te = useTranslations('errors')
   const [activeTab, setActiveTab] = useState<TabType>('export')
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
@@ -88,7 +91,7 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
     try {
       const response = await fetch('/api/export')
       if (!response.ok) {
-        throw new Error('내보내기에 실패했습니다')
+        throw new Error(te('exportFailed'))
       }
 
       const data = await response.json()
@@ -108,7 +111,7 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다')
+      setError(err instanceof Error ? err.message : te('unknownError'))
     } finally {
       setIsExporting(false)
     }
@@ -132,12 +135,12 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
 
         // Basic validation
         if (!data.version || !data.links || !data.tags || !data.biases) {
-          throw new Error('유효하지 않은 백업 파일입니다')
+          throw new Error(te('invalidBackup'))
         }
 
         setImportPreview(data)
       } catch {
-        setError('파일을 읽을 수 없습니다. 유효한 백업 파일인지 확인해주세요.')
+        setError(te('fileReadError'))
       }
     }
     reader.readAsText(file)
@@ -158,14 +161,14 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || '가져오기에 실패했습니다')
+        throw new Error(errorData.error || te('importFailed'))
       }
 
       const result = await response.json()
       setImportResult(result.result)
       onImportComplete?.()
     } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다')
+      setError(err instanceof Error ? err.message : te('unknownError'))
     } finally {
       setIsImporting(false)
     }
@@ -182,12 +185,12 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-700">
           <h2 className="font-semibold text-zinc-900 dark:text-zinc-100 text-lg">
-            데이터 관리
+            {t('title')}
           </h2>
           <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition-colors"
-            aria-label="닫기"
+            aria-label={t('close')}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -205,7 +208,7 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
                 : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
             }`}
           >
-            내보내기
+            {t('export')}
           </button>
           <button
             onClick={() => setActiveTab('import')}
@@ -215,7 +218,7 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
                 : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
             }`}
           >
-            가져오기
+            {t('import')}
           </button>
         </div>
 
@@ -224,16 +227,16 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
           {activeTab === 'export' ? (
             <div className="space-y-4">
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                모든 아카이브 데이터를 JSON 파일로 백업합니다.
+                {t('exportDescription')}
               </p>
 
               {/* Stats */}
               {exportStats && (
                 <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
                   <div className="text-sm text-zinc-700 dark:text-zinc-300">
-                    <p>링크: <span className="font-medium">{exportStats.links}개</span></p>
-                    <p>태그: <span className="font-medium">{exportStats.tags}개</span></p>
-                    <p>최애: <span className="font-medium">{exportStats.biases}개</span></p>
+                    <p>{t('links')}: <span className="font-medium">{exportStats.links}</span></p>
+                    <p>{t('tags')}: <span className="font-medium">{exportStats.tags}</span></p>
+                    <p>{t('biases')}: <span className="font-medium">{exportStats.biases}</span></p>
                   </div>
                 </div>
               )}
@@ -246,13 +249,13 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                {isExporting ? '내보내는 중...' : 'JSON 다운로드'}
+                {isExporting ? t('downloading') : t('download')}
               </button>
             </div>
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                백업 파일을 업로드하여 데이터를 복원합니다. 기존 데이터는 유지됩니다.
+                {t('importDescription')}
               </p>
 
               {/* File upload */}
@@ -263,7 +266,7 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
                     <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                      {importFile ? importFile.name : '클릭하여 파일 선택'}
+                      {importFile ? importFile.name : t('selectFile')}
                     </p>
                   </div>
                 </div>
@@ -278,13 +281,13 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
               {/* Preview */}
               {importPreview && !importResult && (
                 <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
-                  <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">가져올 데이터:</p>
+                  <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{t('importData')}:</p>
                   <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                    <p>링크: <span className="font-medium">{importPreview.links.length}개</span></p>
-                    <p>태그: <span className="font-medium">{importPreview.tags.length}개</span></p>
-                    <p>최애: <span className="font-medium">{importPreview.biases.length}개</span></p>
+                    <p>{t('links')}: <span className="font-medium">{importPreview.links.length}</span></p>
+                    <p>{t('tags')}: <span className="font-medium">{importPreview.tags.length}</span></p>
+                    <p>{t('biases')}: <span className="font-medium">{importPreview.biases.length}</span></p>
                     <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                      백업 날짜: {new Date(importPreview.exportedAt).toLocaleString('ko-KR')}
+                      {t('backupDate')}: {new Date(importPreview.exportedAt).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -293,19 +296,19 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
               {/* Import result */}
               {importResult && (
                 <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-2">가져오기 완료!</p>
+                  <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-2">{t('importComplete')}</p>
                   <div className="text-sm text-green-600 dark:text-green-400">
-                    <p>추가됨: 링크 {importResult.imported.links}개, 태그 {importResult.imported.tags}개, 최애 {importResult.imported.biases}개</p>
-                    <p>스킵됨: 링크 {importResult.skipped.links}개, 태그 {importResult.skipped.tags}개, 최애 {importResult.skipped.biases}개</p>
+                    <p>{t('added')}: {t('links')} {importResult.imported.links}, {t('tags')} {importResult.imported.tags}, {t('biases')} {importResult.imported.biases}</p>
+                    <p>{t('skipped')}: {t('links')} {importResult.skipped.links}, {t('tags')} {importResult.skipped.tags}, {t('biases')} {importResult.skipped.biases}</p>
                     {importResult.errors.length > 0 && (
                       <div className="mt-2 text-red-600 dark:text-red-400">
-                        <p className="font-medium">오류:</p>
+                        <p className="font-medium">{t('errors')}:</p>
                         <ul className="list-disc list-inside text-xs">
                           {importResult.errors.slice(0, 5).map((err, i) => (
                             <li key={i}>{err}</li>
                           ))}
                           {importResult.errors.length > 5 && (
-                            <li>...외 {importResult.errors.length - 5}개</li>
+                            <li>...+{importResult.errors.length - 5}</li>
                           )}
                         </ul>
                       </div>
@@ -329,7 +332,7 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                {isImporting ? '가져오는 중...' : importResult ? '완료' : '가져오기'}
+                {isImporting ? t('uploading') : importResult ? t('success') : t('import')}
               </button>
             </div>
           )}

@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useCallback, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { LinkForm } from '@/components/LinkForm'
 import { LinkList } from '@/components/LinkList'
 import { Sidebar } from '@/components/Sidebar'
@@ -15,6 +16,7 @@ const LAYOUT_STORAGE_KEY = 'bias-archive-layout'
 
 // Inner component that uses useSearchParams
 function HomeContent() {
+  const t = useTranslations()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [refreshTrigger, setRefreshTrigger] = useState(0)
@@ -61,7 +63,7 @@ function HomeContent() {
       params.delete('tags')
     }
 
-    const newUrl = params.toString() ? `?${params.toString()}` : '/'
+    const newUrl = params.toString() ? `?${params.toString()}` : './'
     router.push(newUrl, { scroll: false })
   }, [router, searchParams])
 
@@ -90,7 +92,7 @@ function HomeContent() {
       <main className="flex-1 flex flex-col items-center pt-12 px-4 sm:px-8">
         <div className="w-full max-w-2xl">
           <h2 className="text-xl font-semibold text-zinc-800 dark:text-zinc-200 mb-6 text-center">
-            링크 추가
+            {t('link.add')}
           </h2>
           <LinkForm onSave={handleSave} />
         </div>
@@ -103,7 +105,7 @@ function HomeContent() {
         <div className="w-full max-w-6xl">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-zinc-800 dark:text-zinc-200">
-              저장된 링크
+              {t('link.savedLinks')}
             </h2>
             <LayoutToggle layout={layout} onChange={handleLayoutChange} />
           </div>

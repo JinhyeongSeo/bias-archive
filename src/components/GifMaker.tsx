@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { convertToGif, loadFFmpeg, type ConvertProgress } from '@/lib/ffmpeg'
 
 interface GifMakerProps {
@@ -8,6 +9,8 @@ interface GifMakerProps {
 }
 
 export function GifMaker({ className = '' }: GifMakerProps) {
+  const t = useTranslations('gif')
+  const te = useTranslations('errors')
   const [file, setFile] = useState<File | null>(null)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [videoDuration, setVideoDuration] = useState<number>(0)
@@ -45,7 +48,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
   const handleFileSelect = useCallback((selectedFile: File) => {
     // Validate file type
     if (!selectedFile.type.startsWith('video/')) {
-      setError('비디오 파일만 업로드할 수 있습니다.')
+      setError(te('videoOnly'))
       return
     }
 
@@ -100,7 +103,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
 
   const handleConvert = async () => {
     if (!file) {
-      setError('파일을 먼저 업로드해주세요.')
+      setError(te('uploadFirst'))
       return
     }
 
@@ -126,7 +129,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
       setGifUrl(URL.createObjectURL(blob))
     } catch (err) {
       console.error('GIF conversion error:', err)
-      setError(err instanceof Error ? err.message : 'GIF 변환 중 오류가 발생했습니다.')
+      setError(err instanceof Error ? err.message : te('conversionError'))
     } finally {
       setIsLoading(false)
     }
@@ -178,7 +181,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          FFmpeg를 로딩하고 있습니다...
+          {t('loadingFFmpeg')}
         </div>
       )}
 
@@ -205,10 +208,10 @@ export function GifMaker({ className = '' }: GifMakerProps) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
         <p className="text-zinc-600 dark:text-zinc-400 mb-1">
-          비디오 파일을 드래그하거나 클릭해서 업로드하세요
+          {t('upload')}
         </p>
         <p className="text-sm text-zinc-400 dark:text-zinc-500">
-          MP4, WebM, MOV 등 대부분의 비디오 형식 지원
+          {t('supportedFormats')}
         </p>
       </div>
 
@@ -230,7 +233,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
             {/* Start Time */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                시작 시간: {startTime.toFixed(1)}초
+                {t('startTime')}: {startTime.toFixed(1)}{t('seconds')}
               </label>
               <input
                 type="range"
@@ -253,7 +256,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
             {/* Duration */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                지속 시간: {duration.toFixed(1)}초
+                {t('duration')}: {duration.toFixed(1)}{t('seconds')}
               </label>
               <input
                 type="range"
@@ -269,7 +272,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
             {/* FPS */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                FPS: {fps}
+                {t('fps')}: {fps}
               </label>
               <input
                 type="range"
@@ -285,7 +288,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
             {/* Width */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                너비: {width}px
+                {t('width')}: {width}px
               </label>
               <input
                 type="range"
@@ -312,7 +315,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  변환 중...
+                  {t('creating')}
                 </>
               ) : (
                 <>
@@ -320,7 +323,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  GIF 생성
+                  {t('create')}
                 </>
               )}
             </button>
@@ -329,7 +332,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
               disabled={isLoading}
               className="px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 font-medium transition-colors"
             >
-              초기화
+              {t('reset')}
             </button>
           </div>
 
@@ -343,7 +346,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
                 />
               </div>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center">
-                {Math.round(progress * 100)}% 완료
+                {Math.round(progress * 100)}% {t('progress')}
               </p>
             </div>
           )}
@@ -364,7 +367,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
             <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            GIF 생성 완료
+            {t('complete')}
           </h3>
           <div className="rounded-lg overflow-hidden bg-white dark:bg-zinc-900 mb-4">
             <img
@@ -375,7 +378,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
           </div>
           <div className="flex items-center justify-between">
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              크기: {gifBlob ? `${(gifBlob.size / 1024).toFixed(1)} KB` : '-'}
+              {t('size')}: {gifBlob ? `${(gifBlob.size / 1024).toFixed(1)} KB` : '-'}
             </p>
             <button
               onClick={handleDownload}
@@ -384,7 +387,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              다운로드
+              {t('download')}
             </button>
           </div>
         </div>
