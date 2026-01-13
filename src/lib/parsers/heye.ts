@@ -62,29 +62,47 @@ export async function parseHeye(url: string): Promise<VideoMetadata> {
     }
 
     // Extract images using regex (content is loaded via JavaScript, so DOM parsing doesn't work)
-    // Look for img1.heye.kr image URLs in the HTML source
+    // Multiple image sources are used in heye.kr posts
     const media: ParsedMedia[] = []
     const seenUrls = new Set<string>()
 
-    // Pattern: https://img1.heye.kr/image/idol/YYYY/MM/timestamp.jpeg|jpg|png|gif
-    const imagePattern = /https?:\/\/img1\.heye\.kr\/image\/idol\/\d{4}\/\d{2}\/\d+\.(jpeg|jpg|png|gif)/gi
-    const matches = html.matchAll(imagePattern)
-
-    for (const match of matches) {
-      const src = match[0]
-
-      // Skip duplicate URLs
-      if (seenUrls.has(src)) continue
+    // Helper to add media if not duplicate
+    const addMedia = (src: string) => {
+      if (seenUrls.has(src)) return
       seenUrls.add(src)
 
-      // Determine media type
       const lowerSrc = src.toLowerCase()
       let type: MediaType = 'image'
       if (lowerSrc.endsWith('.gif')) {
         type = 'gif'
       }
-
       media.push({ url: src, type })
+    }
+
+    // Pattern 1: heye.kr native images - https://img1.heye.kr/image/idol/YYYY/MM/timestamp.ext
+    const heyePattern = /https?:\/\/img1\.heye\.kr\/image\/idol\/\d{4}\/\d{2}\/\d+\.(jpeg|jpg|png|gif)/gi
+    for (const match of html.matchAll(heyePattern)) {
+      addMedia(match[0])
+    }
+
+    // Pattern 2: imgur images/GIFs - https://i.imgur.com/xxxxx.ext
+    const imgurPattern = /https?:\/\/i\.imgur\.com\/[a-zA-Z0-9]+\.(jpeg|jpg|png|gif)/gi
+    for (const match of html.matchAll(imgurPattern)) {
+      addMedia(match[0])
+    }
+
+    // Pattern 3: Daum CDN images - https://t1.daumcdn.net/thumb/...
+    // These wrap external images, extract the actual image URL from fname parameter
+    const daumPattern = /https?:\/\/t1\.daumcdn\.net\/thumb\/R\d+x\d+\/\?fname=(https?:\/\/[^"'\s&]+\.(jpeg|jpg|png|gif))/gi
+    for (const match of html.matchAll(daumPattern)) {
+      // Decode the URL from fname parameter
+      try {
+        const actualUrl = decodeURIComponent(match[1])
+        addMedia(actualUrl)
+      } catch {
+        // If decode fails, use the wrapped URL
+        addMedia(match[0])
+      }
     }
 
     // First image is thumbnail
