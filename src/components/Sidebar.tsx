@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Bias, Tag } from '@/types/database'
 import { BiasManager } from './BiasManager'
+import { ExportModal } from './ExportModal'
 import { useRefresh } from '@/contexts/RefreshContext'
 
 const PLATFORMS = [
@@ -40,6 +41,7 @@ export function Sidebar({
   const [tags, setTags] = useState<Tag[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isTagsLoading, setIsTagsLoading] = useState(true)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
 
   const fetchBiases = useCallback(async () => {
     try {
@@ -213,6 +215,29 @@ export function Sidebar({
           </ul>
         )}
       </section>
+
+      {/* Data Management */}
+      <section className="mt-auto pt-4 border-t border-zinc-200 dark:border-zinc-700">
+        <button
+          onClick={() => setIsExportModalOpen(true)}
+          className="w-full px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+          <span>데이터 관리</span>
+        </button>
+      </section>
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onImportComplete={() => {
+          fetchBiases()
+          fetchTags()
+        }}
+      />
     </aside>
   )
 }
