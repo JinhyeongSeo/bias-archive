@@ -1,14 +1,39 @@
 /**
  * Twitter/X metadata parser
- * Uses oEmbed API for tweet metadata extraction
- * Falls back to OG scraper for thumbnail
+ * Uses vxtwitter API for reliable metadata extraction including images
  */
 
-import ogs from 'open-graph-scraper'
 import type { VideoMetadata } from './index'
+
+interface VxTwitterResponse {
+  text: string
+  user_name: string
+  user_screen_name: string
+  date: string
+  mediaURLs?: string[]
+  tweetID: string
+}
+
+/**
+ * Extract tweet ID and username from Twitter/X URL
+ */
+function parseTweetUrl(url: string): { username: string; tweetId: string } | null {
+  try {
+    const urlObj = new URL(url)
+    // Pattern: twitter.com/username/status/1234 or x.com/username/status/1234
+    const match = urlObj.pathname.match(/\/([^/]+)\/status\/(\d+)/)
+    if (match) {
+      return { username: match[1], tweetId: match[2] }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
 
 /**
  * Parse Twitter/X URL and extract metadata
+ * Uses vxtwitter API for reliable metadata including images
  * @param url - Twitter or X.com URL
  * @returns VideoMetadata with Twitter-specific handling
  */
@@ -17,86 +42,53 @@ export async function parseTwitter(url: string): Promise<VideoMetadata> {
   const timeoutId = setTimeout(() => controller.abort(), 5000)
 
   try {
-    const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
-    const response = await fetch(oembedUrl, { signal: controller.signal })
+    const parsed = parseTweetUrl(url)
+    if (!parsed) {
+      throw new Error('Invalid Twitter URL format')
+    }
+
+    const apiUrl = `https://api.vxtwitter.com/${parsed.username}/status/${parsed.tweetId}`
+    const response = await fetch(apiUrl, { signal: controller.signal })
 
     if (!response.ok) {
-      throw new Error(`Twitter oEmbed failed: ${response.status}`)
+      throw new Error(`vxtwitter API failed: ${response.status}`)
     }
 
-    const data = await response.json()
+    const data: VxTwitterResponse = await response.json()
 
-    // Twitter oEmbed returns HTML, extract text from it
-    const htmlContent = data.html || ''
+    // Use first line of tweet as title
+    const title = data.text
+      ? data.text.split('\n')[0].substring(0, 100)
+      : `${data.user_name}의 트윗`
 
-    // Extract tweet text from the blockquote paragraph
-    // The paragraph may contain <a> tags for hashtags/links, so we need to capture everything inside <p>
-    const tweetTextMatch = htmlContent.match(/<p[^>]*>([\s\S]*?)<\/p>/)
-    // Strip HTML tags to get plain text
-    const rawText = tweetTextMatch ? tweetTextMatch[1].replace(/<[^>]+>/g, '').trim() : null
-    const tweetText = rawText || null
+    // Get first media URL as thumbnail
+    const thumbnailUrl = data.mediaURLs?.[0] || null
 
-    // Use first line of tweet as title, or author name
-    const title = tweetText
-      ? tweetText.split('\n')[0].substring(0, 100)
-      : data.author_name
-        ? `${data.author_name}의 트윗`
-        : null
-
-    // Try to get thumbnail via OG scraper
-    let thumbnailUrl: string | null = null
-    try {
-      const ogResult = await ogs({ url, timeout: 5000 })
-      if (ogResult.result.ogImage && ogResult.result.ogImage.length > 0) {
-        thumbnailUrl = ogResult.result.ogImage[0].url || null
-      }
-    } catch {
-      // OG scraper failed, continue without thumbnail
-    }
+    // Parse date
+    const originalDate = data.date ? new Date(data.date).toISOString().split('T')[0] : null
 
     return {
       title,
-      description: tweetText,
+      description: data.text || null,
       thumbnailUrl,
       platform: 'twitter',
-      originalDate: null,
-      authorName: data.author_name || null,
+      originalDate,
+      authorName: data.user_name || null,
     }
   } catch (error) {
-    // oEmbed failed, try OG scraper as fallback
     if (error instanceof Error && error.name === 'AbortError') {
-      console.error('[Twitter Parser] Timeout fetching oEmbed')
+      console.error('[Twitter Parser] Timeout fetching metadata')
     } else {
-      console.error('[Twitter Parser] oEmbed failed, trying OG scraper:', error)
+      console.error('[Twitter Parser] Error:', error)
     }
 
-    // Fallback to OG scraper for basic metadata
-    try {
-      const ogResult = await ogs({ url, timeout: 5000 })
-      const result = ogResult.result
-
-      const title = result.ogTitle || result.twitterTitle || null
-      const thumbnailUrl = result.ogImage?.[0]?.url || result.twitterImage?.[0]?.url || null
-      const description = result.ogDescription || result.twitterDescription || null
-
-      return {
-        title,
-        description,
-        thumbnailUrl,
-        platform: 'twitter',
-        originalDate: null,
-        authorName: null,
-      }
-    } catch (ogError) {
-      console.error('[Twitter Parser] OG scraper also failed:', ogError)
-      return {
-        title: url,
-        description: null,
-        thumbnailUrl: null,
-        platform: 'twitter',
-        originalDate: null,
-        authorName: null,
-      }
+    return {
+      title: url,
+      description: null,
+      thumbnailUrl: null,
+      platform: 'twitter',
+      originalDate: null,
+      authorName: null,
     }
   } finally {
     clearTimeout(timeoutId)
