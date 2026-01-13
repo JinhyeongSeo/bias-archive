@@ -63,7 +63,14 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
   }, [fetchLinks, refreshTrigger])
 
   const handleDelete = (id: string) => {
-    setLinks((prev) => prev.filter((link) => link.id !== id))
+    setLinks((prev) => {
+      const updated = prev.filter((link) => link.id !== id)
+      // Notify parent of updated URLs to sync savedUrls state
+      if (onLinksLoad) {
+        onLinksLoad(updated.map((link) => link.url))
+      }
+      return updated
+    })
   }
 
   if (loading) {
