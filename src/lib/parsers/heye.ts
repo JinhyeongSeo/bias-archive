@@ -61,44 +61,31 @@ export async function parseHeye(url: string): Promise<VideoMetadata> {
       authorName = authorMatch[1].trim()
     }
 
-    // Extract all images from #div_content
-    const contentDiv = $('#div_content')
+    // Extract images using regex (content is loaded via JavaScript, so DOM parsing doesn't work)
+    // Look for img1.heye.kr image URLs in the HTML source
     const media: ParsedMedia[] = []
     const seenUrls = new Set<string>()
 
-    contentDiv.find('img').each((_, img) => {
-      let src = $(img).attr('src')
-      if (!src) return
+    // Pattern: https://img1.heye.kr/image/idol/YYYY/MM/timestamp.jpeg|jpg|png|gif
+    const imagePattern = /https?:\/\/img1\.heye\.kr\/image\/idol\/\d{4}\/\d{2}\/\d+\.(jpeg|jpg|png|gif)/gi
+    const matches = html.matchAll(imagePattern)
 
-      // Convert relative URL to absolute
-      if (src.startsWith('/')) {
-        src = `https://www.heye.kr${src}`
-      } else if (src.startsWith('./')) {
-        src = `https://www.heye.kr${src.substring(1)}`
-      } else if (!src.startsWith('http')) {
-        // Handle other relative paths
-        const urlObj = new URL(url)
-        src = `${urlObj.origin}/${src}`
-      }
+    for (const match of matches) {
+      const src = match[0]
 
       // Skip duplicate URLs
-      if (seenUrls.has(src)) return
+      if (seenUrls.has(src)) continue
       seenUrls.add(src)
-
-      // Skip small icons, emoticons, etc.
-      if (src.includes('/icon/') || src.includes('/emoticon/') || src.includes('/level/')) {
-        return
-      }
 
       // Determine media type
       const lowerSrc = src.toLowerCase()
       let type: MediaType = 'image'
-      if (lowerSrc.endsWith('.gif') || lowerSrc.includes('.gif?')) {
+      if (lowerSrc.endsWith('.gif')) {
         type = 'gif'
       }
 
       media.push({ url: src, type })
-    })
+    }
 
     // First image is thumbnail
     const thumbnailUrl = media.length > 0 ? media[0].url : null
