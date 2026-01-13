@@ -20,7 +20,8 @@
 - [ ] 자동 태그: 제목/설명에서 멤버명, 활동명 자동 추출
 - [ ] 여러 최애 지원: 여러 아이돌/그룹을 개별 추적
 - [ ] 여러 플랫폼 지원: YouTube, Twitter/X, Weverse 등
-- [ ] 검색: 태그 필터링 + 텍스트 검색
+- [ ] 통합 검색: 앱 내에서 YouTube/Twitter 등 검색 → 미리보기 → 선택 저장
+- [ ] 아카이브 검색: 태그 필터링 + 텍스트 검색
 - [ ] 뷰어: 임베드 플레이어 + 원본 링크 제공
 - [ ] UI 레이아웃: 그리드/리스트 전환 가능
 - [ ] GIF 생성기: 영상 구간을 GIF로 변환 (URL + 로컬 파일)
@@ -56,6 +57,7 @@
 | Supabase for DB | 무료 티어 충분, Next.js와 잘 통합 | — Pending |
 | 브라우저 GIF 처리 | 서버 비용 0, v1에 적합 | — Pending |
 | 텍스트 기반 태그 추출 | 미리 등록 없이 자동 분석 | — Pending |
+| 통합 검색 기능 | URL 직접 입력 없이도 콘텐츠 발견 가능 | — Pending |
 
 ---
-*Last updated: 2026-01-13 after initialization*
+*Last updated: 2026-01-13 after adding integrated search*
