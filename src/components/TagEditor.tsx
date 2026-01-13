@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import type { Tag } from '@/types/database'
+import { useRefresh } from '@/contexts/RefreshContext'
 
 interface TagEditorProps {
   linkId: string
@@ -11,6 +12,7 @@ interface TagEditorProps {
 }
 
 export function TagEditor({ linkId, currentTags, onTagsChange, onClose }: TagEditorProps) {
+  const { refreshTags } = useRefresh()
   const [inputValue, setInputValue] = useState('')
   const [allTags, setAllTags] = useState<Tag[]>([])
   const [filteredTags, setFilteredTags] = useState<Tag[]>([])
@@ -75,6 +77,8 @@ export function TagEditor({ linkId, currentTags, onTagsChange, onClose }: TagEdi
         onTagsChange(updatedTags)
         setInputValue('')
         setShowSuggestions(false)
+        // Refresh sidebar tag list
+        refreshTags()
       }
     } catch (error) {
       console.error('Error adding tag:', error)

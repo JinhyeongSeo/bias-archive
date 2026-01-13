@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Bias, Tag } from '@/types/database'
 import { BiasManager } from './BiasManager'
+import { useRefresh } from '@/contexts/RefreshContext'
 
 interface SidebarProps {
   refreshTrigger?: number
@@ -19,11 +20,11 @@ export function Sidebar({
   selectedTagId,
   onSelectTag,
 }: SidebarProps) {
+  const { tagRefreshTrigger } = useRefresh()
   const [biases, setBiases] = useState<Bias[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isTagsLoading, setIsTagsLoading] = useState(true)
-  const [internalRefresh, setInternalRefresh] = useState(0)
 
   const fetchBiases = useCallback(async () => {
     try {
@@ -56,10 +57,10 @@ export function Sidebar({
   useEffect(() => {
     fetchBiases()
     fetchTags()
-  }, [fetchBiases, fetchTags, refreshTrigger, internalRefresh])
+  }, [fetchBiases, fetchTags, refreshTrigger, tagRefreshTrigger])
 
-  function handleBiasChange() {
-    setInternalRefresh((prev) => prev + 1)
+  async function handleBiasChange() {
+    await fetchBiases()
   }
 
   function handleTagClick(tagId: string) {
