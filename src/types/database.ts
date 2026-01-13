@@ -120,6 +120,40 @@ export type Database = {
           }
         ]
       }
+      link_media: {
+        Row: {
+          id: string
+          link_id: string
+          media_url: string
+          media_type: 'image' | 'video' | 'gif'
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          link_id: string
+          media_url: string
+          media_type: 'image' | 'video' | 'gif'
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          link_id?: string
+          media_url?: string
+          media_type?: 'image' | 'video' | 'gif'
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'link_media_link_id_fkey'
+            columns: ['link_id']
+            isOneToOne: false
+            referencedRelation: 'links'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -141,15 +175,21 @@ export type Bias = Database['public']['Tables']['biases']['Row']
 export type Link = Database['public']['Tables']['links']['Row']
 export type Tag = Database['public']['Tables']['tags']['Row']
 export type LinkTag = Database['public']['Tables']['link_tags']['Row']
+export type LinkMedia = Database['public']['Tables']['link_media']['Row']
 
 // Insert types
 export type BiasInsert = Database['public']['Tables']['biases']['Insert']
 export type LinkInsert = Database['public']['Tables']['links']['Insert']
 export type TagInsert = Database['public']['Tables']['tags']['Insert']
 export type LinkTagInsert = Database['public']['Tables']['link_tags']['Insert']
+export type LinkMediaInsert = Database['public']['Tables']['link_media']['Insert']
 
 // Update types
 export type BiasUpdate = Database['public']['Tables']['biases']['Update']
 export type LinkUpdate = Database['public']['Tables']['links']['Update']
 export type TagUpdate = Database['public']['Tables']['tags']['Update']
 export type LinkTagUpdate = Database['public']['Tables']['link_tags']['Update']
+export type LinkMediaUpdate = Database['public']['Tables']['link_media']['Update']
+
+// Composite types
+export type LinkWithMedia = Link & { media: LinkMedia[] }
