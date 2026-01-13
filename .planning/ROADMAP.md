@@ -17,7 +17,7 @@ None
 - [x] **Phase 1: Foundation** - Next.js + Supabase 프로젝트 셋업, DB 스키마, 기본 UI ✓
 - [x] **Phase 2: Link Management** - URL 입력, 메타데이터 자동 추출, 저장 (핵심) ✓
 - [x] **Phase 3: Tagging & Multi-Bias** - 자동 태그 추출, 여러 최애 지원 ✓
-- [ ] **Phase 4: Search & Filter** - 아카이브 검색, 태그 필터링, 통합 검색
+- [x] **Phase 4: Search & Filter** - 아카이브 검색, 태그 필터링, 통합 검색 ✓
 - [ ] **Phase 5: Viewer & Timeline** - 임베드 뷰어, 레이아웃 전환, 과거의 오늘
 - [ ] **Phase 6: GIF & Export** - 브라우저 GIF 생성, JSON 내보내기, 다국어
 
@@ -65,8 +65,8 @@ Plans:
 **Plans**: 2
 
 Plans:
-- [ ] 04-01: 아카이브 검색 및 태그 필터링
-- [ ] 04-02: YouTube 통합 검색
+- [x] 04-01: 아카이브 검색 및 태그 필터링
+- [x] 04-02: YouTube 통합 검색
 
 ### Phase 5: Viewer & Timeline
 **Goal**: 임베드 플레이어, 그리드/리스트 전환, '과거의 오늘' 타임라인, 태그별 앨범
@@ -103,6 +103,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Foundation | 3/3 | Complete | 2026-01-13 |
 | 2. Link Management | 3/3 | Complete | 2026-01-13 |
 | 3. Tagging & Multi-Bias | 3/3 | Complete | 2026-01-13 |
-| 4. Search & Filter | 0/2 | Not started | - |
+| 4. Search & Filter | 2/2 | Complete | 2026-01-13 |
 | 5. Viewer & Timeline | 0/5 | Not started | - |
 | 6. GIF & Export | 0/3 | Not started | - |
