@@ -1,7 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { Bias } from '@/types/database'
+
+interface KpopGroup {
+  id: string
+  name: string
+  name_original: string
+  memberCount: number
+}
+
+interface KpopMember {
+  id: string
+  name: string
+  name_original: string
+}
 
 interface BiasManagerProps {
   biases: Bias[]
@@ -15,6 +28,176 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
   const [groupName, setGroupName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  // Group mode state
+  const [isGroupMode, setIsGroupMode] = useState(false)
+  const [groupQuery, setGroupQuery] = useState('')
+  const [groupResults, setGroupResults] = useState<KpopGroup[]>([])
+  const [selectedGroup, setSelectedGroup] = useState<{ id: string; name: string; nameOriginal: string } | null>(null)
+  const [groupMembers, setGroupMembers] = useState<KpopMember[]>([])
+  const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
+  const [isSearching, setIsSearching] = useState(false)
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false)
+  const [isBatchAdding, setIsBatchAdding] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
+
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Debounced group search
+  const searchGroups = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setGroupResults([])
+      setShowDropdown(false)
+      return
+    }
+
+    setIsSearching(true)
+    try {
+      const response = await fetch(`/api/kpop/groups?q=${encodeURIComponent(query.trim())}`)
+      if (response.ok) {
+        const data = await response.json()
+        setGroupResults(data.groups || [])
+        setShowDropdown(true)
+      }
+    } catch (error) {
+      console.error('Error searching groups:', error)
+    } finally {
+      setIsSearching(false)
+    }
+  }, [])
+
+  // Handle group query change with debounce
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    if (groupQuery.trim()) {
+      searchTimeoutRef.current = setTimeout(() => {
+        searchGroups(groupQuery)
+      }, 300)
+    } else {
+      setGroupResults([])
+      setShowDropdown(false)
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [groupQuery, searchGroups])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Fetch members when group is selected
+  async function handleGroupSelect(group: KpopGroup) {
+    setSelectedGroup({
+      id: group.id,
+      name: group.name,
+      nameOriginal: group.name_original,
+    })
+    setGroupQuery('')
+    setShowDropdown(false)
+    setIsLoadingMembers(true)
+
+    try {
+      const response = await fetch(`/api/kpop/groups/${group.id}/members`)
+      if (response.ok) {
+        const data = await response.json()
+        setGroupMembers(data.members || [])
+        // Select all members by default
+        setSelectedMembers(new Set(data.members?.map((m: KpopMember) => m.id) || []))
+      }
+    } catch (error) {
+      console.error('Error fetching group members:', error)
+    } finally {
+      setIsLoadingMembers(false)
+    }
+  }
+
+  // Toggle member selection
+  function toggleMember(memberId: string) {
+    setSelectedMembers((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(memberId)) {
+        newSet.delete(memberId)
+      } else {
+        newSet.add(memberId)
+      }
+      return newSet
+    })
+  }
+
+  // Select/deselect all members
+  function toggleAllMembers() {
+    if (selectedMembers.size === groupMembers.length) {
+      setSelectedMembers(new Set())
+    } else {
+      setSelectedMembers(new Set(groupMembers.map((m) => m.id)))
+    }
+  }
+
+  // Batch add selected members
+  async function handleBatchAdd() {
+    if (selectedMembers.size === 0 || !selectedGroup) return
+
+    setIsBatchAdding(true)
+    try {
+      const membersToAdd = groupMembers
+        .filter((m) => selectedMembers.has(m.id))
+        .map((m) => ({
+          name: m.name,
+          groupName: selectedGroup.name,
+        }))
+
+      const response = await fetch('/api/biases/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ members: membersToAdd }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        const message = result.skipped > 0
+          ? `${result.added}명 추가됨, ${result.skipped}명 이미 존재`
+          : `${result.added}명 추가됨`
+        alert(message)
+        resetGroupMode()
+        onBiasAdded()
+      } else {
+        const error = await response.json()
+        alert(error.error || '일괄 추가에 실패했습니다')
+      }
+    } catch (error) {
+      console.error('Error batch adding members:', error)
+      alert('일괄 추가에 실패했습니다')
+    } finally {
+      setIsBatchAdding(false)
+    }
+  }
+
+  // Reset group mode
+  function resetGroupMode() {
+    setIsGroupMode(false)
+    setGroupQuery('')
+    setGroupResults([])
+    setSelectedGroup(null)
+    setGroupMembers([])
+    setSelectedMembers(new Set())
+    setShowDropdown(false)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -115,14 +298,162 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
       )}
 
       {/* Empty state */}
-      {biases.length === 0 && !isFormOpen && (
+      {biases.length === 0 && !isFormOpen && !isGroupMode && (
         <p className="text-sm text-zinc-400 dark:text-zinc-500 px-2">
           아직 최애가 없습니다
         </p>
       )}
 
+      {/* Group mode UI */}
+      {isGroupMode && (
+        <div className="space-y-2 pt-2">
+          {!selectedGroup ? (
+            // Group search
+            <div className="relative" ref={dropdownRef}>
+              <input
+                type="text"
+                value={groupQuery}
+                onChange={(e) => setGroupQuery(e.target.value)}
+                placeholder="그룹명 검색 (예: IVE, 아이브)"
+                className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                autoFocus
+              />
+              {isSearching && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <svg className="w-4 h-4 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+              )}
+              {/* Dropdown results */}
+              {showDropdown && groupResults.length > 0 && (
+                <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {groupResults.map((group) => (
+                    <li key={group.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleGroupSelect(group)}
+                        className="w-full px-2 py-1.5 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                      >
+                        <span className="font-medium">{group.name}</span>
+                        {group.name_original !== group.name && (
+                          <span className="text-zinc-500 dark:text-zinc-400 ml-1">
+                            ({group.name_original})
+                          </span>
+                        )}
+                        <span className="text-zinc-400 dark:text-zinc-500 ml-1 text-xs">
+                          {group.memberCount}명
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {showDropdown && groupResults.length === 0 && groupQuery.trim() && !isSearching && (
+                <div className="absolute z-10 w-full mt-1 px-2 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg text-sm text-zinc-500">
+                  검색 결과가 없습니다
+                </div>
+              )}
+            </div>
+          ) : (
+            // Member selection
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-2">
+                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  {selectedGroup.name}
+                  {selectedGroup.nameOriginal !== selectedGroup.name && (
+                    <span className="text-zinc-500 dark:text-zinc-400 ml-1 font-normal">
+                      ({selectedGroup.nameOriginal})
+                    </span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedGroup(null)
+                    setGroupMembers([])
+                    setSelectedMembers(new Set())
+                  }}
+                  className="text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                >
+                  다른 그룹 선택
+                </button>
+              </div>
+
+              {isLoadingMembers ? (
+                <div className="flex items-center justify-center py-4">
+                  <svg className="w-5 h-5 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+              ) : (
+                <>
+                  {/* Select all toggle */}
+                  <div className="flex items-center px-2 py-1">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-600 dark:text-zinc-400">
+                      <input
+                        type="checkbox"
+                        checked={selectedMembers.size === groupMembers.length && groupMembers.length > 0}
+                        onChange={toggleAllMembers}
+                        className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-pink-500 focus:ring-pink-500"
+                      />
+                      전체 선택 ({selectedMembers.size}/{groupMembers.length})
+                    </label>
+                  </div>
+
+                  {/* Member list */}
+                  <ul className="space-y-0.5 max-h-48 overflow-y-auto">
+                    {groupMembers.map((member) => (
+                      <li key={member.id}>
+                        <label className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-sm">
+                          <input
+                            type="checkbox"
+                            checked={selectedMembers.has(member.id)}
+                            onChange={() => toggleMember(member.id)}
+                            className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-pink-500 focus:ring-pink-500"
+                          />
+                          <span className="text-zinc-900 dark:text-zinc-100">{member.name}</span>
+                          {member.name_original !== member.name && (
+                            <span className="text-zinc-500 dark:text-zinc-400">
+                              ({member.name_original})
+                            </span>
+                          )}
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Group mode action buttons */}
+          <div className="flex gap-2">
+            {selectedGroup && (
+              <button
+                type="button"
+                onClick={handleBatchAdd}
+                disabled={isBatchAdding || selectedMembers.size === 0}
+                className="flex-1 px-2 py-1.5 text-sm bg-pink-500 text-white rounded-md hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isBatchAdding ? '추가 중...' : `${selectedMembers.size}명 추가`}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={resetGroupMode}
+              className="px-2 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Add form */}
-      {isFormOpen ? (
+      {isFormOpen && !isGroupMode && (
         <form onSubmit={handleSubmit} className="space-y-2 pt-2">
           <input
             type="text"
@@ -160,16 +491,30 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
             </button>
           </div>
         </form>
-      ) : (
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-1 px-2 py-1.5 text-sm text-zinc-500 hover:text-pink-500 dark:text-zinc-400 dark:hover:text-pink-400 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>최애 추가</span>
-        </button>
+      )}
+
+      {/* Action buttons when no form is open */}
+      {!isFormOpen && !isGroupMode && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className="flex items-center gap-1 px-2 py-1.5 text-sm text-zinc-500 hover:text-pink-500 dark:text-zinc-400 dark:hover:text-pink-400 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>최애 추가</span>
+          </button>
+          <button
+            onClick={() => setIsGroupMode(true)}
+            className="flex items-center gap-1 px-2 py-1.5 text-sm text-zinc-500 hover:text-pink-500 dark:text-zinc-400 dark:hover:text-pink-400 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span>그룹으로 추가</span>
+          </button>
+        </div>
       )}
     </div>
   )
