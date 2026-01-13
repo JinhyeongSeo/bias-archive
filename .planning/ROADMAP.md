@@ -37,14 +37,14 @@ Plans:
 ### Phase 2: Link Management
 **Goal**: URL 입력 시 메타데이터 자동 추출 및 저장 — 앱의 핵심 기능
 **Depends on**: Phase 1
-**Research**: Likely (external APIs)
+**Research**: Complete (DISCOVERY.md)
 **Research topics**: YouTube/Twitter oEmbed API, URL 메타데이터 추출 방법, Open Graph 파싱
-**Plans**: TBD
+**Plans**: 3
 
 Plans:
-- [ ] 02-01: URL 입력 폼 및 메타데이터 추출 서비스
-- [ ] 02-02: 링크 저장 및 CRUD 기능
-- [ ] 02-03: 플랫폼별 메타데이터 파서 (YouTube, Twitter, Weverse)
+- [ ] 02-01: URL 입력 폼 및 메타데이터 추출 API
+- [ ] 02-02: 링크 저장 CRUD 및 목록 UI
+- [ ] 02-03: 플랫폼별 파서 모듈화 및 고도화
 
 ### Phase 3: Tagging & Multi-Bias
 **Goal**: 제목/설명에서 멤버명 자동 추출, 여러 최애 관리, 태그 시스템
@@ -100,7 +100,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2026-01-13 |
-| 2. Link Management | 0/3 | Not started | - |
+| 2. Link Management | 0/3 | Planned | - |
 | 3. Tagging & Multi-Bias | 0/3 | Not started | - |
 | 4. Search & Filter | 0/3 | Not started | - |
 | 5. Viewer & Timeline | 0/3 | Not started | - |
