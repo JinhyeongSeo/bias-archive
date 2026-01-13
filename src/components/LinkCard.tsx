@@ -2,15 +2,17 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import type { Link, Tag } from '@/types/database'
+import type { Link, Tag, LinkMedia } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
 import { TagEditor } from './TagEditor'
+import { ViewerModal } from './ViewerModal'
 
 type LinkWithTags = Link & { tags: Tag[] }
+type LinkWithMedia = Link & { media?: LinkMedia[] }
 type LayoutType = 'grid' | 'list'
 
 interface LinkCardProps {
-  link: LinkWithTags
+  link: LinkWithTags & LinkWithMedia
   onDelete?: (id: string) => void
   onTagsChange?: (linkId: string, tags: Tag[]) => void
   layout?: LayoutType
@@ -44,6 +46,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
   const [showConfirm, setShowConfirm] = useState(false)
   const [editingTags, setEditingTags] = useState(false)
   const [tags, setTags] = useState<Tag[]>(link.tags || [])
+  const [viewerOpen, setViewerOpen] = useState(false)
 
   const platform = (link.platform || 'other') as Platform
 
@@ -82,12 +85,25 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
     setShowConfirm(false)
   }
 
+  // Check if platform supports in-app viewing
+  const supportsViewer = platform === 'youtube' || platform === 'twitter'
+
+  // Handle thumbnail click to open viewer
+  const handleThumbnailClick = () => {
+    if (supportsViewer) {
+      setViewerOpen(true)
+    }
+  }
+
   // List layout - horizontal card with thumbnail on left
   if (layout === 'list') {
     return (
       <div className="group relative flex rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
         {/* Thumbnail */}
-        <div className="relative w-40 sm:w-48 flex-shrink-0 bg-zinc-100 dark:bg-zinc-700">
+        <div
+          className={`relative w-40 sm:w-48 flex-shrink-0 bg-zinc-100 dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}
+          onClick={handleThumbnailClick}
+        >
           {link.thumbnail_url ? (
             <Image
               src={link.thumbnail_url}
@@ -110,6 +126,17 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                   d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
                 />
               </svg>
+            </div>
+          )}
+
+          {/* Play button overlay for supported platforms */}
+          {supportsViewer && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors">
+              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-black/60 text-white opacity-80 group-hover:opacity-100 transition-opacity">
+                <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
             </div>
           )}
 
@@ -160,6 +187,19 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
 
         {/* Actions */}
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Play/View button for supported platforms */}
+          {supportsViewer && (
+            <button
+              onClick={() => setViewerOpen(true)}
+              className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-green-500 dark:hover:text-green-400 shadow-sm transition-colors"
+              title="뷰어로 재생"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </button>
+          )}
+
           {/* Open link button */}
           <a
             href={link.url}
@@ -274,6 +314,13 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
             </button>
           )}
         </div>
+
+        {/* Viewer Modal */}
+        <ViewerModal
+          link={{ ...link, tags }}
+          isOpen={viewerOpen}
+          onClose={() => setViewerOpen(false)}
+        />
       </div>
     )
   }
@@ -282,7 +329,10 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
   return (
     <div className="group relative rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       {/* Thumbnail */}
-      <div className="relative aspect-video bg-zinc-100 dark:bg-zinc-700">
+      <div
+        className={`relative aspect-video bg-zinc-100 dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}
+        onClick={handleThumbnailClick}
+      >
         {link.thumbnail_url ? (
           <Image
             src={link.thumbnail_url}
@@ -305,6 +355,17 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                 d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
               />
             </svg>
+          </div>
+        )}
+
+        {/* Play button overlay for supported platforms */}
+        {supportsViewer && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors">
+            <div className="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 text-white opacity-80 group-hover:opacity-100 transition-opacity">
+              <svg className="w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
           </div>
         )}
 
@@ -357,6 +418,19 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
 
       {/* Actions */}
       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Play/View button for supported platforms */}
+        {supportsViewer && (
+          <button
+            onClick={() => setViewerOpen(true)}
+            className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-green-500 dark:hover:text-green-400 shadow-sm transition-colors"
+            title="뷰어로 재생"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+        )}
+
         {/* Open link button */}
         <a
           href={link.url}
@@ -471,6 +545,13 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
           </button>
         )}
       </div>
+
+      {/* Viewer Modal */}
+      <ViewerModal
+        link={{ ...link, tags }}
+        isOpen={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+      />
     </div>
   )
 }
