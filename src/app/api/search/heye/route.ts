@@ -51,16 +51,12 @@ export async function GET(request: NextRequest) {
     const $ = cheerio.load(html)
 
     const results: HeyeSearchResult[] = []
+    const seenUrls = new Set<string>()
 
-    // Parse search results from the board list
-    // heye.kr uses a table-based layout for post listings
-    $('tr').each((_, row) => {
-      const $row = $(row)
-
-      // Find the link to the post
-      const $link = $row.find('a[href*="no="]')
-      if (!$link.length) return
-
+    // Parse search results - heye.kr uses td with links containing &no= parameter
+    // Pattern: <td align="left"><a href="./index.html?id=idol&smode=both&skey=...&page=X&no=YYYYY">Title</a>
+    $('td[align="left"] > a[href*="&no="]').each((_, el) => {
+      const $link = $(el)
       const href = $link.attr('href')
       if (!href) return
 
@@ -69,59 +65,64 @@ export async function GET(request: NextRequest) {
       if (!noMatch) return
 
       const postNo = noMatch[1]
-      const title = $link.text().trim()
 
-      // Skip if title is empty or too short (likely navigation)
+      // Get title - remove font tags and clean up
+      let title = $link.text().trim()
+      // Remove comment count like [3] at the end
+      title = title.replace(/\s*\[\d+\]\s*$/, '').trim()
+
+      // Skip if title is empty or too short
       if (!title || title.length < 2) return
 
-      // Build absolute URL
+      // Build absolute URL (clean URL without search params)
       const url = `https://www.heye.kr/board/index.html?id=idol&no=${postNo}`
 
-      // Try to find author (usually in a separate column)
-      let author = ''
-      const $cells = $row.find('td')
-      if ($cells.length >= 3) {
-        // Author is typically in the 3rd column
-        author = $cells.eq(2).text().trim()
-      }
+      // Skip duplicates
+      if (seenUrls.has(url)) return
+      seenUrls.add(url)
 
-      // Try to find thumbnail in the row
-      let thumbnailUrl: string | null = null
-      const $img = $row.find('img[src*="heye.kr"]')
-      if ($img.length) {
-        thumbnailUrl = $img.attr('src') || null
+      // Try to find author in the same row
+      // Author is typically in a td with class "list_unick"
+      let author = ''
+      const $row = $link.closest('tr')
+      const $authorCell = $row.find('td.list_unick a')
+      if ($authorCell.length) {
+        // Get text after the level icon
+        author = $authorCell.text().trim()
       }
 
       results.push({
         url,
         title,
-        thumbnailUrl,
+        thumbnailUrl: null, // heye.kr search results don't have thumbnails in list view
         author,
       })
     })
 
     // Extract total pages from pagination
+    // Pattern: <span class='num'>...<a href='?id=idol&smode=both&skey=카리나&page=10'>10</a>...</span>
     let totalPages = 1
-    const $pagination = $('.pagination, .paging, [class*="page"]')
 
-    // Find the last page number
-    $pagination.find('a').each((_, el) => {
-      const text = $(el).text().trim()
-      const pageNum = parseInt(text, 10)
-      if (!isNaN(pageNum) && pageNum > totalPages) {
-        totalPages = pageNum
+    // Find all page links and get the maximum page number
+    $('span.num a[href*="page="]').each((_, el) => {
+      const href = $(el).attr('href') || ''
+      const pageMatch = href.match(/page=(\d+)/)
+      if (pageMatch) {
+        const pageNum = parseInt(pageMatch[1], 10)
+        if (pageNum > totalPages) {
+          totalPages = pageNum
+        }
       }
     })
 
-    // Also check for "마지막" or "끝" links
-    const lastPageLink = $pagination.find('a[href*="page="]').last()
-    if (lastPageLink.length) {
-      const href = lastPageLink.attr('href') || ''
-      const pageMatch = href.match(/page=(\d+)/)
-      if (pageMatch) {
-        const lastPage = parseInt(pageMatch[1], 10)
-        if (lastPage > totalPages) {
-          totalPages = lastPage
+    // Also check the text content for page numbers
+    const paginationText = $('span.num').text()
+    const pageNumbers = paginationText.match(/\d+/g)
+    if (pageNumbers) {
+      for (const numStr of pageNumbers) {
+        const num = parseInt(numStr, 10)
+        if (num > totalPages && num < 1000) { // sanity check
+          totalPages = num
         }
       }
     }
