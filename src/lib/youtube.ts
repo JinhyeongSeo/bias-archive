@@ -41,15 +41,22 @@ interface YouTubeApiResponse {
   }
 }
 
+export interface YouTubeSearchOptions {
+  order?: 'relevance' | 'date' | 'viewCount' | 'rating'
+  publishedAfter?: string // ISO 8601 format
+}
+
 /**
  * Search YouTube videos using YouTube Data API v3
  * @param query - Search query string
  * @param maxResults - Maximum number of results (default: 10, max: 50)
+ * @param options - Optional search options (order, publishedAfter)
  * @returns Array of YouTube search results
  */
 export async function searchYouTube(
   query: string,
-  maxResults: number = 10
+  maxResults: number = 10,
+  options: YouTubeSearchOptions = {}
 ): Promise<YouTubeSearchResult[]> {
   const apiKey = process.env.YOUTUBE_API_KEY
 
@@ -70,6 +77,14 @@ export async function searchYouTube(
     key: apiKey,
     maxResults: clampedMax.toString(),
   })
+
+  // Add optional filter parameters
+  if (options.order) {
+    params.set('order', options.order)
+  }
+  if (options.publishedAfter) {
+    params.set('publishedAfter', options.publishedAfter)
+  }
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 10000)

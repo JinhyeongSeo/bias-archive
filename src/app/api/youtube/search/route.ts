@@ -1,5 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { searchYouTube } from '@/lib/youtube'
+import { searchYouTube, YouTubeSearchOptions } from '@/lib/youtube'
+
+type OrderType = 'relevance' | 'date' | 'viewCount' | 'rating'
+type PeriodType = 'today' | 'week' | 'month' | 'year'
+
+/**
+ * Convert period string to ISO 8601 publishedAfter date
+ */
+function periodToPublishedAfter(period: PeriodType): string {
+  const now = new Date()
+  let date: Date
+
+  switch (period) {
+    case 'today':
+      date = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      break
+    case 'week':
+      date = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      break
+    case 'month':
+      date = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+      break
+    case 'year':
+      date = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
+      break
+    default:
+      date = new Date(0) // epoch if unknown
+  }
+
+  return date.toISOString()
+}
 
 /**
  * GET /api/youtube/search
@@ -7,12 +37,16 @@ import { searchYouTube } from '@/lib/youtube'
  * Query params:
  *   - q: search query (required)
  *   - max: maximum results (optional, default: 10, max: 50)
+ *   - order: sort order (optional: relevance, date, viewCount, rating)
+ *   - period: time filter (optional: today, week, month, year)
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('q')
     const maxResults = parseInt(searchParams.get('max') || '10', 10)
+    const order = searchParams.get('order') as OrderType | null
+    const period = searchParams.get('period') as PeriodType | null
 
     if (!query || query.trim() === '') {
       return NextResponse.json(
@@ -29,7 +63,16 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const results = await searchYouTube(query, maxResults)
+    // Build search options
+    const options: YouTubeSearchOptions = {}
+    if (order) {
+      options.order = order
+    }
+    if (period) {
+      options.publishedAfter = periodToPublishedAfter(period)
+    }
+
+    const results = await searchYouTube(query, maxResults, options)
     return NextResponse.json(results)
   } catch (error) {
     console.error('[YouTube Search] Error:', error)
