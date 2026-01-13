@@ -60,10 +60,13 @@ export async function searchYouTube(
   // Clamp maxResults between 1 and 50
   const clampedMax = Math.min(Math.max(1, maxResults), 50)
 
+  // Append '직캠' to search query for better fancam results
+  const enhancedQuery = `${query} 직캠`
+
   const params = new URLSearchParams({
     part: 'snippet',
     type: 'video',
-    q: query,
+    q: enhancedQuery,
     key: apiKey,
     maxResults: clampedMax.toString(),
   })
