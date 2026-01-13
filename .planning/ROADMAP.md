@@ -23,7 +23,7 @@ None
 - [x] **Phase 7: Deploy & PWA** - Vercel 배포 + PWA(앱처럼 설치 가능) 지원 ✓
 - [x] **Phase 8: heye.kr Parser** - heye.kr 커뮤니티 게시판에서 이미지/GIF 추출 ✓
 - [x] **Phase 9: kgirls.net Parser** - kgirls.net 커뮤니티(issue, mgall)에서 이미지/GIF/MP4 추출 ✓
-- [ ] **Phase 10: Idol Group Member Auto-Fill** - 그룹 이름 입력 시 멤버들의 영어/한글 이름 자동 추가
+- [x] **Phase 10: Idol Group Member Auto-Fill** - 그룹 이름 입력 시 멤버들의 영어/한글 이름 자동 추가 ✓
 
 ## Phase Details
 
@@ -164,7 +164,8 @@ Plans:
 - 아이돌 그룹/멤버 데이터베이스 또는 API 연동 필요
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 10 to break down)
+- [x] 10-01: K-pop 데이터 통합 (kpopnet.json 패키지, 그룹 검색 API) ✓
+- [x] 10-02: 그룹 자동완성 UI (멤버 미리보기, 일괄 추가) ✓
 
 ## Progress
 
@@ -182,4 +183,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Deploy & PWA | 2/2 | Complete | 2026-01-13 |
 | 8. heye.kr Parser | 2/2 | Complete | 2026-01-14 |
 | 9. kgirls.net Parser | 2/2 | Complete | 2026-01-14 |
-| 10. Idol Group Member Auto-Fill | 0/? | Not Started | - |
+| 10. Idol Group Member Auto-Fill | 2/2 | Complete | 2026-01-14 |
