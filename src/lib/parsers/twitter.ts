@@ -1,8 +1,10 @@
 /**
  * Twitter/X metadata parser
  * Uses oEmbed API for tweet metadata extraction
+ * Falls back to OG scraper for thumbnail
  */
 
+import ogs from 'open-graph-scraper'
 import type { VideoMetadata } from './index'
 
 /**
@@ -41,10 +43,21 @@ export async function parseTwitter(url: string): Promise<VideoMetadata> {
         ? `${data.author_name}의 트윗`
         : null
 
+    // Try to get thumbnail via OG scraper
+    let thumbnailUrl: string | null = null
+    try {
+      const ogResult = await ogs({ url, timeout: 5000 })
+      if (ogResult.result.ogImage && ogResult.result.ogImage.length > 0) {
+        thumbnailUrl = ogResult.result.ogImage[0].url || null
+      }
+    } catch {
+      // OG scraper failed, continue without thumbnail
+    }
+
     return {
       title,
       description: tweetText,
-      thumbnailUrl: null, // Twitter oEmbed doesn't provide thumbnail directly
+      thumbnailUrl,
       platform: 'twitter',
       originalDate: null,
       authorName: data.author_name || null,
