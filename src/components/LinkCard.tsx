@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import type { Link } from '@/types/database'
+import type { Link, Tag } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
 
+type LinkWithTags = Link & { tags: Tag[] }
+
 interface LinkCardProps {
-  link: Link
+  link: LinkWithTags
   onDelete?: (id: string) => void
 }
 
@@ -119,6 +121,20 @@ export function LinkCard({ link, onDelete }: LinkCardProps) {
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
           {formatDate(link.created_at)}
         </p>
+
+        {/* Tags */}
+        {link.tags && link.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {link.tags.map((tag) => (
+              <span
+                key={tag.id}
+                className="px-2 py-0.5 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+              >
+                {tag.name}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Actions */}

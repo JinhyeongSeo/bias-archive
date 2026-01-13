@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Link, LinkInsert, LinkUpdate } from '@/types/database'
+import type { Link, LinkInsert, LinkUpdate, Tag } from '@/types/database'
 
 export type { Link, LinkInsert, LinkUpdate }
 
@@ -93,4 +93,51 @@ export async function checkDuplicateUrl(url: string): Promise<boolean> {
   }
 
   return (data?.length ?? 0) > 0
+}
+
+/**
+ * Link with associated tags
+ */
+export type LinkWithTags = Link & { tags: Tag[] }
+
+/**
+ * Get all links with their associated tags
+ * Sorted by created_at descending (newest first)
+ */
+export async function getLinksWithTags(biasId?: string): Promise<LinkWithTags[]> {
+  let query = supabase
+    .from('links')
+    .select(`
+      *,
+      link_tags (
+        tags (*)
+      )
+    `)
+    .order('created_at', { ascending: false })
+
+  if (biasId) {
+    query = query.eq('bias_id', biasId)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    throw error
+  }
+
+  // Transform the nested link_tags into a flat tags array
+  return (data ?? []).map((link) => {
+    const linkTags = (link.link_tags as Array<{ tags: Tag }>) ?? []
+    const tags = linkTags
+      .map((lt) => lt.tags)
+      .filter((tag): tag is Tag => tag !== null)
+
+    // Remove link_tags from the result and add tags array
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { link_tags: _, ...linkWithoutLinkTags } = link
+    return {
+      ...linkWithoutLinkTags,
+      tags,
+    } as LinkWithTags
+  })
 }

@@ -1,15 +1,17 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { Link } from '@/types/database'
+import type { Link, Tag } from '@/types/database'
 import { LinkCard } from './LinkCard'
+
+type LinkWithTags = Link & { tags: Tag[] }
 
 interface LinkListProps {
   refreshTrigger?: number
 }
 
 export function LinkList({ refreshTrigger }: LinkListProps) {
-  const [links, setLinks] = useState<Link[]>([])
+  const [links, setLinks] = useState<LinkWithTags[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 

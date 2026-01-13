@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createLink, getLinks, checkDuplicateUrl } from '@/lib/links'
+import { createLink, getLinksWithTags, checkDuplicateUrl } from '@/lib/links'
 import type { LinkInsert } from '@/lib/links'
 import { getBiases } from '@/lib/biases'
-import { getOrCreateTag, addTagToLink, getTagsForLink } from '@/lib/tags'
+import { getOrCreateTag, addTagToLink } from '@/lib/tags'
 import { extractAutoTags, combineTextForTagExtraction } from '@/lib/autoTag'
 
 /**
  * GET /api/links
- * Get all links, optionally filtered by bias_id query parameter
+ * Get all links with tags, optionally filtered by bias_id query parameter
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const biasId = searchParams.get('bias_id') || undefined
 
-    const links = await getLinks(biasId)
+    const links = await getLinksWithTags(biasId)
     return NextResponse.json(links)
   } catch (error) {
     console.error('Error fetching links:', error)
