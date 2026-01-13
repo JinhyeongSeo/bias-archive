@@ -1,0 +1,86 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
+import type { BiasInsert } from '@/types/database'
+
+interface BatchMember {
+  name: string
+  groupName: string
+}
+
+interface BatchRequest {
+  members: BatchMember[]
+}
+
+/**
+ * POST /api/biases/batch
+ * Create multiple biases at once (for adding all members of a group)
+ * Skips members that already exist (by name)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body: BatchRequest = await request.json()
+    const { members } = body
+
+    if (!members || !Array.isArray(members) || members.length === 0) {
+      return NextResponse.json(
+        { error: '추가할 멤버가 없습니다' },
+        { status: 400 }
+      )
+    }
+
+    // Get existing biases to check for duplicates
+    const { data: existingBiases, error: fetchError } = await supabase
+      .from('biases')
+      .select('name')
+
+    if (fetchError) {
+      throw fetchError
+    }
+
+    // Create a set of existing names for quick lookup
+    const existingNames = new Set(
+      (existingBiases ?? []).map((b) => b.name.toLowerCase())
+    )
+
+    // Filter out members that already exist
+    const newMembers = members.filter(
+      (member) => !existingNames.has(member.name.toLowerCase())
+    )
+
+    const skipped = members.length - newMembers.length
+
+    if (newMembers.length === 0) {
+      return NextResponse.json({
+        added: 0,
+        skipped,
+        message: '모든 멤버가 이미 존재합니다',
+      })
+    }
+
+    // Prepare insert data
+    const insertData: BiasInsert[] = newMembers.map((member) => ({
+      name: member.name,
+      group_name: member.groupName || null,
+    }))
+
+    // Batch insert
+    const { error: insertError } = await supabase
+      .from('biases')
+      .insert(insertData)
+
+    if (insertError) {
+      throw insertError
+    }
+
+    return NextResponse.json({
+      added: newMembers.length,
+      skipped,
+    })
+  } catch (error) {
+    console.error('Error batch creating biases:', error)
+    return NextResponse.json(
+      { error: '최애 일괄 추가에 실패했습니다' },
+      { status: 500 }
+    )
+  }
+}
