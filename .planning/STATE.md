@@ -6,6 +6,7 @@ See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
 **Current focus:** Phase 5 — Viewer & Timeline
+**Roadmap evolution:** Phase 7 추가됨 (Deploy & PWA)
 
 ## Current Position
 
