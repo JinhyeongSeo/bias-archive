@@ -43,6 +43,12 @@ function formatDate(dateString: string): string {
   })
 }
 
+// Check if URL is a video file
+function isVideoUrl(url: string): boolean {
+  const lower = url.toLowerCase()
+  return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov')
+}
+
 export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: LinkCardProps) {
   const [deleting, setDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -113,12 +119,22 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
           onClick={handleThumbnailClick}
         >
           {link.thumbnail_url ? (
-            <Image
-              src={link.thumbnail_url}
-              alt={link.title || 'Thumbnail'}
-              fill
-              className="object-cover"
-            />
+            isVideoUrl(link.thumbnail_url) ? (
+              <video
+                src={link.thumbnail_url}
+                className="absolute inset-0 w-full h-full object-cover"
+                muted
+                playsInline
+                preload="metadata"
+              />
+            ) : (
+              <Image
+                src={link.thumbnail_url}
+                alt={link.title || 'Thumbnail'}
+                fill
+                className="object-cover"
+              />
+            )
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-zinc-400 dark:text-zinc-500">
               <svg
@@ -137,8 +153,8 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
             </div>
           )}
 
-          {/* Play button overlay for video content only */}
-          {hasVideo && (
+          {/* Play button overlay for video content */}
+          {(hasVideo || (link.thumbnail_url && isVideoUrl(link.thumbnail_url))) && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors">
               <div className="w-10 h-10 flex items-center justify-center rounded-full bg-black/60 text-white opacity-80 group-hover:opacity-100 transition-opacity">
                 <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
@@ -342,12 +358,22 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
         onClick={handleThumbnailClick}
       >
         {link.thumbnail_url ? (
-          <Image
-            src={link.thumbnail_url}
-            alt={link.title || 'Thumbnail'}
-            fill
-            className="object-cover"
-          />
+          isVideoUrl(link.thumbnail_url) ? (
+            <video
+              src={link.thumbnail_url}
+              className="absolute inset-0 w-full h-full object-cover"
+              muted
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            <Image
+              src={link.thumbnail_url}
+              alt={link.title || 'Thumbnail'}
+              fill
+              className="object-cover"
+            />
+          )
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-zinc-400 dark:text-zinc-500">
             <svg
@@ -366,8 +392,8 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
           </div>
         )}
 
-        {/* Play button overlay for video content only */}
-        {hasVideo && (
+        {/* Play button overlay for video content */}
+        {(hasVideo || (link.thumbnail_url && isVideoUrl(link.thumbnail_url))) && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors">
             <div className="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 text-white opacity-80 group-hover:opacity-100 transition-opacity">
               <svg className="w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24">

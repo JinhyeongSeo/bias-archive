@@ -83,21 +83,22 @@ export async function parseHeye(url: string): Promise<VideoMetadata> {
       media.push({ url: src, type })
     }
 
-    // Pattern 1: heye.kr native videos - https://img1.heye.kr/video/idol/YYYY/MM/timestamp.mp4
-    const heyeVideoPattern = /https?:\/\/img1\.heye\.kr\/video\/idol\/\d{4}\/\d{2}\/\d+\.(mp4|webm)/gi
-    for (const match of html.matchAll(heyeVideoPattern)) {
-      addMedia(match[0], 'video')
-    }
-
-    // Pattern 2: heye.kr native images - https://img1.heye.kr/image/idol/YYYY/MM/timestamp.ext
+    // Pattern 1: heye.kr native images - https://img1.heye.kr/image/idol/YYYY/MM/timestamp.ext
     // Only get heye.kr hosted content (imgur, daum cdn are ads)
     const heyePattern = /https?:\/\/img1\.heye\.kr\/image\/idol\/\d{4}\/\d{2}\/\d+\.(jpeg|jpg|png|gif)/gi
     for (const match of html.matchAll(heyePattern)) {
       addMedia(match[0])
     }
 
-    // First image is thumbnail
-    const thumbnailUrl = media.length > 0 ? media[0].url : null
+    // Pattern 2: heye.kr native videos - https://img1.heye.kr/video/idol/YYYY/MM/timestamp.mp4
+    const heyeVideoPattern = /https?:\/\/img1\.heye\.kr\/video\/idol\/\d{4}\/\d{2}\/\d+\.(mp4|webm)/gi
+    for (const match of html.matchAll(heyeVideoPattern)) {
+      addMedia(match[0], 'video')
+    }
+
+    // Prefer first image as thumbnail, fallback to first video
+    const firstImage = media.find(m => m.type === 'image' || m.type === 'gif')
+    const thumbnailUrl = firstImage?.url || (media.length > 0 ? media[0].url : null)
 
     return {
       title: title || null,
