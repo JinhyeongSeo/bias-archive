@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-13)
 ## Current Position
 
 Phase: 4 of 6 (Search & Filter) ✓
-Plan: 2/2 complete
-Status: Phase complete
-Last activity: 2026-01-13 — Completed Phase 4 (04-02-PLAN.md)
+Plan: 2/2 complete + FIX
+Status: Phase complete (UAT issues fixed)
+Last activity: 2026-01-13 — Completed 04-02-FIX.md (UAT issues)
 
 Progress: ███████░░░ 67%
 
@@ -51,6 +51,8 @@ Progress: ███████░░░ 67%
 - refreshTrigger 패턴으로 목록 새로고침
 - YouTube Data API로 실시간 검색 (외부 검색)
 - Google CSE로 Twitter 과거 인기 트윗 검색 (API v2 무료 불가)
+- 외부 검색을 Sidebar 대신 모달로 표시 (레이아웃 개선)
+- 검색어를 태그 추출 힌트로 활용 (searchQuery param)
 
 ### Deferred Issues
 
@@ -67,5 +69,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-13
-Stopped at: Phase 4 완료, Phase 5 시작 준비
+Stopped at: Phase 4 UAT issues fixed, Phase 5 시작 준비
 Resume file: None
