@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
-import type { Link, LinkInsert, LinkUpdate, Tag } from '@/types/database'
+import type { Link, LinkInsert, LinkUpdate, Tag, LinkMedia, LinkMediaInsert } from '@/types/database'
 
-export type { Link, LinkInsert, LinkUpdate }
+export type { Link, LinkInsert, LinkUpdate, LinkMedia }
 
 /**
  * Create a new link
@@ -101,6 +101,11 @@ export async function checkDuplicateUrl(url: string): Promise<boolean> {
 export type LinkWithTags = Link & { tags: Tag[] }
 
 /**
+ * Link with associated tags and media
+ */
+export type LinkWithTagsAndMedia = Link & { tags: Tag[]; media: LinkMedia[] }
+
+/**
  * Search parameters for filtering links
  */
 export interface SearchLinksParams {
@@ -111,17 +116,51 @@ export interface SearchLinksParams {
 }
 
 /**
- * Get all links with their associated tags
+ * Media data for creating link media entries
+ */
+export interface MediaData {
+  url: string
+  type: 'image' | 'video' | 'gif'
+}
+
+/**
+ * Create link media entries for a given link
+ */
+export async function createLinkMedia(linkId: string, mediaList: MediaData[]): Promise<LinkMedia[]> {
+  if (mediaList.length === 0) return []
+
+  const mediaInserts: LinkMediaInsert[] = mediaList.map((m, index) => ({
+    link_id: linkId,
+    media_url: m.url,
+    media_type: m.type,
+    position: index,
+  }))
+
+  const { data, error } = await supabase
+    .from('link_media')
+    .insert(mediaInserts)
+    .select()
+
+  if (error) {
+    throw error
+  }
+
+  return data ?? []
+}
+
+/**
+ * Get all links with their associated tags and media
  * Sorted by created_at descending (newest first)
  */
-export async function getLinksWithTags(biasId?: string): Promise<LinkWithTags[]> {
+export async function getLinksWithTags(biasId?: string): Promise<LinkWithTagsAndMedia[]> {
   let query = supabase
     .from('links')
     .select(`
       *,
       link_tags (
         tags (*)
-      )
+      ),
+      link_media (*)
     `)
     .order('created_at', { ascending: false })
 
@@ -135,29 +174,33 @@ export async function getLinksWithTags(biasId?: string): Promise<LinkWithTags[]>
     throw error
   }
 
-  // Transform the nested link_tags into a flat tags array
+  // Transform the nested link_tags into a flat tags array and include media
   return (data ?? []).map((link) => {
     const linkTags = (link.link_tags as Array<{ tags: Tag }>) ?? []
     const tags = linkTags
       .map((lt) => lt.tags)
       .filter((tag): tag is Tag => tag !== null)
 
-    // Remove link_tags from the result and add tags array
+    // Get media sorted by position
+    const media = ((link.link_media as LinkMedia[]) ?? []).sort((a, b) => a.position - b.position)
+
+    // Remove link_tags and link_media from the result and add tags/media arrays
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { link_tags: _, ...linkWithoutLinkTags } = link
+    const { link_tags: _lt, link_media: _lm, ...linkWithoutRelations } = link
     return {
-      ...linkWithoutLinkTags,
+      ...linkWithoutRelations,
       tags,
-    } as LinkWithTags
+      media,
+    } as LinkWithTagsAndMedia
   })
 }
 
 /**
- * Search and filter links with their associated tags
+ * Search and filter links with their associated tags and media
  * Supports text search, tag filtering, and platform filtering
  * Sorted by created_at descending (newest first)
  */
-export async function searchLinksWithTags(params: SearchLinksParams): Promise<LinkWithTags[]> {
+export async function searchLinksWithTags(params: SearchLinksParams): Promise<LinkWithTagsAndMedia[]> {
   const { biasId, search, tagIds, platform } = params
 
   // If filtering by tags, we need to get link IDs that have those tags first
@@ -188,7 +231,8 @@ export async function searchLinksWithTags(params: SearchLinksParams): Promise<Li
       *,
       link_tags (
         tags (*)
-      )
+      ),
+      link_media (*)
     `)
     .order('created_at', { ascending: false })
 
@@ -221,19 +265,23 @@ export async function searchLinksWithTags(params: SearchLinksParams): Promise<Li
     throw error
   }
 
-  // Transform the nested link_tags into a flat tags array
+  // Transform the nested link_tags into a flat tags array and include media
   return (data ?? []).map((link) => {
     const linkTags = (link.link_tags as Array<{ tags: Tag }>) ?? []
     const tags = linkTags
       .map((lt) => lt.tags)
       .filter((tag): tag is Tag => tag !== null)
 
-    // Remove link_tags from the result and add tags array
+    // Get media sorted by position
+    const media = ((link.link_media as LinkMedia[]) ?? []).sort((a, b) => a.position - b.position)
+
+    // Remove link_tags and link_media from the result and add tags/media arrays
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { link_tags: _, ...linkWithoutLinkTags } = link
+    const { link_tags: _lt, link_media: _lm, ...linkWithoutRelations } = link
     return {
-      ...linkWithoutLinkTags,
+      ...linkWithoutRelations,
       tags,
-    } as LinkWithTags
+      media,
+    } as LinkWithTagsAndMedia
   })
 }

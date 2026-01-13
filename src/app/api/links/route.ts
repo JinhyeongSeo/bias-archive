@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createLink, searchLinksWithTags, checkDuplicateUrl } from '@/lib/links'
-import type { LinkInsert } from '@/lib/links'
+import { createLink, searchLinksWithTags, checkDuplicateUrl, createLinkMedia } from '@/lib/links'
+import type { LinkInsert, MediaData } from '@/lib/links'
 import { getBiases } from '@/lib/biases'
 import { getOrCreateTag, addTagToLink } from '@/lib/tags'
 import { extractAutoTags, combineTextForTagExtraction } from '@/lib/autoTag'
@@ -43,13 +43,14 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/links
  * Create a new link
- * Body: { url, title, description, thumbnailUrl, platform, originalDate, biasId, searchQuery }
+ * Body: { url, title, description, thumbnailUrl, platform, originalDate, biasId, searchQuery, media }
  * searchQuery: optional hint for auto-tagging (e.g., from external search)
+ * media: optional array of { url, type } for multi-image support (e.g., Twitter)
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { url, title, description, thumbnailUrl, platform, originalDate, authorName, biasId, searchQuery } = body
+    const { url, title, description, thumbnailUrl, platform, originalDate, authorName, biasId, searchQuery, media } = body
 
     // Validate required field
     if (!url || typeof url !== 'string') {
@@ -92,6 +93,29 @@ export async function POST(request: NextRequest) {
 
     const link = await createLink(linkData)
 
+    // Save media if provided (e.g., Twitter multi-image)
+    let savedMedia: MediaData[] = []
+    if (media && Array.isArray(media) && media.length > 0) {
+      try {
+        const validMedia: MediaData[] = media.filter(
+          (m: unknown) =>
+            typeof m === 'object' &&
+            m !== null &&
+            'url' in m &&
+            'type' in m &&
+            typeof (m as MediaData).url === 'string' &&
+            ['image', 'video', 'gif'].includes((m as MediaData).type)
+        )
+        if (validMedia.length > 0) {
+          await createLinkMedia(link.id, validMedia)
+          savedMedia = validMedia
+        }
+      } catch (error) {
+        // Log but don't fail the request if media save fails
+        console.error('Error saving link media:', error)
+      }
+    }
+
     // Auto-extract tags from link metadata + searchQuery hint
     const combinedText = combineTextForTagExtraction(
       title || null,
@@ -116,8 +140,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Return link with tags
-    return NextResponse.json({ ...link, tags: linkedTags }, { status: 201 })
+    // Return link with tags and media
+    return NextResponse.json({ ...link, tags: linkedTags, media: savedMedia }, { status: 201 })
   } catch (error) {
     console.error('Error creating link:', error)
     return NextResponse.json(

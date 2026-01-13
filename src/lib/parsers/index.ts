@@ -5,6 +5,13 @@
 
 export type Platform = 'youtube' | 'twitter' | 'weverse' | 'other'
 
+export type MediaType = 'image' | 'video' | 'gif'
+
+export interface ParsedMedia {
+  url: string
+  type: MediaType
+}
+
 export interface VideoMetadata {
   title: string | null
   description: string | null
@@ -12,6 +19,7 @@ export interface VideoMetadata {
   platform: Platform
   originalDate: string | null
   authorName: string | null
+  media?: ParsedMedia[]
 }
 
 export { parseYouTube } from './youtube'

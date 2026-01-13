@@ -106,6 +106,7 @@ function isValidThumbnailUrl(url: string | null): string | null {
  * Normalize metadata result
  * - Converts empty strings to null
  * - Validates thumbnail URL
+ * - Preserves media array for multi-image support
  */
 function normalizeMetadata(metadata: VideoMetadata): VideoMetadata {
   return {
@@ -115,6 +116,7 @@ function normalizeMetadata(metadata: VideoMetadata): VideoMetadata {
     platform: metadata.platform,
     originalDate: metadata.originalDate?.trim() || null,
     authorName: metadata.authorName?.trim() || null,
+    media: metadata.media,
   }
 }
 
