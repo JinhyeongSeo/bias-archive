@@ -73,10 +73,10 @@ YouTube 전용 API는 더 풍부한 메타데이터를 제공하지만, Google C
 - 플랫폼 필터링
 - 날짜 범위 필터링
 
-### 04-02: 통합 외부 검색 (Google CSE)
-- Google Custom Search API로 YouTube + Twitter 검색
-- 검색 결과 링크 → 기존 메타데이터 API로 미리보기
-- 플랫폼 선택: YouTube / Twitter / 전체
+### 04-02: 통합 외부 검색 (YouTube API + Google CSE)
+- YouTube: YouTube Data API v3 (site: 필터 불안정)
+- Twitter: Google CSE site:twitter.com + vxtwitter 메타데이터
+- 이미 저장된 링크는 "저장됨" 표시 (중복 방지)
 
 ---
 
