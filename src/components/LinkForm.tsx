@@ -8,6 +8,10 @@ interface MetadataPreview extends LinkMetadata {
   url: string
 }
 
+interface LinkFormProps {
+  onSave?: () => void
+}
+
 const platformLabels: Record<Platform, string> = {
   youtube: 'YouTube',
   twitter: 'Twitter',
@@ -22,9 +26,10 @@ const platformColors: Record<Platform, string> = {
   other: 'bg-zinc-500 dark:bg-zinc-600',
 }
 
-export function LinkForm() {
+export function LinkForm({ onSave }: LinkFormProps) {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<MetadataPreview | null>(null)
 
@@ -69,6 +74,44 @@ export function LinkForm() {
     setError(null)
   }
 
+  const handleSave = async () => {
+    if (!preview) return
+
+    setSaving(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/links', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: preview.url,
+          title: preview.title,
+          description: preview.description,
+          thumbnailUrl: preview.thumbnailUrl,
+          platform: preview.platform,
+          originalDate: preview.originalDate,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || '링크를 저장하는데 실패했습니다')
+      }
+
+      // Success - clear form and trigger onSave callback
+      handleClear()
+      onSave?.()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '오류가 발생했습니다')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="w-full max-w-2xl mx-auto">
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -79,11 +122,11 @@ export function LinkForm() {
             onChange={(e) => setUrl(e.target.value)}
             placeholder="YouTube, Twitter, 또는 웹사이트 URL을 입력하세요"
             className="flex-1 px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-            disabled={loading}
+            disabled={loading || saving}
           />
           <button
             type="submit"
-            disabled={loading || !url.trim()}
+            disabled={loading || saving || !url.trim()}
             className="px-6 py-3 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 dark:disabled:bg-blue-800 text-white font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
           >
             {loading ? '로딩...' : '추가'}
@@ -134,18 +177,17 @@ export function LinkForm() {
           <div className="mt-4 flex gap-2">
             <button
               onClick={handleClear}
-              className="px-4 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-sm transition-colors"
+              disabled={saving}
+              className="px-4 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 text-sm transition-colors"
             >
               취소
             </button>
             <button
-              className="px-4 py-2 rounded-md bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition-colors"
-              onClick={() => {
-                // TODO: Save link (02-02에서 구현)
-                alert('저장 기능은 02-02에서 구현 예정입니다')
-              }}
+              onClick={handleSave}
+              disabled={saving}
+              className="px-4 py-2 rounded-md bg-green-500 hover:bg-green-600 disabled:bg-green-400 text-white text-sm font-medium transition-colors"
             >
-              저장하기
+              {saving ? '저장 중...' : '저장하기'}
             </button>
           </div>
         </div>
