@@ -63,20 +63,40 @@ export async function parseTwitter(url: string): Promise<VideoMetadata> {
       authorName: data.author_name || null,
     }
   } catch (error) {
-    // Return fallback on error
+    // oEmbed failed, try OG scraper as fallback
     if (error instanceof Error && error.name === 'AbortError') {
-      console.error('[Twitter Parser] Timeout fetching metadata')
+      console.error('[Twitter Parser] Timeout fetching oEmbed')
     } else {
-      console.error('[Twitter Parser] Error:', error)
+      console.error('[Twitter Parser] oEmbed failed, trying OG scraper:', error)
     }
 
-    return {
-      title: url,
-      description: null,
-      thumbnailUrl: null,
-      platform: 'twitter',
-      originalDate: null,
-      authorName: null,
+    // Fallback to OG scraper for basic metadata
+    try {
+      const ogResult = await ogs({ url, timeout: 5000 })
+      const result = ogResult.result
+
+      const title = result.ogTitle || result.twitterTitle || null
+      const thumbnailUrl = result.ogImage?.[0]?.url || result.twitterImage?.[0]?.url || null
+      const description = result.ogDescription || result.twitterDescription || null
+
+      return {
+        title,
+        description,
+        thumbnailUrl,
+        platform: 'twitter',
+        originalDate: null,
+        authorName: null,
+      }
+    } catch (ogError) {
+      console.error('[Twitter Parser] OG scraper also failed:', ogError)
+      return {
+        title: url,
+        description: null,
+        thumbnailUrl: null,
+        platform: 'twitter',
+        originalDate: null,
+        authorName: null,
+      }
     }
   } finally {
     clearTimeout(timeoutId)
