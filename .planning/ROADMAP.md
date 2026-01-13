@@ -69,16 +69,16 @@ Plans:
 - [x] 04-02: YouTube 통합 검색
 
 ### Phase 5: Viewer & Timeline
-**Goal**: 임베드 플레이어, 그리드/리스트 전환, '과거의 오늘' 타임라인, 태그별 앨범
+**Goal**: 임베드 플레이어, 그리드/리스트 전환, '과거의 오늘' 타임라인, 태그별 앨범, YouTube 검색 필터
 **Depends on**: Phase 4
 **Research**: Unlikely (embed players, internal patterns)
-**Plans**: TBD
+**Plans**: 5
 
 Plans:
 - [ ] 05-01: 다중 미디어 저장 (link_media 테이블, Twitter 여러 이미지)
-- [ ] 05-02: 임베드 뷰어 (YouTube, Twitter)
-- [ ] 05-03: 태그별 앨범/갤러리 뷰
-- [ ] 05-04: 그리드/리스트 레이아웃 전환
+- [ ] 05-02: YouTube 검색 필터 (기간/정렬)
+- [ ] 05-03: 임베드 뷰어 (YouTube, Twitter)
+- [ ] 05-04: 갤러리 & 레이아웃 (그리드/리스트 전환, 태그별 앨범)
 - [ ] 05-05: '과거의 오늘' 타임라인 기능
 
 ### Phase 6: GIF & Export
@@ -104,5 +104,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Link Management | 3/3 | Complete | 2026-01-13 |
 | 3. Tagging & Multi-Bias | 3/3 | Complete | 2026-01-13 |
 | 4. Search & Filter | 2/2 | Complete | 2026-01-13 |
-| 5. Viewer & Timeline | 0/5 | Not started | - |
+| 5. Viewer & Timeline | 0/5 | Planned | - |
 | 6. GIF & Export | 0/3 | Not started | - |
