@@ -7,6 +7,7 @@ import {
   parseYouTube,
   parseTwitter,
   parseWeverse,
+  parseHeye,
   parseGeneric,
   type Platform,
   type VideoMetadata,
@@ -69,6 +70,11 @@ export function detectPlatform(url: string): Platform {
     // Weverse patterns
     if (hostname.includes('weverse.io')) {
       return 'weverse'
+    }
+
+    // heye.kr patterns
+    if (hostname.includes('heye.kr')) {
+      return 'heye'
     }
 
     return 'other'
@@ -138,6 +144,8 @@ function getParser(platform: Platform): (url: string) => Promise<VideoMetadata> 
       return parseTwitter
     case 'weverse':
       return parseWeverse
+    case 'heye':
+      return parseHeye
     default:
       return parseGeneric
   }

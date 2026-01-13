@@ -3,7 +3,7 @@
  * Central export for all parser modules
  */
 
-export type Platform = 'youtube' | 'twitter' | 'weverse' | 'other'
+export type Platform = 'youtube' | 'twitter' | 'weverse' | 'heye' | 'other'
 
 export type MediaType = 'image' | 'video' | 'gif'
 
@@ -25,4 +25,5 @@ export interface VideoMetadata {
 export { parseYouTube } from './youtube'
 export { parseTwitter } from './twitter'
 export { parseWeverse } from './weverse'
+export { parseHeye } from './heye'
 export { parseGeneric } from './generic'
