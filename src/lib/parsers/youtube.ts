@@ -49,6 +49,18 @@ function getHighQualityThumbnail(videoId: string): string {
 }
 
 /**
+ * Convert any YouTube URL to standard watch URL for oEmbed compatibility
+ * Shorts and other formats need conversion since oEmbed only supports watch URLs
+ */
+function normalizeToWatchUrl(url: string): string {
+  const videoId = extractVideoId(url)
+  if (videoId) {
+    return `https://www.youtube.com/watch?v=${videoId}`
+  }
+  return url
+}
+
+/**
  * Parse YouTube URL and extract metadata
  * @param url - YouTube video URL
  * @returns VideoMetadata with YouTube-specific optimizations
@@ -58,7 +70,9 @@ export async function parseYouTube(url: string): Promise<VideoMetadata> {
   const timeoutId = setTimeout(() => controller.abort(), 5000)
 
   try {
-    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+    // Convert shorts/embed URLs to watch URL for oEmbed compatibility
+    const watchUrl = normalizeToWatchUrl(url)
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(watchUrl)}&format=json`
     const response = await fetch(oembedUrl, { signal: controller.signal })
 
     if (!response.ok) {
