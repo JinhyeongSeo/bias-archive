@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 8 — heye.kr 커뮤니티 파서 추가
+**Current focus:** Phase 9 — kgirls.net 커뮤니티 파서 추가
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 8 of 8 (heye.kr Parser)
-Plan: 2/2 complete
-Status: Phase complete
-Last activity: 2026-01-14 — Completed 08-02-PLAN.md
+Phase: 9 of 9 (kgirls.net Parser)
+Plan: 0/2 complete
+Status: Not started
+Last activity: 2026-01-14 — Added Phase 9
 
-Progress: ██████████ 100% (8/8 phases complete)
+Progress: ████████░░ 89% (8/9 phases complete)
 
 ## Performance Metrics
 
@@ -64,6 +64,11 @@ Progress: ██████████ 100% (8/8 phases complete)
 - Vercel Hobby Plan (무료) 배포
 - 수동 PWA 설정 (next-pwa 없이, Next.js 16 호환)
 - heye.kr 커스텀 파서 추가 (OG 메타데이터 없음, HTML 파싱)
+- kgirls.net 파서 추가 예정 (XE CMS 기반, 첨부파일/이미지 지원)
+
+### Roadmap Evolution
+
+- Phase 9 added: kgirls.net Parser (issue, mgall 게시판 지원)
 
 ### Deferred Issues
 
@@ -71,7 +76,7 @@ Progress: ██████████ 100% (8/8 phases complete)
 
 ### Pending Todos
 
-None - milestone complete!
+- Phase 9 계획 및 구현 필요
 
 ### Blockers/Concerns
 
@@ -80,5 +85,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-14
-Stopped at: 🎉 Milestone Complete - Phase 8 finished
+Stopped at: Phase 9 추가됨 - kgirls.net 파서 구현 준비
 Resume file: None

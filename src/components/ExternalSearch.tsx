@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 
-type Platform = 'youtube' | 'twitter' | 'heye'
+type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls'
 type YouTubeOrder = 'relevance' | 'date' | 'viewCount'
 type YouTubePeriod = '' | 'today' | 'week' | 'month' | 'year'
 
@@ -21,6 +21,13 @@ interface TwitterResult {
 }
 
 interface HeyeResult {
+  url: string
+  title: string
+  thumbnailUrl: string | null
+  author: string
+}
+
+interface KgirlsResult {
   url: string
   title: string
   thumbnailUrl: string | null
@@ -59,6 +66,10 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
   const [heyePage, setHeyePage] = useState(1)
   const [heyeTotalPages, setHeyeTotalPages] = useState(0)
 
+  // kgirls.net pagination state
+  const [kgirlsPage, setKgirlsPage] = useState(1)
+  const [kgirlsTotalPages, setKgirlsTotalPages] = useState(0)
+
   // ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -85,6 +96,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       setYoutubePeriod('')
       setHeyePage(1)
       setHeyeTotalPages(0)
+      setKgirlsPage(1)
+      setKgirlsTotalPages(0)
     }
     return () => {
       document.body.style.overflow = ''
@@ -99,6 +112,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       setError(null)
       setHeyePage(1)
       setHeyeTotalPages(0)
+      setKgirlsPage(1)
+      setKgirlsTotalPages(0)
     }
   }
 
@@ -229,6 +244,29 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     }))
   }
 
+  const searchKgirls = async (searchQuery: string, page: number = 1): Promise<EnrichedResult[]> => {
+    const response = await fetch(`/api/search/kgirls?q=${encodeURIComponent(searchQuery)}&page=${page}&board=mgall`)
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'kgirls.net 검색 실패')
+    }
+
+    // Update pagination state
+    setKgirlsTotalPages(data.totalPages || 0)
+    setKgirlsPage(data.currentPage || 1)
+
+    return (data.results as KgirlsResult[]).map(item => ({
+      url: item.url,
+      title: item.title,
+      thumbnailUrl: item.thumbnailUrl,
+      author: item.author,
+      platform: 'kgirls' as Platform,
+      isSaved: checkIfSaved(item.url),
+      isSaving: false,
+    }))
+  }
+
   const handleSearch = async () => {
     if (!query.trim()) return
 
@@ -243,8 +281,10 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         searchResults = await searchYouTube(query)
       } else if (platform === 'twitter') {
         searchResults = await searchTwitter(query)
-      } else {
+      } else if (platform === 'heye') {
         searchResults = await searchHeye(query, 1)
+      } else {
+        searchResults = await searchKgirls(query, 1)
       }
       setResults(searchResults)
     } catch (err) {
@@ -262,6 +302,22 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
 
     try {
       const searchResults = await searchHeye(query, newPage)
+      setResults(searchResults)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleKgirlsPageChange = async (newPage: number) => {
+    if (newPage < 1 || newPage > kgirlsTotalPages || isLoading) return
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const searchResults = await searchKgirls(query, newPage)
       setResults(searchResults)
     } catch (err) {
       setError(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다')
@@ -368,6 +424,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         return 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
       case 'heye':
         return 'bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400'
+      case 'kgirls':
+        return 'bg-pink-100 dark:bg-pink-900/50 text-pink-600 dark:text-pink-400'
       default:
         return 'bg-zinc-100 dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400'
     }
@@ -381,6 +439,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         return 'Twitter'
       case 'heye':
         return 'heye.kr'
+      case 'kgirls':
+        return 'kgirls.net'
       default:
         return p
     }
@@ -447,6 +507,16 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
             >
               heye.kr
             </button>
+            <button
+              onClick={() => handlePlatformChange('kgirls')}
+              className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                platform === 'kgirls'
+                  ? 'bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 ring-2 ring-pink-500/20'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              kgirls
+            </button>
           </div>
 
           {/* Platform Notice */}
@@ -458,6 +528,11 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
           {platform === 'heye' && (
             <p className="text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-4 py-2 rounded-lg">
               heye.kr 커뮤니티 게시판 검색
+            </p>
+          )}
+          {platform === 'kgirls' && (
+            <p className="text-sm text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 px-4 py-2 rounded-lg">
+              kgirls.net 마이너갤 검색
             </p>
           )}
 
@@ -533,6 +608,11 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                 {platform === 'heye' && heyeTotalPages > 1 && (
                   <span className="ml-2">
                     (페이지 {heyePage}/{heyeTotalPages})
+                  </span>
+                )}
+                {platform === 'kgirls' && kgirlsTotalPages > 1 && (
+                  <span className="ml-2">
+                    (페이지 {kgirlsPage}/{kgirlsTotalPages})
                   </span>
                 )}
               </p>
@@ -613,6 +693,29 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                   <button
                     onClick={() => handleHeyePageChange(heyePage + 1)}
                     disabled={heyePage >= heyeTotalPages || isLoading}
+                    className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  >
+                    다음
+                  </button>
+                </div>
+              )}
+
+              {/* Kgirls Pagination */}
+              {platform === 'kgirls' && kgirlsTotalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 pt-2">
+                  <button
+                    onClick={() => handleKgirlsPageChange(kgirlsPage - 1)}
+                    disabled={kgirlsPage <= 1 || isLoading}
+                    className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  >
+                    이전
+                  </button>
+                  <span className="text-sm text-zinc-500 dark:text-zinc-400 px-2">
+                    {kgirlsPage} / {kgirlsTotalPages}
+                  </span>
+                  <button
+                    onClick={() => handleKgirlsPageChange(kgirlsPage + 1)}
+                    disabled={kgirlsPage >= kgirlsTotalPages || isLoading}
                     className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                   >
                     다음

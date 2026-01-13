@@ -8,6 +8,7 @@ import {
   parseTwitter,
   parseWeverse,
   parseHeye,
+  parseKgirls,
   parseGeneric,
   type Platform,
   type VideoMetadata,
@@ -75,6 +76,11 @@ export function detectPlatform(url: string): Platform {
     // heye.kr patterns
     if (hostname.includes('heye.kr')) {
       return 'heye'
+    }
+
+    // kgirls.net patterns
+    if (hostname.includes('kgirls.net')) {
+      return 'kgirls'
     }
 
     return 'other'
@@ -146,6 +152,8 @@ function getParser(platform: Platform): (url: string) => Promise<VideoMetadata> 
       return parseWeverse
     case 'heye':
       return parseHeye
+    case 'kgirls':
+      return parseKgirls
     default:
       return parseGeneric
   }

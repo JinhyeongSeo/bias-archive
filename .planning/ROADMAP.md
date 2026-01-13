@@ -22,6 +22,7 @@ None
 - [x] **Phase 6: GIF & Export** - 브라우저 GIF 생성, JSON 내보내기, 다국어 ✓
 - [x] **Phase 7: Deploy & PWA** - Vercel 배포 + PWA(앱처럼 설치 가능) 지원 ✓
 - [x] **Phase 8: heye.kr Parser** - heye.kr 커뮤니티 게시판에서 이미지/GIF 추출 ✓
+- [ ] **Phase 9: kgirls.net Parser** - kgirls.net 커뮤니티(issue, mgall)에서 이미지/GIF/MP4 추출
 
 ## Phase Details
 
@@ -127,10 +128,32 @@ Plans:
 - [x] 08-01: heye.kr 파서 모듈 및 플랫폼 통합 ✓
 - [x] 08-02: heye.kr 검색 기능 (외부 검색 모달에 추가) ✓
 
+### Phase 9: kgirls.net Parser
+
+**Goal**: kgirls.net 커뮤니티(issue, mgall 게시판)에서 이미지/GIF/MP4 추출하여 아카이브에 저장
+**Depends on**: Phase 8 (완료됨)
+**Research**: Complete (분석 완료)
+**Plans**: TBD
+
+**분석 결과:**
+- 사이트: 윤아저장소 KGIRLS.NET (K-pop 아이돌 팬 갤러리)
+- 게시판: `/issue` (볼거리), `/mgall` (마이너갤)
+- 게시글 URL 패턴: `/mgall/{POST_ID}`, `/issue/{POST_ID}`
+- 본문 영역: `.bd` selector
+- 썸네일 URL: `/files/thumbnails/{num}/{num}/{dimensions}.fill.jpg?t={timestamp}`
+- 첨부파일: `#files_{POST_ID}` selector (MP4, MOV 등)
+- 제목: `<h2>` 태그
+- 메타정보: 작성자, 날짜(YYYY.MM.DD HH:MM), 조회수, 추천수
+- XE CMS 기반
+
+Plans:
+- [ ] 09-01: kgirls.net 파서 모듈 및 플랫폼 통합
+- [ ] 09-02: kgirls.net 검색 기능 (외부 검색 모달에 추가)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -142,3 +165,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 6. GIF & Export | 3/3 | Complete | 2026-01-13 |
 | 7. Deploy & PWA | 2/2 | Complete | 2026-01-13 |
 | 8. heye.kr Parser | 2/2 | Complete | 2026-01-14 |
+| 9. kgirls.net Parser | 0/2 | Not Started | - |
