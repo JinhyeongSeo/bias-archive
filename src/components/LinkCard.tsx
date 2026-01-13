@@ -4,12 +4,14 @@ import { useState } from 'react'
 import Image from 'next/image'
 import type { Link, Tag } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
+import { TagEditor } from './TagEditor'
 
 type LinkWithTags = Link & { tags: Tag[] }
 
 interface LinkCardProps {
   link: LinkWithTags
   onDelete?: (id: string) => void
+  onTagsChange?: (linkId: string, tags: Tag[]) => void
 }
 
 const platformLabels: Record<Platform, string> = {
@@ -35,11 +37,18 @@ function formatDate(dateString: string): string {
   })
 }
 
-export function LinkCard({ link, onDelete }: LinkCardProps) {
+export function LinkCard({ link, onDelete, onTagsChange }: LinkCardProps) {
   const [deleting, setDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [editingTags, setEditingTags] = useState(false)
+  const [tags, setTags] = useState<Tag[]>(link.tags || [])
 
   const platform = (link.platform || 'other') as Platform
+
+  const handleTagsChange = (newTags: Tag[]) => {
+    setTags(newTags)
+    onTagsChange?.(link.id, newTags)
+  }
 
   const handleDelete = async () => {
     if (!showConfirm) {
@@ -123,9 +132,9 @@ export function LinkCard({ link, onDelete }: LinkCardProps) {
         </p>
 
         {/* Tags */}
-        {link.tags && link.tags.length > 0 && (
+        {!editingTags && tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {link.tags.map((tag) => (
+            {tags.map((tag) => (
               <span
                 key={tag.id}
                 className="px-2 py-0.5 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
@@ -134,6 +143,16 @@ export function LinkCard({ link, onDelete }: LinkCardProps) {
               </span>
             ))}
           </div>
+        )}
+
+        {/* Tag Editor */}
+        {editingTags && (
+          <TagEditor
+            linkId={link.id}
+            currentTags={tags}
+            onTagsChange={handleTagsChange}
+            onClose={() => setEditingTags(false)}
+          />
         )}
       </div>
 
@@ -161,6 +180,31 @@ export function LinkCard({ link, onDelete }: LinkCardProps) {
             />
           </svg>
         </a>
+
+        {/* Edit tags button */}
+        <button
+          onClick={() => setEditingTags(!editingTags)}
+          className={`p-1.5 rounded-md shadow-sm transition-colors ${
+            editingTags
+              ? 'bg-blue-500 text-white'
+              : 'bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400'
+          }`}
+          title="태그 편집"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+            />
+          </svg>
+        </button>
 
         {/* Delete button */}
         {showConfirm ? (
