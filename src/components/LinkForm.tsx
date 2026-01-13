@@ -32,6 +32,7 @@ export function LinkForm({ onSave }: LinkFormProps) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<MetadataPreview | null>(null)
+  const [imageError, setImageError] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,6 +45,7 @@ export function LinkForm({ onSave }: LinkFormProps) {
     setLoading(true)
     setError(null)
     setPreview(null)
+    setImageError(false)
 
     try {
       const response = await fetch('/api/metadata', {
@@ -143,13 +145,14 @@ export function LinkForm({ onSave }: LinkFormProps) {
       {preview && (
         <div className="mt-6 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
           <div className="flex gap-4">
-            {preview.thumbnailUrl && (
+            {preview.thumbnailUrl && !imageError && (
               <div className="flex-shrink-0 relative w-32 h-24 rounded-md overflow-hidden bg-zinc-200 dark:bg-zinc-700">
                 <Image
                   src={preview.thumbnailUrl}
                   alt={preview.title || 'Thumbnail'}
                   fill
                   className="object-cover"
+                  onError={() => setImageError(true)}
                 />
               </div>
             )}
