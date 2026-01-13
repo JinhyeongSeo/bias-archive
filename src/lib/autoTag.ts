@@ -15,28 +15,29 @@ function normalizeText(text: string): string {
 }
 
 /**
- * Check if a name is found in text with word boundary consideration
+ * Check if a name is found in text
  * @param text - The text to search in (already normalized)
  * @param name - The name to search for (will be normalized)
- * @returns true if name is found as a word or partial match
+ * @returns true if name is found
  */
 function isNameInText(text: string, name: string): boolean {
   const normalizedName = normalizeText(name)
   if (!normalizedName) return false
 
-  // Create a regex that matches the name with word boundaries
-  // This helps avoid false positives (e.g., "RA" matching "RORA")
-  // But also allows partial matches for compound words
-  try {
-    // Escape special regex characters in the name
-    const escapedName = normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    // Match the name as a whole word or at word boundaries
-    const regex = new RegExp(`\\b${escapedName}\\b`, 'i')
-    return regex.test(text)
-  } catch {
-    // Fallback to simple includes if regex fails
-    return text.includes(normalizedName)
+  // For short names (< 3 chars), use word boundary to avoid false positives
+  // For longer names and Korean names, use simple includes
+  if (normalizedName.length < 3 && /^[a-z]+$/i.test(normalizedName)) {
+    try {
+      const escapedName = normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const regex = new RegExp(`\\b${escapedName}\\b`, 'i')
+      return regex.test(text)
+    } catch {
+      return text.includes(normalizedName)
+    }
   }
+
+  // For Korean and longer names, simple includes works well
+  return text.includes(normalizedName)
 }
 
 /**

@@ -99,6 +99,8 @@ export function TagEditor({ linkId, currentTags, onTagsChange, onClose }: TagEdi
       if (response.ok) {
         const updatedTags = await response.json()
         onTagsChange(updatedTags)
+        // Refresh sidebar tag list (tag might no longer be in use)
+        refreshTags()
       }
     } catch (error) {
       console.error('Error removing tag:', error)

@@ -147,3 +147,38 @@ export async function getTagsForLink(linkId: string): Promise<Tag[]> {
   // Extract the tags from the joined query result
   return (data ?? []).map((item) => (item.tags as unknown) as Tag).filter(Boolean)
 }
+
+/**
+ * Get all tags that are in use (linked to at least one link)
+ * Sorted by name ascending (alphabetical)
+ */
+export async function getTagsInUse(): Promise<Tag[]> {
+  // Get distinct tag_ids from link_tags
+  const { data: linkTags, error: linkTagsError } = await supabase
+    .from('link_tags')
+    .select('tag_id')
+
+  if (linkTagsError) {
+    throw linkTagsError
+  }
+
+  if (!linkTags || linkTags.length === 0) {
+    return []
+  }
+
+  // Get unique tag IDs
+  const tagIds = [...new Set(linkTags.map((lt) => lt.tag_id))]
+
+  // Get the actual tags
+  const { data: tags, error: tagsError } = await supabase
+    .from('tags')
+    .select('*')
+    .in('id', tagIds)
+    .order('name', { ascending: true })
+
+  if (tagsError) {
+    throw tagsError
+  }
+
+  return tags ?? []
+}

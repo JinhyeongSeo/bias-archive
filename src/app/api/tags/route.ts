@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getTags, createTag } from '@/lib/tags'
+import { getTags, createTag, getTagsInUse } from '@/lib/tags'
 
 /**
  * GET /api/tags
- * Get all tags
+ * Get tags - by default returns only tags that are in use (linked to links)
+ * Query params:
+ *   - all=true: Return all tags including unused ones
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const tags = await getTags()
+    const { searchParams } = new URL(request.url)
+    const showAll = searchParams.get('all') === 'true'
+
+    const tags = showAll ? await getTags() : await getTagsInUse()
     return NextResponse.json(tags)
   } catch (error) {
     console.error('Error fetching tags:', error)
