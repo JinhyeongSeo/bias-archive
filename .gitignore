@@ -16,6 +16,9 @@ build
 # Misc
 .DS_Store
 *.pem
+nul
+tmpclaude-*
+.claude/settings.local.json
 
 # Debug
 npm-debug.log*
