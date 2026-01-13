@@ -4,101 +4,93 @@
 
 ## Research Findings
 
-### YouTube Data API v3
+### Google Custom Search API (선택됨)
 
-**Status: 무료 티어 사용 가능**
+**Status: 무료 티어 사용 가능 - YouTube + Twitter 통합 검색**
+
+| 항목 | 값 |
+|------|------|
+| 일일 무료 할당량 | 100 queries |
+| 추가 비용 | $5 / 1,000 queries |
+| site: 연산자 | ✅ 지원 |
+| API 키 필요 | Yes (Google Cloud Console + Programmable Search Engine) |
+
+**장점:**
+- 하나의 API로 YouTube + Twitter 모두 검색
+- `site:youtube.com`, `site:twitter.com` 필터링 가능
+- 검색 결과 링크 → 기존 메타데이터 API로 썸네일/제목 추출
+
+**검색 → 메타데이터 파이프라인:**
+```
+1. Google CSE: "site:twitter.com 카리나" → twitter.com/xxx/status/123 링크들
+2. 각 링크 → 기존 /api/metadata 호출 → vxtwitter로 썸네일, 제목 추출
+3. 미리보기 표시 → 저장 버튼
+```
+
+**테스트 결과:**
+- `site:twitter.com 카리나 fancam` → Twitter 결과 정상 반환
+- `site:x.com` 보다 `site:twitter.com` 사용 권장 (인덱싱 안정성)
+- 검색어 팁: "카리나 직캠" 보다 "카리나"가 더 많은 결과
+
+**Sources:**
+- [Custom Search JSON API](https://developers.google.com/custom-search/v1/overview)
+- [Programmable Search Engine](https://programmablesearchengine.google.com/)
+
+---
+
+### YouTube Data API v3 (대안)
+
+**Status: 무료 가능하나 Google CSE로 대체**
 
 | 항목 | 값 |
 |------|------|
 | 일일 무료 할당량 | 10,000 units |
 | search.list 비용 | 100 units/request |
 | 일일 검색 가능 횟수 | ~100회 |
-| API 키 필요 | Yes (Google Cloud Console) |
 
-**엔드포인트:**
-```
-GET https://www.googleapis.com/youtube/v3/search
-  ?part=snippet
-  &q={search_query}
-  &type=video
-  &key={API_KEY}
-```
-
-**응답 필드:**
-- `items[].id.videoId` - 비디오 ID
-- `items[].snippet.title` - 제목
-- `items[].snippet.description` - 설명
-- `items[].snippet.thumbnails` - 썸네일
-- `items[].snippet.publishedAt` - 게시 날짜
-- `items[].snippet.channelTitle` - 채널명
-
-**제약사항:**
-- 할당량 초과 시 429 에러
-- 페이지당 최대 50개 결과
-- 하루 100회 검색 제한 (개인 사용에 충분)
-
-**Sources:**
-- [Quota Calculator](https://developers.google.com/youtube/v3/determine_quota_cost)
-- [YouTube Data API Overview](https://developers.google.com/youtube/v3/getting-started)
+YouTube 전용 API는 더 풍부한 메타데이터를 제공하지만, Google CSE로 YouTube + Twitter를 통합 처리하는 것이 더 효율적.
 
 ---
 
 ### Twitter/X API v2
 
-**Status: 무료 티어 검색 불가**
+**Status: 무료 티어 검색 불가 → Google CSE로 우회**
 
 | 항목 | Free Tier | Basic Tier |
 |------|-----------|------------|
 | 월 비용 | $0 | $100 |
 | 검색 API | ❌ 불가 | ✅ 가능 |
-| 읽기 제한 | 자기 정보만 | 10,000 tweets/month |
-| 쓰기 제한 | 1,500 tweets/month | 50,000 tweets/month |
 
-**결론:** 프로젝트 제약조건("무료 서비스만 사용")에 따라 Twitter 통합 검색 기능은 Phase 4에서 제외.
-
-**Sources:**
-- [X API Pricing 2025](https://twitterapi.io/blog/twitter-api-pricing-2025)
-- [Free Tier Limitations](https://devcommunity.x.com/t/list-of-twitter-api-v2-access-endpoints-in-free-tier/198614)
+**해결책:** Google CSE `site:twitter.com` + 기존 vxtwitter API 조합으로 무료 검색 구현
 
 ---
 
-## Phase 4 계획 수정
+## 최종 계획
 
-### 원래 계획 (ROADMAP.md)
-- 04-01: 아카이브 검색 및 태그 필터링
-- 04-02: YouTube 통합 검색
-- 04-03: Twitter/X 통합 검색 ← **제외**
+### 04-01: 아카이브 검색 및 태그 필터링 (내부 기능)
+- 텍스트 검색 (title, description, author_name)
+- 태그 필터링 (다중 선택)
+- 플랫폼 필터링
+- 날짜 범위 필터링
 
-### 수정된 계획
-- **04-01: 아카이브 검색 및 태그 필터링** (내부 기능)
-  - 텍스트 검색 (title, description, author_name)
-  - 태그 필터링 (다중 선택)
-  - 플랫폼 필터링
-  - 날짜 범위 필터링
-
-- **04-02: YouTube 통합 검색** (외부 API)
-  - YouTube Data API v3 연동
-  - 검색 결과 미리보기
-  - 선택한 영상 저장
-
-### 대안 고려 (향후)
-- Twitter 검색이 필요할 경우:
-  1. 사용자가 직접 URL 입력 (현재 방식 유지)
-  2. 향후 유료 API 도입 시 추가 가능
-  3. 서드파티 API 서비스 검토 (twitterapi.io 등)
+### 04-02: 통합 외부 검색 (Google CSE)
+- Google Custom Search API로 YouTube + Twitter 검색
+- 검색 결과 링크 → 기존 메타데이터 API로 미리보기
+- 플랫폼 선택: YouTube / Twitter / 전체
 
 ---
 
 ## 기술 스택 결정
 
-### YouTube 통합 검색
-- **라이브러리**: 직접 fetch 사용 (googleapis 패키지 불필요)
-- **API 키 저장**: `.env.local`에 `YOUTUBE_API_KEY`
-- **서버 사이드**: API 라우트에서 처리 (키 노출 방지)
+### 통합 외부 검색
+- **API**: Google Custom Search API
+- **환경변수**: `GOOGLE_CSE_API_KEY`, `GOOGLE_CSE_ID`
+- **메타데이터 추출**: 기존 `/api/metadata` 재사용
+  - YouTube: oEmbed API
+  - Twitter: vxtwitter API
 
 ### 아카이브 검색
 - **Supabase 검색**: `.ilike()` 또는 `.or()` 조합
-- **클라이언트 필터링**: 서버 쿼리 우선, 보조적 클라이언트 필터링
 - **UI 패턴**: 기존 Sidebar 활용
 
 ---
