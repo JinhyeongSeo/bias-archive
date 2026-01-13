@@ -33,6 +33,7 @@ export type Database = {
           thumbnail_url: string | null
           platform: string | null
           original_date: string | null
+          author_name: string | null
           bias_id: string | null
           created_at: string
           updated_at: string
@@ -45,6 +46,7 @@ export type Database = {
           thumbnail_url?: string | null
           platform?: string | null
           original_date?: string | null
+          author_name?: string | null
           bias_id?: string | null
           created_at?: string
           updated_at?: string
@@ -57,6 +59,7 @@ export type Database = {
           thumbnail_url?: string | null
           platform?: string | null
           original_date?: string | null
+          author_name?: string | null
           bias_id?: string | null
           updated_at?: string
         }

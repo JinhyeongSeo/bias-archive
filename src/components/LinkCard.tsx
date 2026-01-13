@@ -111,6 +111,11 @@ export function LinkCard({ link, onDelete }: LinkCardProps) {
         <h3 className="font-medium text-zinc-900 dark:text-zinc-100 line-clamp-2 text-sm leading-snug">
           {link.title || '제목 없음'}
         </h3>
+        {link.author_name && (
+          <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1">
+            {link.author_name}
+          </p>
+        )}
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
           {formatDate(link.created_at)}
         </p>

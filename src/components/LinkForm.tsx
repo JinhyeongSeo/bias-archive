@@ -95,6 +95,7 @@ export function LinkForm({ onSave }: LinkFormProps) {
           thumbnailUrl: preview.thumbnailUrl,
           platform: preview.platform,
           originalDate: preview.originalDate,
+          authorName: preview.authorName,
         }),
       })
 

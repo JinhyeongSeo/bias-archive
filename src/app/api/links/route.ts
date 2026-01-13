@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { url, title, description, thumbnailUrl, platform, originalDate, biasId } = body
+    const { url, title, description, thumbnailUrl, platform, originalDate, authorName, biasId } = body
 
     // Validate required field
     if (!url || typeof url !== 'string') {
@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
       thumbnail_url: thumbnailUrl || null,
       platform: platform || null,
       original_date: originalDate || null,
+      author_name: authorName || null,
       bias_id: biasId || null,
     }
 
