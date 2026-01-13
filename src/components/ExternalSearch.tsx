@@ -3,6 +3,8 @@
 import { useState, useCallback, useEffect } from 'react'
 
 type Platform = 'youtube' | 'twitter'
+type YouTubeOrder = 'relevance' | 'date' | 'viewCount'
+type YouTubePeriod = '' | 'today' | 'week' | 'month' | 'year'
 
 interface YouTubeResult {
   videoId: string
@@ -43,6 +45,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notConfigured, setNotConfigured] = useState(false)
+  const [youtubeOrder, setYoutubeOrder] = useState<YouTubeOrder>('relevance')
+  const [youtubePeriod, setYoutubePeriod] = useState<YouTubePeriod>('')
 
   // ESC key to close modal
   useEffect(() => {
@@ -66,6 +70,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       setResults([])
       setError(null)
       setNotConfigured(false)
+      setYoutubeOrder('relevance')
+      setYoutubePeriod('')
     }
     return () => {
       document.body.style.overflow = ''
@@ -90,7 +96,17 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
   }, [savedUrls])
 
   const searchYouTube = async (searchQuery: string): Promise<EnrichedResult[]> => {
-    const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(searchQuery)}&max=10`)
+    const params = new URLSearchParams({
+      q: searchQuery,
+      max: '10',
+    })
+    if (youtubeOrder !== 'relevance') {
+      params.set('order', youtubeOrder)
+    }
+    if (youtubePeriod) {
+      params.set('period', youtubePeriod)
+    }
+    const response = await fetch(`/api/youtube/search?${params}`)
     const data = await response.json()
 
     if (!response.ok) {
@@ -356,6 +372,38 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
               {isLoading ? '검색 중...' : '검색'}
             </button>
           </div>
+
+          {/* YouTube Filters */}
+          {platform === 'youtube' && (
+            <div className="flex gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-zinc-500 dark:text-zinc-400">정렬</label>
+                <select
+                  value={youtubeOrder}
+                  onChange={(e) => setYoutubeOrder(e.target.value as YouTubeOrder)}
+                  className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="relevance">관련성순</option>
+                  <option value="viewCount">조회수순</option>
+                  <option value="date">최신순</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-zinc-500 dark:text-zinc-400">기간</label>
+                <select
+                  value={youtubePeriod}
+                  onChange={(e) => setYoutubePeriod(e.target.value as YouTubePeriod)}
+                  className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">전체</option>
+                  <option value="today">오늘</option>
+                  <option value="week">이번주</option>
+                  <option value="month">이번달</option>
+                  <option value="year">올해</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (
