@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 10 — 아이돌 그룹 멤버 자동 추가 기능
+**Current focus:** Phase 11 — 다국어 모드를 위한 DB 스키마 확장
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 10 of 10 (Idol Group Member Auto-Fill)
-Plan: 2/2 (complete)
-Status: Complete
-Last activity: 2026-01-14 — Phase 10 완료
+Phase: 11 of 13 (Bias Schema Extension)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-01-14 — Milestone v1.1 created
 
-Progress: ██████████ 100% (10/10 phases complete)
+Progress: ██████████░░░ 77% (10/13 phases complete)
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Progress: ██████████ 100% (10/10 phases complete)
 
 - Phase 9 added: kgirls.net Parser (issue, mgall 게시판 지원) ✓
 - Phase 10 added: Idol Group Member Auto-Fill (그룹명 입력 시 멤버 자동 추가) ✓
+- Milestone v1.1 created: Multilingual Mode, 3 phases (Phase 11-13)
 
 ### Deferred Issues
 
@@ -90,5 +91,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-14
-Stopped at: Milestone 1 Phase 10 완료 - 그룹 자동완성 및 멤버 일괄 추가 구현
+Stopped at: Milestone v1.1 initialization - 다국어 모드 계획
 Resume file: None
