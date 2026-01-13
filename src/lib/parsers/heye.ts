@@ -67,42 +67,33 @@ export async function parseHeye(url: string): Promise<VideoMetadata> {
     const seenUrls = new Set<string>()
 
     // Helper to add media if not duplicate
-    const addMedia = (src: string) => {
+    const addMedia = (src: string, mediaType?: MediaType) => {
       if (seenUrls.has(src)) return
       seenUrls.add(src)
 
       const lowerSrc = src.toLowerCase()
-      let type: MediaType = 'image'
-      if (lowerSrc.endsWith('.gif')) {
-        type = 'gif'
+      let type: MediaType = mediaType || 'image'
+      if (!mediaType) {
+        if (lowerSrc.endsWith('.gif')) {
+          type = 'gif'
+        } else if (lowerSrc.endsWith('.mp4') || lowerSrc.endsWith('.webm')) {
+          type = 'video'
+        }
       }
       media.push({ url: src, type })
     }
 
-    // Pattern 1: heye.kr native images - https://img1.heye.kr/image/idol/YYYY/MM/timestamp.ext
+    // Pattern 1: heye.kr native videos - https://img1.heye.kr/video/idol/YYYY/MM/timestamp.mp4
+    const heyeVideoPattern = /https?:\/\/img1\.heye\.kr\/video\/idol\/\d{4}\/\d{2}\/\d+\.(mp4|webm)/gi
+    for (const match of html.matchAll(heyeVideoPattern)) {
+      addMedia(match[0], 'video')
+    }
+
+    // Pattern 2: heye.kr native images - https://img1.heye.kr/image/idol/YYYY/MM/timestamp.ext
+    // Only get heye.kr hosted content (imgur, daum cdn are ads)
     const heyePattern = /https?:\/\/img1\.heye\.kr\/image\/idol\/\d{4}\/\d{2}\/\d+\.(jpeg|jpg|png|gif)/gi
     for (const match of html.matchAll(heyePattern)) {
       addMedia(match[0])
-    }
-
-    // Pattern 2: imgur images/GIFs - https://i.imgur.com/xxxxx.ext
-    const imgurPattern = /https?:\/\/i\.imgur\.com\/[a-zA-Z0-9]+\.(jpeg|jpg|png|gif)/gi
-    for (const match of html.matchAll(imgurPattern)) {
-      addMedia(match[0])
-    }
-
-    // Pattern 3: Daum CDN images - https://t1.daumcdn.net/thumb/...
-    // These wrap external images, extract the actual image URL from fname parameter
-    const daumPattern = /https?:\/\/t1\.daumcdn\.net\/thumb\/R\d+x\d+\/\?fname=(https?:\/\/[^"'\s&]+\.(jpeg|jpg|png|gif))/gi
-    for (const match of html.matchAll(daumPattern)) {
-      // Decode the URL from fname parameter
-      try {
-        const actualUrl = decodeURIComponent(match[1])
-        addMedia(actualUrl)
-      } catch {
-        // If decode fails, use the wrapped URL
-        addMedia(match[0])
-      }
     }
 
     // First image is thumbnail

@@ -152,31 +152,33 @@ function TwitterEmbed({ tweetId }: { tweetId: string }) {
   )
 }
 
-// Image gallery component for Twitter multi-image posts
-function ImageGallery({ media }: { media: LinkMedia[] }) {
+// Media gallery component for images, GIFs, and videos
+function MediaGallery({ media }: { media: LinkMedia[] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set([0]))
-  const images = media.filter(m => m.media_type === 'image' || m.media_type === 'gif')
+  // Include images, GIFs, and videos
+  const items = media.filter(m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video')
 
   const goToPrevious = useCallback(() => {
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))
-  }, [images.length])
+    setCurrentIndex((prev) => (prev === 0 ? items.length - 1 : prev - 1))
+  }, [items.length])
 
   const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))
-  }, [images.length])
+    setCurrentIndex((prev) => (prev === items.length - 1 ? 0 : prev + 1))
+  }, [items.length])
 
-  // Preload adjacent images when current index changes
+  // Preload adjacent images when current index changes (skip videos)
   useEffect(() => {
-    if (images.length <= 1) return
+    if (items.length <= 1) return
 
     const toPreload: number[] = []
     // Preload next 2 and previous 1 images
     for (let offset = -1; offset <= 2; offset++) {
       let idx = currentIndex + offset
-      if (idx < 0) idx = images.length + idx
-      if (idx >= images.length) idx = idx - images.length
-      if (!loadedImages.has(idx)) {
+      if (idx < 0) idx = items.length + idx
+      if (idx >= items.length) idx = idx - items.length
+      // Only preload images, not videos
+      if (!loadedImages.has(idx) && items[idx].media_type !== 'video') {
         toPreload.push(idx)
       }
     }
@@ -184,11 +186,11 @@ function ImageGallery({ media }: { media: LinkMedia[] }) {
     if (toPreload.length > 0) {
       toPreload.forEach(idx => {
         const img = new window.Image()
-        img.src = images[idx].media_url
+        img.src = items[idx].media_url
       })
       setLoadedImages(prev => new Set([...prev, ...toPreload]))
     }
-  }, [currentIndex, images, loadedImages])
+  }, [currentIndex, items, loadedImages])
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -201,36 +203,52 @@ function ImageGallery({ media }: { media: LinkMedia[] }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [goToPrevious, goToNext])
 
-  if (images.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="flex items-center justify-center p-8 text-zinc-500 dark:text-zinc-400">
-        이미지를 찾을 수 없습니다
+        미디어를 찾을 수 없습니다
       </div>
     )
   }
 
+  const currentItem = items[currentIndex]
+  const isVideo = currentItem.media_type === 'video'
+
   return (
     <div className="relative w-full">
-      {/* Main image */}
-      <div className="relative w-full" style={{ aspectRatio: '4/5', maxHeight: '70vh' }}>
-        <Image
-          src={images[currentIndex].media_url}
-          alt={`Image ${currentIndex + 1} of ${images.length}`}
-          fill
-          className="object-contain rounded-lg"
-          priority
-          unoptimized
-        />
+      {/* Main content - image or video */}
+      <div className="relative w-full flex items-center justify-center" style={{ aspectRatio: '4/5', maxHeight: '70vh' }}>
+        {isVideo ? (
+          <video
+            key={currentItem.media_url}
+            src={currentItem.media_url}
+            controls
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="max-w-full max-h-full rounded-lg object-contain"
+          />
+        ) : (
+          <Image
+            src={currentItem.media_url}
+            alt={`Media ${currentIndex + 1} of ${items.length}`}
+            fill
+            className="object-contain rounded-lg"
+            priority
+            unoptimized
+          />
+        )}
       </div>
 
-      {/* Navigation controls - only show if multiple images */}
-      {images.length > 1 && (
+      {/* Navigation controls - only show if multiple items */}
+      {items.length > 1 && (
         <>
           {/* Previous button */}
           <button
             onClick={goToPrevious}
             className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
-            aria-label="Previous image"
+            aria-label="Previous"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -241,7 +259,7 @@ function ImageGallery({ media }: { media: LinkMedia[] }) {
           <button
             onClick={goToNext}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
-            aria-label="Next image"
+            aria-label="Next"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -250,7 +268,7 @@ function ImageGallery({ media }: { media: LinkMedia[] }) {
 
           {/* Dots indicator */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-            {images.map((_, index) => (
+            {items.map((item, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
@@ -258,15 +276,16 @@ function ImageGallery({ media }: { media: LinkMedia[] }) {
                   index === currentIndex
                     ? 'bg-white'
                     : 'bg-white/50 hover:bg-white/75'
-                }`}
-                aria-label={`Go to image ${index + 1}`}
+                } ${item.media_type === 'video' ? 'ring-1 ring-white/50' : ''}`}
+                aria-label={`Go to ${item.media_type === 'video' ? 'video' : 'image'} ${index + 1}`}
               />
             ))}
           </div>
 
           {/* Counter */}
           <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/50 text-white text-sm">
-            {currentIndex + 1} / {images.length}
+            {currentIndex + 1} / {items.length}
+            {isVideo && ' (영상)'}
           </div>
         </>
       )}
@@ -314,7 +333,7 @@ export function EmbedViewer({ url, platform, media }: EmbedViewerProps) {
     const hasImages = media && media.some(m => m.media_type === 'image')
 
     if (hasImages) {
-      return <ImageGallery media={media!} />
+      return <MediaGallery media={media!} />
     }
 
     // For tweets without images (text-only or video), embed the tweet
@@ -328,15 +347,15 @@ export function EmbedViewer({ url, platform, media }: EmbedViewerProps) {
   if (platform === 'weverse') {
     const hasImages = media && media.some(m => m.media_type === 'image')
     if (hasImages) {
-      return <ImageGallery media={media!} />
+      return <MediaGallery media={media!} />
     }
   }
 
-  // heye.kr - show image gallery
+  // heye.kr - show media gallery (images, GIFs, videos)
   if (platform === 'heye') {
-    const hasImages = media && media.some(m => m.media_type === 'image' || m.media_type === 'gif')
-    if (hasImages) {
-      return <ImageGallery media={media!} />
+    const hasMedia = media && media.some(m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video')
+    if (hasMedia) {
+      return <MediaGallery media={media!} />
     }
   }
 
