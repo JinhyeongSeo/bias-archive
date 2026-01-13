@@ -49,31 +49,28 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
       }
 
       setLinks(data)
-      // Notify parent of loaded URLs
-      if (onLinksLoad) {
-        onLinksLoad(data.map((link: LinkWithTags) => link.url))
-      }
+      // Note: onLinksLoad is now called via useEffect when links state changes
     } catch (err) {
       setError(err instanceof Error ? err.message : '오류가 발생했습니다')
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, tagId, platform, onLinksLoad])
+  }, [searchQuery, tagId, platform])
 
   useEffect(() => {
     fetchLinks()
   }, [fetchLinks, refreshTrigger])
 
   const handleDelete = (id: string) => {
-    setLinks((prev) => {
-      const updated = prev.filter((link) => link.id !== id)
-      // Notify parent of updated URLs to sync savedUrls state
-      if (onLinksLoad) {
-        onLinksLoad(updated.map((link) => link.url))
-      }
-      return updated
-    })
+    setLinks((prev) => prev.filter((link) => link.id !== id))
   }
+
+  // Sync savedUrls with parent when links change (after delete)
+  useEffect(() => {
+    if (onLinksLoad && !loading) {
+      onLinksLoad(links.map((link) => link.url))
+    }
+  }, [links, onLinksLoad, loading])
 
   if (loading) {
     return (
