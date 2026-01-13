@@ -15,7 +15,7 @@ None
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Foundation** - Next.js + Supabase 프로젝트 셋업, DB 스키마, 기본 UI ✓
-- [ ] **Phase 2: Link Management** - URL 입력, 메타데이터 자동 추출, 저장 (핵심)
+- [x] **Phase 2: Link Management** - URL 입력, 메타데이터 자동 추출, 저장 (핵심) ✓
 - [ ] **Phase 3: Tagging & Multi-Bias** - 자동 태그 추출, 여러 최애 지원
 - [ ] **Phase 4: Search & Filter** - 아카이브 검색, 태그 필터링, 통합 검색
 - [ ] **Phase 5: Viewer & Timeline** - 임베드 뷰어, 레이아웃 전환, 과거의 오늘
@@ -44,7 +44,7 @@ Plans:
 Plans:
 - [x] 02-01: URL 입력 폼 및 메타데이터 추출 API
 - [x] 02-02: 링크 저장 CRUD 및 목록 UI
-- [ ] 02-03: 플랫폼별 파서 모듈화 및 고도화
+- [x] 02-03: 플랫폼별 파서 모듈화 및 고도화
 
 ### Phase 3: Tagging & Multi-Bias
 **Goal**: 제목/설명에서 멤버명 자동 추출, 여러 최애 관리, 태그 시스템
@@ -102,8 +102,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2026-01-13 |
-| 2. Link Management | 2/3 | In progress | - |
+| 2. Link Management | 3/3 | Complete | 2026-01-13 |
 | 3. Tagging & Multi-Bias | 0/3 | Not started | - |
 | 4. Search & Filter | 0/3 | Not started | - |
-| 5. Viewer & Timeline | 0/3 | Not started | - |
+| 5. Viewer & Timeline | 0/5 | Not started | - |
 | 6. GIF & Export | 0/3 | Not started | - |
