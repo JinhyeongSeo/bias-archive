@@ -19,7 +19,7 @@ None
 - [x] **Phase 3: Tagging & Multi-Bias** - 자동 태그 추출, 여러 최애 지원 ✓
 - [x] **Phase 4: Search & Filter** - 아카이브 검색, 태그 필터링, 통합 검색 ✓
 - [x] **Phase 5: Viewer & Timeline** - 임베드 뷰어, 레이아웃 전환, 과거의 오늘 ✓
-- [ ] **Phase 6: GIF & Export** - 브라우저 GIF 생성, JSON 내보내기, 다국어
+- [x] **Phase 6: GIF & Export** - 브라우저 GIF 생성, JSON 내보내기, 다국어 ✓
 - [ ] **Phase 7: Deploy & PWA** - Vercel 배포 + PWA(앱처럼 설치 가능) 지원
 
 ## Phase Details
@@ -90,9 +90,9 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 06-01: FFmpeg.wasm 기반 GIF 생성기
-- [ ] 06-02: JSON 내보내기/가져오기
-- [ ] 06-03: 다국어(i18n) 지원
+- [x] 06-01: FFmpeg.wasm 기반 GIF 생성기 ✓
+- [x] 06-02: JSON 내보내기/가져오기 ✓
+- [x] 06-03: 다국어(i18n) 지원 ✓
 
 ### Phase 7: Deploy & PWA
 
@@ -117,5 +117,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Tagging & Multi-Bias | 3/3 | Complete | 2026-01-13 |
 | 4. Search & Filter | 2/2 | Complete | 2026-01-13 |
 | 5. Viewer & Timeline | 5/5 | Complete | 2026-01-13 |
-| 6. GIF & Export | 0/3 | Not started | - |
+| 6. GIF & Export | 3/3 | Complete | 2026-01-13 |
 | 7. Deploy & PWA | 0/0 | Not started | - |
