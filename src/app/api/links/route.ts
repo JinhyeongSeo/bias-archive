@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createLink, getLinksWithTags, checkDuplicateUrl } from '@/lib/links'
+import { createLink, searchLinksWithTags, checkDuplicateUrl } from '@/lib/links'
 import type { LinkInsert } from '@/lib/links'
 import { getBiases } from '@/lib/biases'
 import { getOrCreateTag, addTagToLink } from '@/lib/tags'
@@ -7,14 +7,29 @@ import { extractAutoTags, combineTextForTagExtraction } from '@/lib/autoTag'
 
 /**
  * GET /api/links
- * Get all links with tags, optionally filtered by bias_id query parameter
+ * Get all links with tags, with optional filtering:
+ * - bias_id: filter by bias ID
+ * - search: text search in title, description, author_name
+ * - tags: comma-separated tag IDs
+ * - platform: filter by platform (youtube, twitter, weverse, etc.)
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const biasId = searchParams.get('bias_id') || undefined
+    const search = searchParams.get('search') || undefined
+    const tagsParam = searchParams.get('tags') || undefined
+    const platform = searchParams.get('platform') || undefined
 
-    const links = await getLinksWithTags(biasId)
+    // Parse tags parameter (comma-separated IDs)
+    const tagIds = tagsParam ? tagsParam.split(',').filter(Boolean) : undefined
+
+    const links = await searchLinksWithTags({
+      biasId,
+      search,
+      tagIds,
+      platform,
+    })
     return NextResponse.json(links)
   } catch (error) {
     console.error('Error fetching links:', error)
