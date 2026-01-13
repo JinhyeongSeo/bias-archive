@@ -19,6 +19,17 @@ interface KgirlsSearchResponse {
   currentPage: number
 }
 
+/**
+ * Convert thumbnail URL to larger size
+ * kgirls.net thumbnail pattern: /files/thumbnails/{id}/{id}/{num}/100x100.fill.jpg?t=...
+ */
+function convertThumbnailToLarger(thumbnailUrl: string): string {
+  let url = thumbnailUrl.split('?')[0]
+  // Replace small sizes with larger
+  url = url.replace(/\/100x100\.fill\./, '/320x480.fill.')
+  return url
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const query = searchParams.get('q')
@@ -42,6 +53,7 @@ export async function GET(request: NextRequest) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Referer': 'https://www.kgirls.net/',
       },
     })
 
@@ -89,12 +101,13 @@ export async function GET(request: NextRequest) {
       // Try to find thumbnail - look for img in the same container or nearby
       let thumbnailUrl: string | null = null
       const $parent = $link.closest('li, tr, div')
-      const $img = $parent.find('img[src*="/files/thumbnails/"]').first()
+      const $img = $parent.find('img[src*="/files/"]').first()
       if ($img.length) {
         const src = $img.attr('src')
         if (src) {
-          // Convert relative URL to absolute
-          thumbnailUrl = src.startsWith('http') ? src : `https://www.kgirls.net${src}`
+          // Convert relative URL to absolute and use larger size
+          const absoluteUrl = src.startsWith('http') ? src : `https://www.kgirls.net${src}`
+          thumbnailUrl = convertThumbnailToLarger(absoluteUrl)
         }
       }
 

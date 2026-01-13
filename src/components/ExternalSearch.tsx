@@ -69,6 +69,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
   // kgirls.net pagination state
   const [kgirlsPage, setKgirlsPage] = useState(1)
   const [kgirlsTotalPages, setKgirlsTotalPages] = useState(0)
+  const [kgirlsBoard, setKgirlsBoard] = useState<'mgall' | 'issue'>('mgall')
 
   // ESC key to close modal
   useEffect(() => {
@@ -98,6 +99,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       setHeyeTotalPages(0)
       setKgirlsPage(1)
       setKgirlsTotalPages(0)
+      setKgirlsBoard('mgall')
     }
     return () => {
       document.body.style.overflow = ''
@@ -244,8 +246,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     }))
   }
 
-  const searchKgirls = async (searchQuery: string, page: number = 1): Promise<EnrichedResult[]> => {
-    const response = await fetch(`/api/search/kgirls?q=${encodeURIComponent(searchQuery)}&page=${page}&board=mgall`)
+  const searchKgirls = async (searchQuery: string, page: number = 1, board: 'mgall' | 'issue' = kgirlsBoard): Promise<EnrichedResult[]> => {
+    const response = await fetch(`/api/search/kgirls?q=${encodeURIComponent(searchQuery)}&page=${page}&board=${board}`)
     const data = await response.json()
 
     if (!response.ok) {
@@ -531,9 +533,24 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
             </p>
           )}
           {platform === 'kgirls' && (
-            <p className="text-sm text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 px-4 py-2 rounded-lg">
-              kgirls.net 마이너갤 검색
-            </p>
+            <div className="flex items-center gap-3 bg-pink-50 dark:bg-pink-900/20 px-4 py-2 rounded-lg">
+              <p className="text-sm text-pink-600 dark:text-pink-400">
+                kgirls.net
+              </p>
+              <select
+                value={kgirlsBoard}
+                onChange={(e) => {
+                  setKgirlsBoard(e.target.value as 'mgall' | 'issue')
+                  setResults([])
+                  setKgirlsPage(1)
+                  setKgirlsTotalPages(0)
+                }}
+                className="px-3 py-1 text-sm border border-pink-200 dark:border-pink-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              >
+                <option value="mgall">마이너갤</option>
+                <option value="issue">볼거리</option>
+              </select>
+            </div>
           )}
 
           {/* Search Input */}
