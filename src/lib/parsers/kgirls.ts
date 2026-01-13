@@ -8,6 +8,23 @@ import * as cheerio from 'cheerio'
 import type { VideoMetadata, ParsedMedia, MediaType } from './index'
 
 /**
+ * Convert thumbnail URL to larger size or full image
+ * kgirls.net thumbnail pattern: /files/thumbnails/{id}/{id}/{num}/100x100.fill.jpg?t=...
+ * Try larger sizes: 320x480, 640x960, or original
+ */
+function convertThumbnailToLarger(thumbnailUrl: string): string {
+  // Remove query string
+  let url = thumbnailUrl.split('?')[0]
+
+  // Replace small thumbnail sizes with larger ones
+  // 100x100 -> 640x960 (largest commonly available)
+  url = url.replace(/\/100x100\.fill\./, '/640x960.fill.')
+  url = url.replace(/\/320x480\.fill\./, '/640x960.fill.')
+
+  return url
+}
+
+/**
  * Parse kgirls.net board post and extract images/GIFs/videos
  * @param url - kgirls.net board URL (e.g., https://www.kgirls.net/mgall/123456)
  * @returns VideoMetadata with all media extracted
@@ -19,6 +36,7 @@ export async function parseKgirls(url: string): Promise<VideoMetadata> {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Referer': 'https://www.kgirls.net/',
       },
     })
 
@@ -71,64 +89,80 @@ export async function parseKgirls(url: string): Promise<VideoMetadata> {
         absoluteUrl = `https://www.kgirls.net/${src}`
       }
 
-      if (seenUrls.has(absoluteUrl)) return
-      seenUrls.add(absoluteUrl)
+      // Normalize URL for dedup (remove query string for comparison)
+      const normalizedUrl = absoluteUrl.split('?')[0]
+      if (seenUrls.has(normalizedUrl)) return
+      seenUrls.add(normalizedUrl)
 
       const lowerSrc = absoluteUrl.toLowerCase()
       let type: MediaType = mediaType || 'image'
       if (!mediaType) {
-        if (lowerSrc.endsWith('.gif')) {
+        if (lowerSrc.includes('.gif')) {
           type = 'gif'
-        } else if (lowerSrc.endsWith('.mp4') || lowerSrc.endsWith('.webm') || lowerSrc.endsWith('.mov')) {
+        } else if (lowerSrc.includes('.mp4') || lowerSrc.includes('.webm') || lowerSrc.includes('.mov')) {
           type = 'video'
         }
       }
       media.push({ url: absoluteUrl, type })
     }
 
-    // Pattern 1: Images in content area
-    // kgirls.net uses /files/ path for uploaded content
-    $('.bd img, .document_content img, .content img, article img').each((_, el) => {
+    // Pattern 1: All images with /files/ path (including thumbnails)
+    $('img[src*="/files/"]').each((_, el) => {
       const src = $(el).attr('src')
-      if (src && src.includes('/files/')) {
-        // Skip thumbnails, get full size
-        const fullSrc = src.replace(/\/\d+x\d+\.fill\./, '/').replace(/\?.*$/, '')
-        addMedia(fullSrc)
+      if (src) {
+        // Convert thumbnail to larger size
+        const largerSrc = convertThumbnailToLarger(src)
+        addMedia(largerSrc)
       }
     })
 
-    // Pattern 2: Attached files (videos, images)
-    // XE CMS stores attachments with specific patterns
+    // Pattern 2: Thumbnail images in specific sizes
+    // /files/thumbnails/{id}/{id}/{num}/{size}.fill.jpg
+    const thumbnailPattern = /\/files\/thumbnails\/[^"'\s]+\.(jpg|jpeg|png|gif)/gi
+    for (const match of html.matchAll(thumbnailPattern)) {
+      const src = convertThumbnailToLarger(match[0])
+      // Skip 100x100 small thumbnails after conversion
+      if (!src.includes('/100x100.')) {
+        addMedia(src)
+      }
+    }
+
+    // Pattern 3: Attached files links (videos, images)
+    // XE CMS download links
+    $('a[href*="file_srl"]').each((_, el) => {
+      const href = $(el).attr('href')
+      const text = $(el).text().toLowerCase()
+      if (href && (text.includes('.mp4') || text.includes('.mov') || text.includes('.webm'))) {
+        // This is a video download link
+        const fullUrl = href.startsWith('http') ? href : `https://www.kgirls.net${href}`
+        addMedia(fullUrl, 'video')
+      }
+    })
+
+    // Pattern 4: Direct file attach links
     $('a[href*="/files/attach/"]').each((_, el) => {
       const href = $(el).attr('href')
       if (href) {
         const lowerHref = href.toLowerCase()
-        if (lowerHref.match(/\.(jpg|jpeg|png|gif|mp4|webm|mov)(\?|$)/)) {
+        if (lowerHref.match(/\.(jpg|jpeg|png|gif|mp4|webm|mov)/)) {
           addMedia(href)
         }
       }
     })
 
-    // Pattern 3: Regex for kgirls.net file URLs in raw HTML
-    // /files/attach/images/... or /files/thumbnails/...
-    const filePattern = /\/files\/(attach|thumbnails)\/[^"'\s]+\.(jpg|jpeg|png|gif|mp4|webm|mov)/gi
+    // Pattern 5: Regex for any kgirls.net file URLs in raw HTML
+    const filePattern = /\/files\/[^"'\s<>]+\.(jpg|jpeg|png|gif|mp4|webm|mov)/gi
     for (const match of html.matchAll(filePattern)) {
       let src = match[0]
-      // Skip thumbnail versions, prefer full images
-      if (!src.includes('/100x100.') && !src.includes('/thumb_')) {
+      // Convert thumbnails to larger size
+      src = convertThumbnailToLarger(src)
+      // Skip small thumbnails
+      if (!src.includes('/100x100.')) {
         addMedia(src)
       }
     }
 
-    // Pattern 4: Direct image URLs in HTML
-    const imgPattern = /https?:\/\/(?:www\.)?kgirls\.net\/files\/[^"'\s]+\.(jpg|jpeg|png|gif)/gi
-    for (const match of html.matchAll(imgPattern)) {
-      if (!match[0].includes('/100x100.') && !match[0].includes('/thumb_')) {
-        addMedia(match[0])
-      }
-    }
-
-    // First image is thumbnail
+    // First image is thumbnail (prefer larger version)
     const thumbnailUrl = media.length > 0 ? media[0].url : null
 
     return {
