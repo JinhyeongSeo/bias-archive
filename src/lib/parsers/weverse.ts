@@ -8,10 +8,10 @@ import ogs from 'open-graph-scraper'
 import type { VideoMetadata } from './index'
 
 /**
- * Extract artist name from Weverse URL
+ * Extract artist/community name from Weverse URL
  * Pattern: weverse.io/{artistName}/...
  */
-function extractArtistFromUrl(url: string): string | null {
+function extractCommunityFromUrl(url: string): string | null {
   try {
     const urlObj = new URL(url)
     const pathParts = urlObj.pathname.split('/').filter(Boolean)
@@ -26,13 +26,27 @@ function extractArtistFromUrl(url: string): string | null {
 }
 
 /**
+ * Extract member name from Weverse description
+ * Pattern: "content - MEMBER_NAME" or "content - 멤버명"
+ */
+function extractMemberFromDescription(description: string | null): string | null {
+  if (!description) return null
+  // Match pattern: "... - NAME" at the end
+  const match = description.match(/\s-\s([A-Za-z가-힣]+)$/)
+  if (match) {
+    return match[1]
+  }
+  return null
+}
+
+/**
  * Parse Weverse URL and extract metadata
  * @param url - Weverse URL
  * @returns VideoMetadata with Weverse-specific handling
  */
 export async function parseWeverse(url: string): Promise<VideoMetadata> {
-  // Extract artist name from URL as fallback
-  const artistFromUrl = extractArtistFromUrl(url)
+  // Extract community name from URL as fallback
+  const communityFromUrl = extractCommunityFromUrl(url)
 
   try {
     const { result, error } = await ogs({
@@ -58,13 +72,19 @@ export async function parseWeverse(url: string): Promise<VideoMetadata> {
       thumbnailUrl = result.twitterImage[0].url
     }
 
+    // Extract description
+    const description = result.ogDescription || result.twitterDescription || null
+
+    // Try to extract member name from description (pattern: "content - MEMBER")
+    const memberName = extractMemberFromDescription(description)
+
     return {
       title: result.ogTitle || result.twitterTitle || null,
-      description: result.ogDescription || result.twitterDescription || null,
+      description,
       thumbnailUrl,
       platform: 'weverse',
       originalDate: result.ogDate || result.articlePublishedTime || null,
-      authorName: result.author || artistFromUrl || result.ogSiteName || null,
+      authorName: memberName || communityFromUrl || result.ogSiteName || null,
     }
   } catch (error) {
     console.error('[Weverse Parser] Error:', error)
@@ -75,7 +95,7 @@ export async function parseWeverse(url: string): Promise<VideoMetadata> {
       thumbnailUrl: null,
       platform: 'weverse',
       originalDate: null,
-      authorName: artistFromUrl,
+      authorName: communityFromUrl,
     }
   }
 }
