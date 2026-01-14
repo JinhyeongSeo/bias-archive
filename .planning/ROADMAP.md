@@ -204,10 +204,10 @@ Plans:
 **Goal**: 영어 또는 한글 이름 어느 쪽으로 태그해도 매칭되도록 autoTag 로직 확장
 **Depends on**: Phase 12
 **Research**: Unlikely (내부 로직 확장)
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 13-01: TBD (run /gsd:plan-phase 13 to break down)
+- [ ] 13-01: autoTag 양방향 매칭 (영어/한글 어느 쪽으로든 태그 인식)
 
 ## Progress
 
