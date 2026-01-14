@@ -17,10 +17,11 @@ interface NameLanguageContextType {
 
 const NameLanguageContext = createContext<NameLanguageContextType | undefined>(undefined)
 
-const STORAGE_KEY = 'name-language'
+// Storage key removed - nameLanguage is always 'auto' now
 
 export function NameLanguageProvider({ children }: { children: ReactNode }) {
-  const [nameLanguage, setNameLanguageState] = useState<NameLanguage>('auto')
+  // nameLanguage is always 'auto' - follows UI locale
+  const nameLanguage: NameLanguage = 'auto'
   const [mounted, setMounted] = useState(false)
   const [biases, setBiases] = useState<Bias[]>([])
   const locale = useLocale()
@@ -42,19 +43,15 @@ export function NameLanguageProvider({ children }: { children: ReactNode }) {
     fetchBiases()
   }, [tagRefreshTrigger])
 
-  // Load from localStorage on mount
+  // Mark as mounted - nameLanguage is always 'auto' now
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored && (stored === 'en' || stored === 'ko' || stored === 'auto')) {
-      setNameLanguageState(stored as NameLanguage)
-    }
     setMounted(true)
   }, [])
 
-  // Save to localStorage when changed
-  const setNameLanguage = useCallback((language: NameLanguage) => {
-    setNameLanguageState(language)
-    localStorage.setItem(STORAGE_KEY, language)
+  // setNameLanguage is kept for API compatibility but effectively no-op
+  // nameLanguage is always 'auto' now
+  const setNameLanguage = useCallback((_language: NameLanguage) => {
+    // No-op: nameLanguage is fixed to 'auto'
   }, [])
 
   // Get display name based on current language setting
