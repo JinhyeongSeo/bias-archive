@@ -24,7 +24,7 @@
   --border-subtle: #e8e0f2;
   --muted: #e5ddf3;
   --muted-foreground: #6b6b6b;
-  --accent: #f0e8fa;
+  --accent: color-mix(in oklab, var(--primary) 10%, transparent);
   --accent-foreground: #2d2d2d;
 
   /* 🌟 Secondary Colors - Vibrant Fuchsia */
@@ -74,7 +74,7 @@
   --border-subtle: #1f1a27;
   --muted: #1f1a27;
   --muted-foreground: #a1a1aa;
-  --accent: #2a2535;
+  --accent: color-mix(in oklab, var(--primary) 15%, transparent);
   --accent-foreground: #f5f5f5;
   --secondary: #d455d4;
   --secondary-light: #dd77dd;

@@ -665,7 +665,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                         <motion.button
                           type="button"
                           onClick={() => toggleGroupCollapse(groupId)}
-                          className="w-full flex items-center gap-1 px-2 py-1 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                          className="w-full flex items-center gap-1 px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-accent rounded-md transition-colors"
                           {...pressScale}
                         >
                           <motion.svg
@@ -790,7 +790,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                             <motion.button
                               type="button"
                               onClick={() => toggleGroupCollapse(groupId)}
-                              className="flex-1 flex items-center gap-1 px-1 py-1 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                              className="flex-1 flex items-center gap-1 px-1 py-1 text-sm font-medium text-muted-foreground hover:bg-accent rounded-md transition-colors"
                               {...pressScale}
                             >
                               <motion.svg
