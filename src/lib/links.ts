@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 import type { Link, LinkInsert, LinkUpdate, Tag, LinkMedia, LinkMediaInsert } from '@/types/database'
 
-export type { Link, LinkInsert, LinkUpdate, LinkMedia }
+export type { Link, LinkInsert, LinkUpdate, LinkMedia, LinkMediaInsert }
 
 /**
  * Create a new link

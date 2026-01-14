@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createLink, searchLinksWithTags, checkDuplicateUrl, createLinkMedia } from '@/lib/links'
-import type { LinkInsert, MediaData } from '@/lib/links'
+import { searchLinksWithTags } from '@/lib/links'
+import type { LinkInsert, MediaData, LinkMediaInsert } from '@/lib/links'
 import { getBiases } from '@/lib/biases'
-import { getOrCreateTag, addTagToLink } from '@/lib/tags'
 import { extractAutoTags, combineTextForTagExtraction } from '@/lib/autoTag'
 import { createClient } from '@/lib/supabase-server'
 
@@ -81,17 +80,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check for duplicate URL
-    const isDuplicate = await checkDuplicateUrl(url)
-    if (isDuplicate) {
+    // Check for duplicate URL using authenticated client
+    const { data: existingLinks } = await supabase
+      .from('links')
+      .select('id')
+      .eq('url', url)
+      .limit(1)
+
+    if (existingLinks && existingLinks.length > 0) {
       return NextResponse.json(
         { error: '이미 저장된 URL입니다' },
         { status: 409 }
       )
     }
 
-    // Prepare link data
-    const linkData: LinkInsert = {
+    // Create link with authenticated server client
+    const linkInsert: LinkInsert = {
       url,
       title: title || null,
       description: description || null,
@@ -100,9 +104,16 @@ export async function POST(request: NextRequest) {
       original_date: originalDate || null,
       author_name: authorName || null,
       bias_id: biasId || null,
+      user_id: user.id,
     }
 
-    const link = await createLink(linkData, user.id)
+    const { data: link, error: linkError } = await supabase
+      .from('links')
+      .insert([linkInsert])
+      .select()
+      .single()
+
+    if (linkError) throw linkError
 
     // Save media if provided (e.g., Twitter multi-image)
     let savedMedia: MediaData[] = []
@@ -118,7 +129,13 @@ export async function POST(request: NextRequest) {
             ['image', 'video', 'gif'].includes((m as MediaData).type)
         )
         if (validMedia.length > 0) {
-          await createLinkMedia(link.id, validMedia)
+          const mediaInserts: LinkMediaInsert[] = validMedia.map((m, index) => ({
+            link_id: link.id,
+            media_url: m.url,
+            media_type: m.type,
+            position: index,
+          }))
+          await supabase.from('link_media').insert(mediaInserts)
           savedMedia = validMedia
         }
       } catch (error) {
@@ -138,12 +155,33 @@ export async function POST(request: NextRequest) {
     const biases = await getBiases()
     const extractedTagNames = extractAutoTags(combinedText, biases)
 
-    // Create and link extracted tags
+    // Create and link extracted tags using authenticated client
     const linkedTags = []
     for (const tagName of extractedTagNames) {
       try {
-        const tag = await getOrCreateTag(tagName, user.id)
-        await addTagToLink(link.id, tag.id)
+        // Try to find existing tag
+        const tagNameLower = tagName.toLowerCase()
+        const { data: existingTags } = await supabase.from('tags').select('*')
+        const existingTag = (existingTags ?? []).find(
+          (t) => t.name.toLowerCase() === tagNameLower
+        )
+
+        let tag
+        if (existingTag) {
+          tag = existingTag
+        } else {
+          // Create new tag
+          const { data: newTag, error: tagError } = await supabase
+            .from('tags')
+            .insert([{ name: tagName, user_id: user.id }])
+            .select()
+            .single()
+          if (tagError) throw tagError
+          tag = newTag
+        }
+
+        // Link tag to link
+        await supabase.from('link_tags').insert([{ link_id: link.id, tag_id: tag.id }])
         linkedTags.push(tag)
       } catch (error) {
         // Log but don't fail the request if tagging fails
