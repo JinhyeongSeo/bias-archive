@@ -11,6 +11,7 @@ import { useNameLanguage } from '@/contexts/NameLanguageContext'
 interface GroupedTags {
   group: Group | null
   tags: Tag[]
+  groupTag?: Tag  // Tag that matches the group name (for clickable header)
 }
 
 interface SidebarProps {
@@ -145,22 +146,38 @@ export function Sidebar({
       groupMap.set(group.id, group)
     }
 
-    // Create group name to group_id mapping (for tags that match group names)
-    const groupNameMap = new Map<string, string>()
-    for (const group of groups) {
-      groupNameMap.set(group.name.toLowerCase(), group.id)
-      if (group.name_en) groupNameMap.set(group.name_en.toLowerCase(), group.id)
-      if (group.name_ko) groupNameMap.set(group.name_ko.toLowerCase(), group.id)
+    // Create group name to tag mapping (for clicking group headers)
+    const groupNameToTag = new Map<string, Tag>()
+    for (const tag of tags) {
+      const tagNameLower = tag.name.toLowerCase()
+      // Check if this tag matches any group name
+      for (const group of groups) {
+        if (
+          tagNameLower === group.name.toLowerCase() ||
+          (group.name_en && tagNameLower === group.name_en.toLowerCase()) ||
+          (group.name_ko && tagNameLower === group.name_ko.toLowerCase())
+        ) {
+          groupNameToTag.set(group.id, tag)
+          break
+        }
+      }
     }
+
+    // Create set of tag IDs that are group names (to hide from member list)
+    const groupTagIds = new Set(Array.from(groupNameToTag.values()).map((t) => t.id))
 
     // Group tags by their bias's group_id
     const grouped = new Map<string | null, Tag[]>()
 
     for (const tag of tags) {
+      // Skip tags that are group names (they become clickable headers instead)
+      if (groupTagIds.has(tag.id)) {
+        continue
+      }
+
       const tagNameLower = tag.name.toLowerCase()
       const matchingBias = biasMap.get(tagNameLower)
-      // Check if tag matches a bias, or if it matches a group name directly
-      const groupId = matchingBias?.group_id || groupNameMap.get(tagNameLower) || null
+      const groupId = matchingBias?.group_id || null
 
       if (!grouped.has(groupId)) {
         grouped.set(groupId, [])
@@ -186,6 +203,7 @@ export function Sidebar({
         result.push({
           group,
           tags: grouped.get(groupId)!,
+          groupTag: groupNameToTag.get(groupId!),
         })
       }
     }
@@ -314,12 +332,25 @@ export function Sidebar({
         ) : hasGroupedTags ? (
           // Group-based tag display
           <div className="space-y-2">
-            {groupedTags.map(({ group, tags: groupTags }) => (
+            {groupedTags.map(({ group, tags: groupTags, groupTag }) => (
               <div key={group?.id || 'ungrouped'}>
-                {/* Group header (visual only, not clickable) */}
-                <div className="px-1 py-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                  {group ? getGroupDisplayName(group) : t('sidebar.ungrouped') || '그룹 없음'}
-                </div>
+                {/* Group header - clickable if group tag exists */}
+                {group && groupTag ? (
+                  <button
+                    onClick={() => handleTagClick(groupTag.id)}
+                    className={`px-1 py-0.5 text-xs font-medium transition-colors rounded ${
+                      selectedTagId === groupTag.id
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    {getGroupDisplayName(group)}
+                  </button>
+                ) : (
+                  <div className="px-1 py-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    {group ? getGroupDisplayName(group) : t('sidebar.ungrouped') || '그룹 없음'}
+                  </div>
+                )}
                 {/* Tags in this group */}
                 <div className="flex flex-wrap gap-1 px-1">
                   {groupTags.map((tag) => (
