@@ -266,22 +266,6 @@ Plans:
 - [x] 16-01: Schema & API (sort_order 컬럼, reorder API) ✓
 - [x] 16-02: Drag & Drop UI (BiasManager 드래그 앤 드롭) ✓
 
-### Phase 17: heye.kr iframe Embed
-
-**Goal**: heye.kr 게시글의 영상을 iframe으로 임베드하여 앱 내에서 재생 가능하게 함
-**Depends on**: Phase 16
-**Research**: Likely (heye.kr iframe 정책, CORS 확인 필요)
-**Plans**: TBD
-
-**기능 설명:**
-
-- heye.kr 게시글에서 영상 URL 추출
-- iframe을 통해 영상 임베드 표시
-- 기존 이미지/GIF와 함께 영상도 뷰어에서 재생
-
-Plans:
-- [ ] TBD (run /gsd:plan-phase 17 to break down)
-
 ## Progress
 
 **Execution Order:**
@@ -305,4 +289,3 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 14. Tag Multilingual Display | v1.1 | 1/1 | Complete | 2026-01-14 |
 | 15. Group-Based Bias Organization | v1.2 | 2/2 | Complete | 2026-01-14 |
 | 16. Drag & Drop Reorder | v1.3 | 2/2 | Complete | 2026-01-14 |
-| 17. heye.kr iframe Embed | v1.3 | 0/? | Not Started | - |
