@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { searchLinksWithTags } from '@/lib/links'
-import type { LinkInsert, MediaData, LinkMediaInsert } from '@/lib/links'
-import { getBiases } from '@/lib/biases'
-import { extractAutoTags, combineTextForTagExtraction } from '@/lib/autoTag'
-import { createClient } from '@/lib/supabase-server'
+import { NextRequest, NextResponse } from "next/server";
+import { searchLinksWithTags } from "@/lib/links";
+import type { LinkInsert, MediaData, LinkMediaInsert } from "@/lib/links";
+import { getBiases } from "@/lib/biases";
+import { extractAutoTags, combineTextForTagExtraction } from "@/lib/autoTag";
+import { createClient } from "@/lib/supabase-server";
 
 /**
  * GET /api/links
@@ -15,28 +15,34 @@ import { createClient } from '@/lib/supabase-server'
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const biasId = searchParams.get('bias_id') || undefined
-    const search = searchParams.get('search') || undefined
-    const tagsParam = searchParams.get('tags') || undefined
-    const platform = searchParams.get('platform') || undefined
+    const { searchParams } = new URL(request.url);
+    const biasId = searchParams.get("bias_id") || undefined;
+    const search = searchParams.get("search") || undefined;
+    const tagsParam = searchParams.get("tags") || undefined;
+    const platform = searchParams.get("platform") || undefined;
 
     // Parse tags parameter (comma-separated IDs)
-    const tagIds = tagsParam ? tagsParam.split(',').filter(Boolean) : undefined
+    const tagIds = tagsParam ? tagsParam.split(",").filter(Boolean) : undefined;
 
-    const links = await searchLinksWithTags({
-      biasId,
-      search,
-      tagIds,
-      platform,
-    })
-    return NextResponse.json(links)
+    // Create server-side authenticated client
+    const supabase = await createClient();
+
+    const links = await searchLinksWithTags(
+      {
+        biasId,
+        search,
+        tagIds,
+        platform,
+      },
+      supabase
+    );
+    return NextResponse.json(links);
   } catch (error) {
-    console.error('Error fetching links:', error)
+    console.error("Error fetching links:", error);
     return NextResponse.json(
-      { error: '링크 목록을 가져오는데 실패했습니다' },
+      { error: "링크 목록을 가져오는데 실패했습니다" },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -50,48 +56,58 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json(
-        { error: '로그인이 필요합니다' },
+        { error: "로그인이 필요합니다" },
         { status: 401 }
-      )
+      );
     }
 
-    const body = await request.json()
-    const { url, title, description, thumbnailUrl, platform, originalDate, authorName, biasId, searchQuery, media } = body
+    const body = await request.json();
+    const {
+      url,
+      title,
+      description,
+      thumbnailUrl,
+      platform,
+      originalDate,
+      authorName,
+      biasId,
+      searchQuery,
+      media,
+    } = body;
 
     // Validate required field
-    if (!url || typeof url !== 'string') {
-      return NextResponse.json(
-        { error: 'URL은 필수입니다' },
-        { status: 400 }
-      )
+    if (!url || typeof url !== "string") {
+      return NextResponse.json({ error: "URL은 필수입니다" }, { status: 400 });
     }
 
     // Validate URL format
     try {
-      new URL(url)
+      new URL(url);
     } catch {
       return NextResponse.json(
-        { error: '유효하지 않은 URL입니다' },
+        { error: "유효하지 않은 URL입니다" },
         { status: 400 }
-      )
+      );
     }
 
     // Check for duplicate URL using authenticated client
     const { data: existingLinks } = await supabase
-      .from('links')
-      .select('id')
-      .eq('url', url)
-      .limit(1)
+      .from("links")
+      .select("id")
+      .eq("url", url)
+      .limit(1);
 
     if (existingLinks && existingLinks.length > 0) {
       return NextResponse.json(
-        { error: '이미 저장된 URL입니다' },
+        { error: "이미 저장된 URL입니다" },
         { status: 409 }
-      )
+      );
     }
 
     // Create link with authenticated server client
@@ -105,42 +121,45 @@ export async function POST(request: NextRequest) {
       author_name: authorName || null,
       bias_id: biasId || null,
       user_id: user.id,
-    }
+    };
 
     const { data: link, error: linkError } = await supabase
-      .from('links')
+      .from("links")
       .insert([linkInsert])
       .select()
-      .single()
+      .single();
 
-    if (linkError) throw linkError
+    if (linkError) throw linkError;
 
     // Save media if provided (e.g., Twitter multi-image)
-    let savedMedia: MediaData[] = []
+    let savedMedia: MediaData[] = [];
     if (media && Array.isArray(media) && media.length > 0) {
       try {
         const validMedia: MediaData[] = media.filter(
           (m: unknown) =>
-            typeof m === 'object' &&
+            typeof m === "object" &&
             m !== null &&
-            'url' in m &&
-            'type' in m &&
-            typeof (m as MediaData).url === 'string' &&
-            ['image', 'video', 'gif'].includes((m as MediaData).type)
-        )
+            "url" in m &&
+            "type" in m &&
+            typeof (m as MediaData).url === "string" &&
+            ["image", "video", "gif"].includes((m as MediaData).type)
+        );
         if (validMedia.length > 0) {
-          const mediaInserts: LinkMediaInsert[] = validMedia.map((m, index) => ({
-            link_id: link.id,
-            media_url: m.url,
-            media_type: m.type,
-            position: index,
-          }))
-          await supabase.from('link_media').insert(mediaInserts)
-          savedMedia = validMedia
+          const mediaInserts: LinkMediaInsert[] = validMedia.map(
+            (m, index) => ({
+              link_id: link.id,
+              media_url: m.url,
+              media_type: m.type,
+              position: index,
+              user_id: user.id,
+            })
+          );
+          await supabase.from("link_media").insert(mediaInserts);
+          savedMedia = validMedia;
         }
       } catch (error) {
         // Log but don't fail the request if media save fails
-        console.error('Error saving link media:', error)
+        console.error("Error saving link media:", error);
       }
     }
 
@@ -150,52 +169,68 @@ export async function POST(request: NextRequest) {
       description || null,
       authorName || null,
       searchQuery || null
-    )
+    );
 
-    const biases = await getBiases()
-    const extractedTagNames = extractAutoTags(combinedText, biases)
+    // Get all biases for auto-tagging (passing server client)
+    const biases = await getBiases(supabase);
+    const extractedTagNames = extractAutoTags(combinedText, biases);
 
     // Create and link extracted tags using authenticated client
-    const linkedTags = []
+    const linkedTags = [];
     for (const tagName of extractedTagNames) {
       try {
         // Try to find existing tag
-        const tagNameLower = tagName.toLowerCase()
-        const { data: existingTags } = await supabase.from('tags').select('*')
+        const tagNameLower = tagName.toLowerCase();
+        const { data: existingTags } = await supabase.from("tags").select("*");
         const existingTag = (existingTags ?? []).find(
           (t) => t.name.toLowerCase() === tagNameLower
-        )
+        );
 
-        let tag
+        let tag;
         if (existingTag) {
-          tag = existingTag
+          tag = existingTag;
         } else {
           // Create new tag
           const { data: newTag, error: tagError } = await supabase
-            .from('tags')
+            .from("tags")
             .insert([{ name: tagName, user_id: user.id }])
             .select()
-            .single()
-          if (tagError) throw tagError
-          tag = newTag
+            .single();
+          if (tagError) throw tagError;
+          tag = newTag;
         }
 
         // Link tag to link
-        await supabase.from('link_tags').insert([{ link_id: link.id, tag_id: tag.id }])
-        linkedTags.push(tag)
+        await supabase
+          .from("link_tags")
+          .insert([{ link_id: link.id, tag_id: tag.id, user_id: user.id }]);
+        linkedTags.push(tag);
       } catch (error) {
-        // Log but don't fail the request if tagging fails
-        console.error(`Error linking tag "${tagName}":`, error)
+        // If it's a duplicate key error (23505), it means the link_tag already exists, so we can ignore it.
+        // Otherwise, log the error.
+        if (
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          error.code === "23505"
+        ) {
+          // console.log(`Link tag already exists for link ${link.id} and tag ${tag?.id}. Skipping.`);
+        } else {
+          console.error(`Error linking tag "${tagName}":`, error);
+        }
       }
     }
 
     // Return link with tags and media
-    return NextResponse.json({ ...link, tags: linkedTags, media: savedMedia }, { status: 201 })
-  } catch (error) {
-    console.error('Error creating link:', error)
     return NextResponse.json(
-      { error: '링크를 저장하는데 실패했습니다' },
+      { ...link, tags: linkedTags, media: savedMedia },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Error creating link:", error);
+    return NextResponse.json(
+      { error: "링크를 저장하는데 실패했습니다" },
       { status: 500 }
-    )
+    );
   }
 }

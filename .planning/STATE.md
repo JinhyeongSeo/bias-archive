@@ -27,25 +27,25 @@ Progress: ████████████████████ 95% (20/2
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 1. Foundation | 3 | 17 min | 6 min |
-| 2. Link Management | 3 | 67 min | 22 min |
-| 3. Tagging & Multi-Bias | 3 | ~15 min | 5 min |
-| 4. Search & Filter | 2 | ~14 min | 7 min |
-| 5. Viewer & Timeline | 5 | ~25 min | 5 min |
-| 6. GIF & Export | 3 | ~15 min | 5 min |
-| 7. Deploy & PWA | 2 | ~13 min | 7 min |
-| 8. heye.kr Parser | 2 | ~40 min | 20 min |
-| 9. kgirls.net Parser | 2 | ~10 min | 5 min |
-| 10. Idol Group Auto-Fill | 2 | ~25 min | 13 min |
-| 11. Bias Schema Extension | 1 | 4 min | 4 min |
-| 12. Language Toggle UI | 1 | 3 min | 3 min |
-| 13. Enhanced Tag Matching | 1 | 1 min | 1 min |
-| 14. Tag Multilingual Display | 1 | 5 min | 5 min |
-| 15. Group-Based Bias Organization | 2 | ~10 min | 5 min |
-| 16. Drag & Drop Reorder | 2 | ~10 min | 5 min |
-| 17. External Media Proxy | 2 | ~14 min | 7 min |
+| Phase                             | Plans | Total   | Avg/Plan |
+| --------------------------------- | ----- | ------- | -------- |
+| 1. Foundation                     | 3     | 17 min  | 6 min    |
+| 2. Link Management                | 3     | 67 min  | 22 min   |
+| 3. Tagging & Multi-Bias           | 3     | ~15 min | 5 min    |
+| 4. Search & Filter                | 2     | ~14 min | 7 min    |
+| 5. Viewer & Timeline              | 5     | ~25 min | 5 min    |
+| 6. GIF & Export                   | 3     | ~15 min | 5 min    |
+| 7. Deploy & PWA                   | 2     | ~13 min | 7 min    |
+| 8. heye.kr Parser                 | 2     | ~40 min | 20 min   |
+| 9. kgirls.net Parser              | 2     | ~10 min | 5 min    |
+| 10. Idol Group Auto-Fill          | 2     | ~25 min | 13 min   |
+| 11. Bias Schema Extension         | 1     | 4 min   | 4 min    |
+| 12. Language Toggle UI            | 1     | 3 min   | 3 min    |
+| 13. Enhanced Tag Matching         | 1     | 1 min   | 1 min    |
+| 14. Tag Multilingual Display      | 1     | 5 min   | 5 min    |
+| 15. Group-Based Bias Organization | 2     | ~10 min | 5 min    |
+| 16. Drag & Drop Reorder           | 2     | ~10 min | 5 min    |
+| 17. External Media Proxy          | 2     | ~14 min | 7 min    |
 
 | 18. Footer Contact | 1 | 4 min | 4 min |
 | 19. Bias UI Improvements | 1 | 3 min | 3 min |
@@ -117,6 +117,10 @@ Progress: ████████████████████ 95% (20/2
 ### Pending Todos
 
 None. All v1.3 milestones complete.
+
+### Completed (Recently)
+
+- [Fix database loading issue for links and groups](.planning/todos/done/2026-01-14-fix-db-loading-issue.md) (Area: database)
 
 ### Blockers/Concerns
 

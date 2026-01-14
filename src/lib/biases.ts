@@ -1,24 +1,30 @@
-import { supabase } from './supabase'
-import type { Bias, BiasInsert, BiasUpdate, BiasWithGroup, Group } from '@/types/database'
+import { supabase } from "./supabase";
+import type {
+  Bias,
+  BiasInsert,
+  BiasUpdate,
+  BiasWithGroup,
+  Group,
+} from "@/types/database";
 
-export type { Bias, BiasInsert, BiasUpdate, BiasWithGroup }
+export type { Bias, BiasInsert, BiasUpdate, BiasWithGroup };
 
 /**
  * Get all biases
  * Sorted by sort_order ascending (NULLS LAST), then created_at descending as fallback
  */
-export async function getBiases(): Promise<Bias[]> {
-  const { data, error } = await supabase
-    .from('biases')
-    .select('*')
-    .order('sort_order', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: false })
+export async function getBiases(client = supabase): Promise<Bias[]> {
+  const { data, error } = await client
+    .from("biases")
+    .select("*")
+    .order("sort_order", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
 
   if (error) {
-    throw error
+    throw error;
   }
 
-  return data ?? []
+  return data ?? [];
 }
 
 /**
@@ -26,20 +32,20 @@ export async function getBiases(): Promise<Bias[]> {
  */
 export async function getBias(id: string): Promise<Bias | null> {
   const { data, error } = await supabase
-    .from('biases')
-    .select('*')
-    .eq('id', id)
-    .single()
+    .from("biases")
+    .select("*")
+    .eq("id", id)
+    .single();
 
   if (error) {
-    if (error.code === 'PGRST116') {
+    if (error.code === "PGRST116") {
       // No rows returned
-      return null
+      return null;
     }
-    throw error
+    throw error;
   }
 
-  return data
+  return data;
 }
 
 /**
@@ -61,19 +67,19 @@ export async function createBias(
     name_ko: nameKo || null,
     group_id: groupId || null,
     user_id: userId || null,
-  }
+  };
 
   const { data, error } = await supabase
-    .from('biases')
+    .from("biases")
     .insert([insertData])
     .select()
-    .single()
+    .single();
 
   if (error) {
-    throw error
+    throw error;
   }
 
-  return data
+  return data;
 }
 
 /**
@@ -91,33 +97,30 @@ export async function updateBias(
     group_name: groupName ?? null,
     name_en: nameEn ?? null,
     name_ko: nameKo ?? null,
-  }
+  };
 
   const { data, error } = await supabase
-    .from('biases')
+    .from("biases")
     .update(updateData)
-    .eq('id', id)
+    .eq("id", id)
     .select()
-    .single()
+    .single();
 
   if (error) {
-    throw error
+    throw error;
   }
 
-  return data
+  return data;
 }
 
 /**
  * Delete a bias by ID
  */
 export async function deleteBias(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('biases')
-    .delete()
-    .eq('id', id)
+  const { error } = await supabase.from("biases").delete().eq("id", id);
 
   if (error) {
-    throw error
+    throw error;
   }
 }
 
@@ -125,40 +128,42 @@ export async function deleteBias(id: string): Promise<void> {
  * Get all biases with their group information
  * Sorted by sort_order ascending (NULLS LAST), then created_at descending
  */
-export async function getBiasesWithGroups(): Promise<BiasWithGroup[]> {
+export async function getBiasesWithGroups(
+  client = supabase
+): Promise<BiasWithGroup[]> {
   // First get all biases
-  const { data: biases, error: biasError } = await supabase
-    .from('biases')
-    .select('*')
-    .order('sort_order', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: false })
+  const { data: biases, error: biasError } = await client
+    .from("biases")
+    .select("*")
+    .order("sort_order", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
 
   if (biasError) {
-    throw biasError
+    throw biasError;
   }
 
   // Get all groups
-  const { data: groups, error: groupError } = await supabase
-    .from('groups')
-    .select('*')
+  const { data: groups, error: groupError } = await client
+    .from("groups")
+    .select("*");
 
   if (groupError) {
-    throw groupError
+    throw groupError;
   }
 
   // Create a map of group_id to group for quick lookup
-  const groupMap = new Map<string, Group>()
+  const groupMap = new Map<string, Group>();
   for (const group of groups ?? []) {
-    groupMap.set(group.id, group)
+    groupMap.set(group.id, group);
   }
 
   // Join biases with their groups
   const biasesWithGroups: BiasWithGroup[] = (biases ?? []).map((bias) => ({
     ...bias,
     group: bias.group_id ? groupMap.get(bias.group_id) ?? null : null,
-  }))
+  }));
 
-  return biasesWithGroups
+  return biasesWithGroups;
 }
 
 /**
@@ -170,22 +175,22 @@ export async function reorderBiases(orderedIds: string[]): Promise<void> {
   const updates = orderedIds.map((id, index) => ({
     id,
     sort_order: index + 1,
-  }))
+  }));
 
   // Use Promise.all for parallel updates
   const results = await Promise.all(
     updates.map(({ id, sort_order }) =>
-      supabase
-        .from('biases')
-        .update({ sort_order })
-        .eq('id', id)
+      supabase.from("biases").update({ sort_order }).eq("id", id)
     )
-  )
+  );
 
   // Check for any errors
-  const errors = results.filter((result) => result.error)
+  const errors = results.filter((result) => result.error);
   if (errors.length > 0) {
-    console.error('Errors updating sort_order:', errors.map((e) => e.error))
-    throw new Error(`Failed to update ${errors.length} bias(es)`)
+    console.error(
+      "Errors updating sort_order:",
+      errors.map((e) => e.error)
+    );
+    throw new Error(`Failed to update ${errors.length} bias(es)`);
   }
 }
