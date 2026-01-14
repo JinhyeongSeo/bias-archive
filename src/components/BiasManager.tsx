@@ -910,7 +910,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                 value={groupQuery}
                 onChange={(e) => setGroupQuery(e.target.value)}
                 placeholder="그룹명 검색 (예: IVE, 아이브)"
-                className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
                 autoFocus
               />
               {isSearching && (
@@ -923,21 +923,21 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
               )}
               {/* Dropdown results */}
               {showDropdown && groupResults.length > 0 && (
-                <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
                   {groupResults.map((group) => (
                     <li key={group.id}>
                       <button
                         type="button"
                         onClick={() => handleGroupSelect(group)}
-                        className="w-full px-2 py-1.5 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                        className="w-full px-2 py-1.5 text-left text-sm hover:bg-accent text-foreground"
                       >
                         <span className="font-medium">{group.name}</span>
                         {group.name_original !== group.name && (
-                          <span className="text-zinc-500 dark:text-zinc-400 ml-1">
+                          <span className="text-muted-foreground ml-1">
                             ({group.name_original})
                           </span>
                         )}
-                        <span className="text-zinc-400 dark:text-zinc-500 ml-1 text-xs">
+                        <span className="text-muted-foreground ml-1 text-xs">
                           {group.memberCount}명
                         </span>
                       </button>
@@ -946,7 +946,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                 </ul>
               )}
               {showDropdown && groupResults.length === 0 && groupQuery.trim() && !isSearching && (
-                <div className="absolute z-10 w-full mt-1 px-2 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg text-sm text-zinc-500">
+                <div className="absolute z-10 w-full mt-1 px-2 py-1.5 bg-card border border-border rounded-md shadow-lg text-sm text-muted-foreground">
                   검색 결과가 없습니다
                 </div>
               )}
@@ -955,10 +955,10 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
             // Member selection
             <div className="space-y-2">
               <div className="flex items-center justify-between px-2">
-                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                <span className="text-sm font-medium text-foreground">
                   {selectedGroup.name}
                   {selectedGroup.nameOriginal !== selectedGroup.name && (
-                    <span className="text-zinc-500 dark:text-zinc-400 ml-1 font-normal">
+                    <span className="text-muted-foreground ml-1 font-normal">
                       ({selectedGroup.nameOriginal})
                     </span>
                   )}
@@ -970,7 +970,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                     setGroupMembers([])
                     setSelectedMembers(new Set())
                   }}
-                  className="text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   다른 그룹 선택
                 </button>
@@ -987,12 +987,12 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                 <>
                   {/* Select all toggle */}
                   <div className="flex items-center px-2 py-1">
-                    <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-600 dark:text-zinc-400">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground">
                       <input
                         type="checkbox"
                         checked={selectedMembers.size === groupMembers.length && groupMembers.length > 0}
                         onChange={toggleAllMembers}
-                        className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-pink-500 focus:ring-pink-500"
+                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
                       />
                       전체 선택 ({selectedMembers.size}/{groupMembers.length})
                     </label>
@@ -1002,16 +1002,16 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                   <ul className="space-y-0.5 max-h-48 overflow-y-auto">
                     {groupMembers.map((member) => (
                       <li key={member.id}>
-                        <label className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-sm">
+                        <label className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-accent rounded text-sm">
                           <input
                             type="checkbox"
                             checked={selectedMembers.has(member.id)}
                             onChange={() => toggleMember(member.id)}
-                            className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-pink-500 focus:ring-pink-500"
+                            className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
                           />
-                          <span className="text-zinc-900 dark:text-zinc-100">{member.name}</span>
+                          <span className="text-foreground">{member.name}</span>
                           {member.name_original !== member.name && (
-                            <span className="text-zinc-500 dark:text-zinc-400">
+                            <span className="text-muted-foreground">
                               ({member.name_original})
                             </span>
                           )}
@@ -1059,7 +1059,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="이름 - 표시용 (필수)"
-              className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
               autoFocus
             />
             {isSearchingMembers && (
@@ -1072,22 +1072,22 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
             )}
             {/* Member autocomplete dropdown */}
             {showMemberDropdown && memberSearchResults.length > 0 && (
-              <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+              <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
                 {memberSearchResults.map((member) => (
                   <li key={member.id}>
                     <button
                       type="button"
                       onClick={() => handleMemberSelect(member)}
-                      className="w-full px-2 py-1.5 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                      className="w-full px-2 py-1.5 text-left text-sm hover:bg-accent text-foreground"
                     >
                       <span className="font-medium">{member.name}</span>
                       {member.name_original !== member.name && (
-                        <span className="text-zinc-500 dark:text-zinc-400 ml-1">
+                        <span className="text-muted-foreground ml-1">
                           ({member.name_original})
                         </span>
                       )}
                       {member.group && (
-                        <span className="text-zinc-400 dark:text-zinc-500 ml-1 text-xs">
+                        <span className="text-muted-foreground ml-1 text-xs">
                           - {member.group.name_original}
                         </span>
                       )}
@@ -1102,21 +1102,21 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
             placeholder="그룹명 (선택)"
-            className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
           />
           <input
             type="text"
             value={nameEn}
             onChange={(e) => setNameEn(e.target.value)}
             placeholder="영어 이름 (선택)"
-            className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
           />
           <input
             type="text"
             value={nameKo}
             onChange={(e) => setNameKo(e.target.value)}
             placeholder="한글 이름 (선택)"
-            className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
           />
           <div className="flex gap-2">
             <motion.button
