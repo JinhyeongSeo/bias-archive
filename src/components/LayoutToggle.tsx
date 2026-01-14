@@ -9,14 +9,14 @@ interface LayoutToggleProps {
 
 export function LayoutToggle({ layout, onChange }: LayoutToggleProps) {
   return (
-    <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+    <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
       {/* Grid button */}
       <button
         onClick={() => onChange('grid')}
-        className={`p-2 rounded-md transition-colors ${
+        className={`p-2 rounded-md transition-smooth ${
           layout === 'grid'
-            ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
-            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
+            ? 'bg-primary text-white shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent'
         }`}
         title="그리드 뷰"
         aria-label="그리드 뷰"
@@ -40,10 +40,10 @@ export function LayoutToggle({ layout, onChange }: LayoutToggleProps) {
       {/* List button */}
       <button
         onClick={() => onChange('list')}
-        className={`p-2 rounded-md transition-colors ${
+        className={`p-2 rounded-md transition-smooth ${
           layout === 'list'
-            ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
-            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
+            ? 'bg-primary text-white shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent'
         }`}
         title="리스트 뷰"
         aria-label="리스트 뷰"

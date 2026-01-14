@@ -4,7 +4,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -17,13 +17,15 @@ export function ThemeToggle() {
     return <div className="w-9 h-9" />
   }
 
+  const isDark = resolvedTheme === 'dark'
+
   return (
     <button
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
       className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
       aria-label="Toggle theme"
     >
-      {theme === 'dark' ? (
+      {isDark ? (
         <span className="text-xl">☀️</span>
       ) : (
         <span className="text-xl">🌙</span>

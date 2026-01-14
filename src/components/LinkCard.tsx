@@ -33,12 +33,12 @@ const platformLabels: Record<Platform, string> = {
 }
 
 const platformColors: Record<Platform, string> = {
-  youtube: 'bg-red-500 dark:bg-red-600',
-  twitter: 'bg-blue-400 dark:bg-blue-500',
-  weverse: 'bg-green-500 dark:bg-green-600',
-  heye: 'bg-orange-500 dark:bg-orange-600',
-  kgirls: 'bg-pink-500 dark:bg-pink-600',
-  other: 'bg-zinc-500 dark:bg-zinc-600',
+  youtube: 'bg-[--color-youtube]',
+  twitter: 'bg-[--color-twitter]',
+  weverse: 'bg-[--color-weverse]',
+  heye: 'bg-[--color-heye]',
+  kgirls: 'bg-[--color-kgirls]',
+  other: 'bg-muted-foreground',
 }
 
 function formatDate(dateString: string): string {
@@ -121,7 +121,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
   if (layout === 'list') {
     return (
       <motion.div
-        className="group relative flex rounded-lg border border-border bg-card dark:bg-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+        className="group relative flex rounded-xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-smooth card-hover"
         whileHover={{ y: -2, scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         transition={quickSpring}
@@ -201,12 +201,12 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
           {!editingTags && tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {tags.map((tag) => (
-                <span
-                  key={tag.id}
-                  className="px-2 py-0.5 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
-                >
-                  {getTagDisplayName(tag.name)}
-                </span>
+              <span
+                key={tag.id}
+                className="px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary border border-primary/20"
+              >
+                {getTagDisplayName(tag.name)}
+              </span>
               ))}
             </div>
           )}
@@ -369,13 +369,13 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
   }
 
   // Grid layout - vertical card (default)
-  return (
-    <motion.div
-      className="group relative rounded-lg border border-border bg-card dark:bg-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-      whileHover={{ y: -2, scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
-      transition={quickSpring}
-    >
+    return (
+      <motion.div
+        className="group relative rounded-xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-smooth card-hover"
+        whileHover={{ y: -2, scale: 1.01 }}
+        whileTap={{ scale: 0.99 }}
+        transition={quickSpring}
+      >
       {/* Thumbnail */}
       <div
         className={`relative aspect-video bg-muted dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}
@@ -455,7 +455,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
             {tags.map((tag) => (
               <span
                 key={tag.id}
-                className="px-2 py-0.5 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                className="px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary border border-primary/20"
               >
                 {getTagDisplayName(tag.name)}
               </span>

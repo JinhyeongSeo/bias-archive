@@ -6,7 +6,7 @@ export function Footer() {
   const t = useTranslations('footer')
 
   return (
-    <footer className="border-t border-border bg-card dark:bg-zinc-950">
+    <footer className="border-t border-border bg-card">
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Contact Links */}

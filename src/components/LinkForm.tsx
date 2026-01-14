@@ -26,12 +26,12 @@ const platformLabels: Record<Platform, string> = {
 }
 
 const platformColors: Record<Platform, string> = {
-  youtube: 'bg-red-500 dark:bg-red-600',
-  twitter: 'bg-blue-400 dark:bg-blue-500',
-  weverse: 'bg-green-500 dark:bg-green-600',
-  heye: 'bg-orange-500 dark:bg-orange-600',
-  kgirls: 'bg-pink-500 dark:bg-pink-600',
-  other: 'bg-zinc-500 dark:bg-zinc-600',
+  youtube: 'bg-[--color-youtube]',
+  twitter: 'bg-[--color-twitter]',
+  weverse: 'bg-[--color-weverse]',
+  heye: 'bg-[--color-heye]',
+  kgirls: 'bg-[--color-kgirls]',
+  other: 'bg-muted-foreground',
 }
 
 export function LinkForm({ onSave }: LinkFormProps) {
@@ -139,13 +139,13 @@ export function LinkForm({ onSave }: LinkFormProps) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="YouTube, Twitter, 또는 웹사이트 URL을 입력하세요"
-            className="flex-1 px-4 py-3 rounded-lg border border-border bg-card dark:bg-zinc-800 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            className="flex-1 px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
             disabled={loading || saving}
           />
           <motion.button
             type="submit"
             disabled={loading || saving || !url.trim()}
-            className="px-6 py-3 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 dark:disabled:bg-blue-800 text-white font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+            className="px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark disabled:bg-primary/40 text-white font-medium transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm hover:shadow-md"
             whileTap={{ scale: 0.97 }}
             transition={quickSpring}
           >
@@ -172,7 +172,7 @@ export function LinkForm({ onSave }: LinkFormProps) {
       <AnimatePresence>
         {preview && (
           <motion.div
-            className="mt-6 p-4 rounded-lg border border-border bg-surface dark:bg-zinc-800/50"
+            className="mt-6 p-4 rounded-xl border border-border bg-surface shadow-sm"
             variants={slideUp}
             initial="initial"
             animate="animate"
@@ -236,7 +236,7 @@ export function LinkForm({ onSave }: LinkFormProps) {
               <motion.button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-4 py-2 rounded-md bg-green-500 hover:bg-green-600 disabled:bg-green-400 text-white text-sm font-medium transition-colors"
+                className="px-4 py-2 rounded-md bg-primary hover:bg-primary-dark disabled:bg-primary/40 text-white text-sm font-medium transition-smooth shadow-sm"
                 whileTap={{ scale: 0.97 }}
                 transition={quickSpring}
               >

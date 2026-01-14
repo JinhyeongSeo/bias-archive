@@ -1,94 +1,208 @@
 @import "tailwindcss";
 
-:root {
-  /* Linear-style warm off-white background instead of harsh pure white */
-  --background: #f8f8f8;
-  --foreground: #1a1a1a;
+/* ========================================
+   🎨 K-POP INSPIRED COLOR SYSTEM
+   ======================================== */
 
-  /* Card and surface colors - subtle elevation through color */
-  --card: #ffffff;
-  --card-foreground: #1a1a1a;
-  --surface: #f3f3f3;
-  --surface-foreground: #2d2d2d;
-
-  /* Border colors - softer, less harsh */
-  --border: #e5e5e5;
-  --border-subtle: #efefef;
-
-  /* Muted colors - warmer grays */
-  --muted: #f0f0f0;
-  --muted-foreground: #6b6b6b;
-
-  /* Toss-style colors */
-  --toss-blue: #3182f6;
-  --toss-blue-light: #ebf4ff;
-  --toss-blue-dark: #1b64da;
-
-  /* Accent colors */
-  --accent: #f0f0f0;
-  --accent-foreground: #1a1a1a;
-}
-
-.dark {
-  --background: #09090b;
-  --foreground: #fafafa;
-
-  /* Card and surface colors */
-  --card: #18181b;
-  --card-foreground: #fafafa;
-  --surface: #0a0a0a;
-  --surface-foreground: #e4e4e7;
-
-  /* Border colors */
-  --border: #27272a;
-  --border-subtle: #18181b;
-
-  /* Muted colors */
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-
-  /* Toss-style colors (dark mode) */
-  --toss-blue: #4593fc;
-  --toss-blue-light: #1e3a5f;
-  --toss-blue-dark: #6ba8ff;
-
-  /* Accent colors */
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+@theme {
+  /* Font families */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  /* Card and surface colors for Tailwind */
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-surface: var(--surface);
-  --color-surface-foreground: var(--surface-foreground);
+  /* Light mode colors - Vibrant & Playful */
+  --color-background: #f5f3f9;
+  --color-foreground: #1a1a1a;
+  
+  /* Card & Surface colors with subtle warmth */
+  --color-card: #ffffff;
+  --color-card-foreground: #1a1a1a;
+  --color-surface: #ede9f5;
+  --color-surface-foreground: #2d2d2d;
+  
+  /* Borders - softer with purple tint */
+  --color-border: #d5c9e5;
+  --color-border-subtle: #e8e0f2;
+  
+  /* Muted backgrounds */
+  --color-muted: #e5ddf3;
+  --color-muted-foreground: #6b6b6b;
+  
+  /* Accent highlights */
+  --color-accent: #f0e8fa;
+  --color-accent-foreground: #2d2d2d;
+  
+  /* 🎨 Primary Brand Colors - Purple/Pink Gradient */
+  --color-primary: #b57edc;
+  --color-primary-light: #dabfed;
+  --color-primary-dark: #9b52cf;
+  --color-primary-foreground: #ffffff;
+  
+  /* 🌟 Accent Colors - Vibrant Fuchsia */
+  --color-secondary: #cc33cc;
+  --color-secondary-light: #dd77dd;
+  --color-secondary-dark: #aa2aaa;
+  --color-secondary-foreground: #ffffff;
+  
+  /* 💖 Pop Accent - Hot Pink */
+  --color-pop: #ff33cc;
+  --color-pop-light: #ff77dd;
+  --color-pop-dark: #cc0099;
+  
+  /* 🎯 Status & Semantic Colors */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+  
+  /* 🌈 Platform Colors (for badges) */
+  --color-youtube: #ff0000;
+  --color-twitter: #1da1f2;
+  --color-weverse: #00d9cc;
+  --color-heye: #ff6b35;
+  --color-kgirls: #ff1493;
+}
 
-  /* Border colors for Tailwind */
-  --color-border: var(--border);
-  --color-border-subtle: var(--border-subtle);
+/* ========================================
+   🌙 DARK MODE OVERRIDES
+   ======================================== */
+.dark {
+  --color-background: #0a0a0b;
+  --color-foreground: #f5f5f5;
+  
+  /* Card & Surface - Deep but not too dark */
+  --color-card: #15151a;
+  --color-card-foreground: #f5f5f5;
+  --color-surface: #0f0f12;
+  --color-surface-foreground: #e0e0e0;
+  
+  /* Borders - subtle purple tint */
+  --color-border: #2a2535;
+  --color-border-subtle: #1f1a27;
+  
+  /* Muted backgrounds */
+  --color-muted: #1f1a27;
+  --color-muted-foreground: #a1a1aa;
+  
+  /* Accent highlights */
+  --color-accent: #2a2535;
+  --color-accent-foreground: #f5f5f5;
+  
+  /* 🎨 Primary Brand Colors - Brighter for dark mode */
+  --color-primary: #c194e2;
+  --color-primary-light: #dabfed;
+  --color-primary-dark: #9b52cf;
+  
+  /* 🌟 Accent Colors */
+  --color-secondary: #d455d4;
+  --color-secondary-light: #dd77dd;
+  --color-secondary-dark: #aa2aaa;
+  
+  /* 💖 Pop Accent */
+  --color-pop: #ff55d4;
+  --color-pop-light: #ff77dd;
+  --color-pop-dark: #cc0099;
+  
+  /* 🎯 Status Colors - Adjusted for dark mode */
+  --color-success: #22c55e;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #60a5fa;
+}
 
-  /* Muted colors for Tailwind */
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
+/* ========================================
+   🎯 BASE STYLES & GRADIENTS
+   ======================================== */
 
-  /* Accent colors for Tailwind */
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+:root {
+  /* ✨ Gradient Definitions */
+  --gradient-primary: linear-gradient(135deg, #b57edc 0%, #cc33cc 100%);
+  --gradient-secondary: linear-gradient(135deg, #ff33cc 0%, #cc33cc 100%);
+  --gradient-subtle: linear-gradient(135deg, #f8f7fb 0%, #f3f1f8 100%);
+  --gradient-vibrant: linear-gradient(135deg, #b57edc 0%, #ff33cc 50%, #cc33cc 100%);
+  --color-primary-glow: rgba(181, 126, 220, 0.2);
+}
 
-  /* Toss-style colors for Tailwind */
-  --color-toss-blue: var(--toss-blue);
-  --color-toss-blue-light: var(--toss-blue-light);
-  --color-toss-blue-dark: var(--toss-blue-dark);
+.dark {
+  --gradient-primary: linear-gradient(135deg, #c194e2 0%, #d455d4 100%);
+  --gradient-secondary: linear-gradient(135deg, #ff55d4 0%, #d455d4 100%);
+  --gradient-subtle: linear-gradient(135deg, #15151a 0%, #1f1a27 100%);
+  --gradient-vibrant: linear-gradient(135deg, #c194e2 0%, #ff55d4 50%, #d455d4 100%);
+  --color-primary-glow: rgba(193, 148, 226, 0.4);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========================================
+   ✨ CUSTOM UTILITIES
+   ======================================== */
+
+/* Gradient text utility */
+@utility gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Glassmorphism utility */
+@utility glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  .dark & {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}
+
+/* Glow effect utility */
+@utility glow-primary {
+  box-shadow: 0 0 20px var(--color-primary-glow);
+}
+
+/* Smooth transitions */
+@utility transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Card hover effect */
+@utility card-hover {
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    
+    .dark & {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+  }
+}
+
+/* Scrollbar styling */
+@utility scrollbar-thin {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-muted);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
+  }
 }

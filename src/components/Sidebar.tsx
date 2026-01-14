@@ -268,7 +268,7 @@ export function Sidebar({
           value={searchQuery}
           onChange={(e) => onSearchChange?.(e.target.value)}
           placeholder={t('sidebar.searchPlaceholder')}
-          className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card dark:bg-zinc-800 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
         />
       </section>
 
@@ -279,7 +279,7 @@ export function Sidebar({
             onOpenExternalSearch?.()
             onClose?.()
           }}
-          className="w-full px-3 py-2 text-sm font-medium text-surface-foreground dark:text-zinc-300 bg-muted dark:bg-zinc-800 hover:bg-accent dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+          className="w-full px-3 py-2 text-sm font-medium text-surface-foreground bg-muted hover:bg-accent rounded-lg transition-colors flex items-center justify-center gap-2"
           whileTap={{ scale: 0.97 }}
           transition={quickSpring}
         >
@@ -300,10 +300,10 @@ export function Sidebar({
             <motion.button
               key={platform.id ?? 'all'}
               onClick={() => onSelectPlatform?.(platform.id)}
-              className={`px-2 py-1 text-xs rounded transition-colors ${
+              className={`px-2.5 py-1 text-xs rounded-lg transition-smooth ${
                 selectedPlatform === platform.id
-                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                  : 'bg-muted dark:bg-zinc-800 text-surface-foreground dark:text-zinc-300 hover:bg-accent dark:hover:bg-zinc-700'
+                  ? 'bg-primary text-white font-medium shadow-sm'
+                  : 'bg-muted text-surface-foreground hover:bg-accent'
               }`}
               whileTap={{ scale: 0.95 }}
               transition={quickSpring}
@@ -342,7 +342,7 @@ export function Sidebar({
           {selectedTagId && (
             <motion.button
               onClick={() => onSelectTag?.(null)}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-xs text-primary hover:text-primary-dark transition-smooth"
               whileTap={{ scale: 0.95 }}
               transition={quickSpring}
             >
@@ -353,12 +353,12 @@ export function Sidebar({
 
         {/* Album mode header - show selected tag */}
         {selectedTagId && (
-          <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="mb-3 p-2.5 bg-primary/10 rounded-xl border border-primary/30">
             <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
-              <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+              <span className="text-sm font-medium text-primary">
                 {getTagDisplayName(tags.find((tag) => tag.id === selectedTagId)?.name || '') || t('sidebar.selectedTag')}
               </span>
             </div>
@@ -382,9 +382,9 @@ export function Sidebar({
                 {group && groupTag ? (
                   <motion.button
                     onClick={() => handleTagClick(groupTag.id)}
-                    className={`px-1 py-0.5 text-xs font-medium transition-colors rounded ${
+                    className={`px-1 py-0.5 text-xs font-medium transition-smooth rounded ${
                       selectedTagId === groupTag.id
-                        ? 'text-blue-600 dark:text-blue-400'
+                        ? 'text-primary'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                     whileTap={{ scale: 0.95 }}
@@ -403,10 +403,10 @@ export function Sidebar({
                     <motion.button
                       key={tag.id}
                       onClick={() => handleTagClick(tag.id)}
-                      className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                      className={`px-2.5 py-1 text-xs rounded-lg transition-smooth ${
                         selectedTagId === tag.id
-                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium'
-                          : 'bg-muted dark:bg-zinc-800 text-surface-foreground dark:text-zinc-300 hover:bg-accent dark:hover:bg-zinc-700'
+                          ? 'bg-primary text-white font-medium shadow-sm'
+                          : 'bg-muted text-surface-foreground hover:bg-accent'
                       }`}
                       whileTap={{ scale: 0.95 }}
                       transition={quickSpring}
@@ -425,10 +425,10 @@ export function Sidebar({
               <li key={tag.id}>
                 <motion.button
                   onClick={() => handleTagClick(tag.id)}
-                  className={`w-full text-left px-2 py-1 text-sm rounded transition-colors ${
+                  className={`w-full text-left px-3 py-1.5 text-sm rounded-lg transition-smooth ${
                     selectedTagId === tag.id
-                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium'
-                      : 'text-surface-foreground dark:text-zinc-300 hover:bg-muted dark:hover:bg-zinc-800'
+                      ? 'bg-primary text-white font-medium shadow-sm'
+                      : 'text-surface-foreground hover:bg-accent'
                   }`}
                   whileTap={{ scale: 0.95 }}
                   transition={quickSpring}
@@ -445,7 +445,7 @@ export function Sidebar({
       <section className="pt-4 border-t border-border">
         <motion.button
           onClick={() => setIsExportModalOpen(true)}
-          className="w-full px-3 py-2 text-sm font-medium text-surface-foreground dark:text-zinc-300 bg-muted dark:bg-zinc-800 hover:bg-accent dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+          className="w-full px-3 py-2 text-sm font-medium text-surface-foreground bg-muted hover:bg-accent rounded-lg transition-colors flex items-center justify-center gap-2"
           whileTap={{ scale: 0.97 }}
           transition={quickSpring}
         >
@@ -472,7 +472,7 @@ export function Sidebar({
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-60 h-[calc(100vh-3.5rem)] border-r border-border bg-surface dark:bg-zinc-900 p-4 overflow-y-auto">
+      <aside className="hidden md:flex flex-col w-60 h-[calc(100vh-3.5rem)] border-r border-border bg-surface p-4 overflow-y-auto scrollbar-thin">
         {sidebarContent}
       </aside>
 
@@ -492,7 +492,7 @@ export function Sidebar({
 
             {/* Drawer Panel */}
             <motion.aside
-              className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] flex flex-col bg-surface dark:bg-zinc-900 shadow-2xl md:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] flex flex-col bg-surface shadow-2xl md:hidden"
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
@@ -503,7 +503,7 @@ export function Sidebar({
                 <span className="text-lg font-bold">메뉴</span>
                 <motion.button
                   onClick={onClose}
-                  className="p-2 text-muted-foreground hover:bg-muted dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                  className="p-2 text-muted-foreground hover:bg-accent rounded-lg transition-colors"
                   whileTap={{ scale: 0.9 }}
                   transition={quickSpring}
                   aria-label="메뉴 닫기"
