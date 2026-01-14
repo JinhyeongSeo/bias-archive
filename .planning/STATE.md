@@ -5,25 +5,25 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 12 — 언어 모드 토글 및 표시 전환
+**Current focus:** v1.1 Multilingual Mode 완료!
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 12 of 13 (Language Toggle UI)
+Phase: 13 of 13 (Enhanced Tag Matching)
 Plan: 1 of 1 in current phase
-Status: Phase complete
-Last activity: 2026-01-14 — Completed 12-01-PLAN.md
+Status: Milestone complete
+Last activity: 2026-01-14 — Completed 13-01-PLAN.md
 
-Progress: ████████████░ 92% (12/13 phases complete)
+Progress: █████████████ 100% (13/13 phases complete)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 27
+- Total plans completed: 28
 - Average duration: ~8 min
-- Total execution time: ~223 min
+- Total execution time: ~224 min
 
 **By Phase:**
 
@@ -41,11 +41,12 @@ Progress: ████████████░ 92% (12/13 phases complete)
 | 10. Idol Group Auto-Fill | 2 | ~25 min | 13 min |
 | 11. Bias Schema Extension | 1 | 4 min | 4 min |
 | 12. Language Toggle UI | 1 | 3 min | 3 min |
+| 13. Enhanced Tag Matching | 1 | 1 min | 1 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 09-02 (5m), 10-01 (10m), 10-02 (15m), 11-01 (4m), 12-01 (3m)
-- Trend: UI 기능 위주 phase는 빠르게 완료
+- Last 5 plans: 10-01 (10m), 10-02 (15m), 11-01 (4m), 12-01 (3m), 13-01 (1m)
+- Trend: v1.1 phases 매우 빠르게 완료 (스키마/UI 확장)
 
 ## Accumulated Context
 
@@ -75,6 +76,7 @@ Progress: ████████████░ 92% (12/13 phases complete)
 - 기존 name 필드 유지 (표시용, 하위 호환성)
 - NameLanguageContext로 이름 표시 언어 관리 (UI locale과 독립적)
 - auto 모드는 UI locale에 따라 name_en/name_ko 선택
+- autoTag 양방향 매칭: name, name_en, name_ko 세 필드 모두 검색
 
 ### Roadmap Evolution
 
@@ -88,7 +90,7 @@ Progress: ████████████░ 92% (12/13 phases complete)
 
 ### Pending Todos
 
-None - Milestone 1 완료
+None - v1.1 Multilingual Mode 완료!
 
 ### Blockers/Concerns
 
@@ -97,5 +99,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-14
-Stopped at: Completed Phase 12 (Language Toggle UI)
+Stopped at: Completed Phase 13 (Enhanced Tag Matching) - v1.1 Milestone complete!
 Resume file: None

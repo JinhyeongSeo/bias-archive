@@ -11,7 +11,7 @@ None
 ## Milestones
 
 - ✅ **v1.0 MVP** - Phases 1-10 (shipped 2026-01-14)
-- 🚧 **v1.1 Multilingual Mode** - Phases 11-13 (in progress)
+- ✅ **v1.1 Multilingual Mode** - Phases 11-13 (shipped 2026-01-14)
 
 ## Phases
 
@@ -31,7 +31,7 @@ None
 - [x] **Phase 10: Idol Group Member Auto-Fill** - 그룹 이름 입력 시 멤버들의 영어/한글 이름 자동 추가 ✓
 - [x] **Phase 11: Bias Schema Extension** - biases 테이블에 name_en/name_ko 필드 추가 ✓
 - [x] **Phase 12: Language Toggle UI** - 언어 모드 토글 및 표시 전환 ✓
-- [ ] **Phase 13: Enhanced Tag Matching** - 영어/한글 양방향 태그 인식
+- [x] **Phase 13: Enhanced Tag Matching** - 영어/한글 양방향 태그 인식 ✓
 
 ## Phase Details
 
@@ -175,7 +175,7 @@ Plans:
 - [x] 10-01: K-pop 데이터 통합 (kpopnet.json 패키지, 그룹 검색 API) ✓
 - [x] 10-02: 그룹 자동완성 UI (멤버 미리보기, 일괄 추가) ✓
 
-### 🚧 v1.1 Multilingual Mode (In Progress)
+### ✅ v1.1 Multilingual Mode (Complete)
 
 **Milestone Goal:** 최애 이름을 영어/한글 둘 다 저장하고, 언어 모드에 따라 표시하며, 태그 매칭도 양방향으로 지원
 
@@ -207,7 +207,7 @@ Plans:
 **Plans**: 1
 
 Plans:
-- [ ] 13-01: autoTag 양방향 매칭 (영어/한글 어느 쪽으로든 태그 인식)
+- [x] 13-01: autoTag 양방향 매칭 (영어/한글 어느 쪽으로든 태그 인식) ✓
 
 ## Progress
 
@@ -228,4 +228,4 @@ Phases execute in numeric order: 1 → 2 → ... → 10 → 11 → 12 → 13
 | 10. Idol Group Auto-Fill | v1.0 | 2/2 | Complete | 2026-01-14 |
 | 11. Bias Schema Extension | v1.1 | 1/1 | Complete | 2026-01-14 |
 | 12. Language Toggle UI | v1.1 | 1/1 | Complete | 2026-01-14 |
-| 13. Enhanced Tag Matching | v1.1 | 0/? | Not started | - |
+| 13. Enhanced Tag Matching | v1.1 | 1/1 | Complete | 2026-01-14 |
