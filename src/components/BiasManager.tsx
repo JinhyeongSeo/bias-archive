@@ -26,6 +26,8 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [name, setName] = useState('')
   const [groupName, setGroupName] = useState('')
+  const [nameEn, setNameEn] = useState('')
+  const [nameKo, setNameKo] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -158,8 +160,10 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
       const membersToAdd = groupMembers
         .filter((m) => selectedMembers.has(m.id))
         .map((m) => ({
-          name: m.name_original,
+          name: m.name_original, // display name (Korean for tag matching)
           groupName: selectedGroup.nameOriginal,
+          nameEn: m.name, // English name from kpopnet
+          nameKo: m.name_original, // Korean name from kpopnet
         }))
 
       const response = await fetch('/api/biases/batch', {
@@ -212,12 +216,16 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
         body: JSON.stringify({
           name: name.trim(),
           groupName: groupName.trim() || null,
+          nameEn: nameEn.trim() || null,
+          nameKo: nameKo.trim() || null,
         }),
       })
 
       if (response.ok) {
         setName('')
         setGroupName('')
+        setNameEn('')
+        setNameKo('')
         setIsFormOpen(false)
         onBiasAdded()
       } else {
@@ -459,7 +467,7 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="이름 (필수)"
+            placeholder="이름 - 표시용 (필수)"
             className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
             autoFocus
           />
@@ -468,6 +476,20 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
             placeholder="그룹명 (선택)"
+            className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          />
+          <input
+            type="text"
+            value={nameEn}
+            onChange={(e) => setNameEn(e.target.value)}
+            placeholder="영어 이름 (선택)"
+            className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          />
+          <input
+            type="text"
+            value={nameKo}
+            onChange={(e) => setNameKo(e.target.value)}
+            placeholder="한글 이름 (선택)"
             className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
           <div className="flex gap-2">
@@ -484,6 +506,8 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
                 setIsFormOpen(false)
                 setName('')
                 setGroupName('')
+                setNameEn('')
+                setNameKo('')
               }}
               className="px-2 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
             >
