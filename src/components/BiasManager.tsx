@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
+import { motion } from 'framer-motion'
 import type { Bias, BiasWithGroup, Group } from '@/types/database'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
 import { useLocale } from 'next-intl'
+import { quickSpring, pressScale } from '@/lib/animations'
 
 interface KpopGroup {
   id: string
@@ -660,24 +662,27 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                     return (
                       <div key={groupId}>
                         {/* Ungrouped header - not draggable */}
-                        <button
+                        <motion.button
                           type="button"
                           onClick={() => toggleGroupCollapse(groupId)}
                           className="w-full flex items-center gap-1 px-2 py-1 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                          {...pressScale}
                         >
-                          <svg
-                            className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                          <motion.svg
+                            className="w-3 h-3"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
+                            animate={{ rotate: isCollapsed ? 0 : 90 }}
+                            transition={quickSpring}
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
+                          </motion.svg>
                           <span>{groupDisplayName}</span>
                           <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">
                             ({groupBiases.length})
                           </span>
-                        </button>
+                        </motion.button>
 
                         {/* Ungrouped members - Droppable area */}
                         {!isCollapsed && (
@@ -720,11 +725,13 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                                           </svg>
                                           <span className="truncate">{getDisplayName(bias)}</span>
                                         </div>
-                                        <button
+                                        <motion.button
                                           onClick={() => handleDelete(bias.id, getDisplayName(bias))}
                                           disabled={deletingId === bias.id}
                                           className="opacity-0 group-hover:opacity-100 ml-2 p-0.5 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50 flex-shrink-0"
                                           title="삭제"
+                                          whileTap={{ scale: 0.85 }}
+                                          transition={quickSpring}
                                         >
                                           {deletingId === bias.id ? (
                                             <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -736,7 +743,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                             </svg>
                                           )}
-                                        </button>
+                                        </motion.button>
                                       </li>
                                     )}
                                   </Draggable>
@@ -780,24 +787,27 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                                 <circle cx="15" cy="18" r="1.5" />
                               </svg>
                             </div>
-                            <button
+                            <motion.button
                               type="button"
                               onClick={() => toggleGroupCollapse(groupId)}
                               className="flex-1 flex items-center gap-1 px-1 py-1 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                              {...pressScale}
                             >
-                              <svg
-                                className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                              <motion.svg
+                                className="w-3 h-3"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
+                                animate={{ rotate: isCollapsed ? 0 : 90 }}
+                                transition={quickSpring}
                               >
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
+                              </motion.svg>
                               <span>{groupDisplayName}</span>
                               <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">
                                 ({groupBiases.length})
                               </span>
-                            </button>
+                            </motion.button>
                           </div>
 
                           {/* Group members - Droppable area */}
@@ -842,11 +852,13 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                                             </svg>
                                             <span className="truncate">{getDisplayName(bias)}</span>
                                           </div>
-                                          <button
+                                          <motion.button
                                             onClick={() => handleDelete(bias.id, getDisplayName(bias))}
                                             disabled={deletingId === bias.id}
                                             className="opacity-0 group-hover:opacity-100 ml-2 p-0.5 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50 flex-shrink-0"
                                             title="삭제"
+                                            whileTap={{ scale: 0.85 }}
+                                            transition={quickSpring}
                                           >
                                             {deletingId === bias.id ? (
                                               <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -858,7 +870,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                               </svg>
                                             )}
-                                          </button>
+                                          </motion.button>
                                         </li>
                                       )}
                                     </Draggable>
@@ -1015,22 +1027,24 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
           {/* Group mode action buttons */}
           <div className="flex gap-2">
             {selectedGroup && (
-              <button
+              <motion.button
                 type="button"
                 onClick={handleBatchAdd}
                 disabled={isBatchAdding || selectedMembers.size === 0}
                 className="flex-1 px-2 py-1.5 text-sm bg-pink-500 text-white rounded-md hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                {...pressScale}
               >
                 {isBatchAdding ? '추가 중...' : `${selectedMembers.size}명 추가`}
-              </button>
+              </motion.button>
             )}
-            <button
+            <motion.button
               type="button"
               onClick={resetGroupMode}
               className="px-2 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              {...pressScale}
             >
               취소
-            </button>
+            </motion.button>
           </div>
         </div>
       )}
@@ -1105,14 +1119,15 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
             className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
           <div className="flex gap-2">
-            <button
+            <motion.button
               type="submit"
               disabled={isLoading || !name.trim()}
               className="flex-1 px-2 py-1.5 text-sm bg-pink-500 text-white rounded-md hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              {...pressScale}
             >
               {isLoading ? '추가 중...' : '추가'}
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               onClick={() => {
                 setIsFormOpen(false)
@@ -1124,9 +1139,10 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                 setShowMemberDropdown(false)
               }}
               className="px-2 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              {...pressScale}
             >
               취소
-            </button>
+            </motion.button>
           </div>
         </form>
       )}
@@ -1134,24 +1150,26 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       {/* Action buttons when no form is open */}
       {!isFormOpen && !isGroupMode && (
         <div className="flex flex-col gap-1">
-          <button
+          <motion.button
             onClick={() => setIsFormOpen(true)}
             className="flex items-center gap-1 px-2 py-1.5 text-sm text-zinc-500 hover:text-pink-500 dark:text-zinc-400 dark:hover:text-pink-400 transition-colors whitespace-nowrap"
+            {...pressScale}
           >
             <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             <span>최애 추가</span>
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={() => setIsGroupMode(true)}
             className="flex items-center gap-1 px-2 py-1.5 text-sm text-zinc-500 hover:text-pink-500 dark:text-zinc-400 dark:hover:text-pink-400 transition-colors whitespace-nowrap"
+            {...pressScale}
           >
             <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
             <span>그룹으로 추가</span>
-          </button>
+          </motion.button>
         </div>
       )}
     </div>
