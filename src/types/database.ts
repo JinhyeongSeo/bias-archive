@@ -5,6 +5,8 @@ export type Database = {
         Row: {
           id: string
           name: string
+          name_en: string | null
+          name_ko: string | null
           group_name: string | null
           created_at: string
           updated_at: string
@@ -12,6 +14,8 @@ export type Database = {
         Insert: {
           id?: string
           name: string
+          name_en?: string | null
+          name_ko?: string | null
           group_name?: string | null
           created_at?: string
           updated_at?: string
@@ -19,6 +23,8 @@ export type Database = {
         Update: {
           id?: string
           name?: string
+          name_en?: string | null
+          name_ko?: string | null
           group_name?: string | null
           updated_at?: string
         }
