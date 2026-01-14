@@ -39,6 +39,7 @@ None
 - [x] **Phase 16: Drag & Drop Reorder** - 태그/최애 순서를 드래그로 변경 ✓
 - [x] **Phase 17: External Media Proxy** - 핫링크 보호 미디어 외부 프록시 전환 ✓
 - [x] **Phase 18: Footer Contact** - 연락처 정보가 담긴 Footer 컴포넌트 추가 ✓
+- [x] **Phase 19: Bias UI Improvements** - 버튼 레이아웃 수정 및 멤버 자동완성 ✓
 
 ## Phase Details
 
@@ -314,6 +315,23 @@ Plans:
 Plans:
 - [x] 18-01: Footer 컴포넌트 및 연락처 정보 ✓
 
+### Phase 19: Bias UI Improvements
+
+**Goal**: BiasManager UI 개선 및 개인 멤버 자동완성 기능 추가
+**Depends on**: Phase 18
+**Research**: Unlikely (UI 개선)
+**Plans**: 1
+
+**기능 설명:**
+
+- "최애 추가" / "그룹으로 추가" 버튼 텍스트 줄바꿈 수정
+- 개인 멤버명 입력 시 kpopnet 데이터에서 그룹 정보 자동 연결
+- 멤버 자동완성 드롭다운 UI
+
+Plans:
+
+- [x] 19-01: 버튼 레이아웃 수정 및 멤버 자동완성 기능 ✓
+
 ## Progress
 
 **Execution Order:**
@@ -339,3 +357,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 16. Drag & Drop Reorder | v1.3 | 2/2 | Complete | 2026-01-14 |
 | 17. External Media Proxy | v1.3 | 2/2 | Complete | 2026-01-14 |
 | 18. Footer Contact | - | 1/1 | Complete | 2026-01-14 |
+| 19. Bias UI Improvements | - | 1/1 | Complete | 2026-01-14 |
