@@ -5,12 +5,13 @@ export type { Bias, BiasInsert, BiasUpdate, BiasWithGroup }
 
 /**
  * Get all biases
- * Sorted by created_at descending (newest first)
+ * Sorted by sort_order ascending (NULLS LAST), then created_at descending as fallback
  */
 export async function getBiases(): Promise<Bias[]> {
   const { data, error } = await supabase
     .from('biases')
     .select('*')
+    .order('sort_order', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -119,13 +120,14 @@ export async function deleteBias(id: string): Promise<void> {
 
 /**
  * Get all biases with their group information
- * Sorted by group name, then by name within group
+ * Sorted by sort_order ascending (NULLS LAST), then created_at descending
  */
 export async function getBiasesWithGroups(): Promise<BiasWithGroup[]> {
   // First get all biases
   const { data: biases, error: biasError } = await supabase
     .from('biases')
     .select('*')
+    .order('sort_order', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
 
   if (biasError) {
@@ -154,4 +156,33 @@ export async function getBiasesWithGroups(): Promise<BiasWithGroup[]> {
   }))
 
   return biasesWithGroups
+}
+
+/**
+ * Reorder biases by updating their sort_order values
+ * @param orderedIds - Array of bias IDs in desired order
+ */
+export async function reorderBiases(orderedIds: string[]): Promise<void> {
+  // Update each bias with its new sort_order (1-indexed)
+  const updates = orderedIds.map((id, index) => ({
+    id,
+    sort_order: index + 1,
+  }))
+
+  // Use Promise.all for parallel updates
+  const results = await Promise.all(
+    updates.map(({ id, sort_order }) =>
+      supabase
+        .from('biases')
+        .update({ sort_order })
+        .eq('id', id)
+    )
+  )
+
+  // Check for any errors
+  const errors = results.filter((result) => result.error)
+  if (errors.length > 0) {
+    console.error('Errors updating sort_order:', errors.map((e) => e.error))
+    throw new Error(`Failed to update ${errors.length} bias(es)`)
+  }
 }
