@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { getProxiedImageUrl } from '@/lib/proxy'
 
 type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls'
 type YouTubeOrder = 'relevance' | 'date' | 'viewCount'
@@ -238,7 +239,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     return (data.results as HeyeResult[]).map(item => ({
       url: item.url,
       title: item.title,
-      thumbnailUrl: item.thumbnailUrl,
+      // Use wsrv.nl proxy for heye thumbnails to bypass hotlink protection
+      thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
       author: item.author,
       platform: 'heye' as Platform,
       isSaved: checkIfSaved(item.url),
@@ -261,8 +263,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     return (data.results as KgirlsResult[]).map(item => ({
       url: item.url,
       title: item.title,
-      // Use image proxy for kgirls thumbnails to bypass hotlink protection (403 Forbidden)
-      thumbnailUrl: item.thumbnailUrl ? `/api/proxy/image?url=${encodeURIComponent(item.thumbnailUrl)}` : null,
+      // Use wsrv.nl proxy for kgirls thumbnails to bypass hotlink protection (403 Forbidden)
+      thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
       author: item.author,
       platform: 'kgirls' as Platform,
       isSaved: checkIfSaved(item.url),

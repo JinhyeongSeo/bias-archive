@@ -7,6 +7,7 @@ import type { Platform } from '@/lib/metadata'
 import { TagEditor } from './TagEditor'
 import { ViewerModal } from './ViewerModal'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
+import { getProxiedImageUrl } from '@/lib/proxy'
 
 type LinkWithTags = Link & { tags: Tag[] }
 type LinkWithMedia = Link & { media?: LinkMedia[] }
@@ -133,7 +134,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
               />
             ) : (
               <Image
-                src={link.thumbnail_url}
+                src={getProxiedImageUrl(link.thumbnail_url)}
                 alt={link.title || 'Thumbnail'}
                 fill
                 className="object-cover"
@@ -372,7 +373,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
             />
           ) : (
             <Image
-              src={link.thumbnail_url}
+              src={getProxiedImageUrl(link.thumbnail_url)}
               alt={link.title || 'Thumbnail'}
               fill
               className="object-cover"

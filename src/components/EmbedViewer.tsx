@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import type { Platform } from '@/lib/metadata'
 import type { LinkMedia } from '@/types/database'
+import { getProxiedImageUrl } from '@/lib/proxy'
 
 interface EmbedViewerProps {
   url: string
@@ -231,7 +232,7 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
           />
         ) : (
           <Image
-            src={currentItem.media_url}
+            src={getProxiedImageUrl(currentItem.media_url)}
             alt={`Media ${currentIndex + 1} of ${items.length}`}
             fill
             className="object-contain rounded-lg"
