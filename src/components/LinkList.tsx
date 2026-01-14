@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import type { Link, Tag } from '@/types/database'
 import { LinkCard } from './LinkCard'
+import { quickSpring } from '@/lib/animations'
 
 type LinkWithTags = Link & { tags: Tag[] }
 type LayoutType = 'grid' | 'list'
@@ -137,15 +139,43 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
     )
   }
 
+  // Stagger animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+        delayChildren: 0.1,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: quickSpring,
+    },
+  }
+
   return (
-    <div className={
-      layout === 'grid'
-        ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'
-        : 'flex flex-col gap-3'
-    }>
+    <motion.div
+      className={
+        layout === 'grid'
+          ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'
+          : 'flex flex-col gap-3'
+      }
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       {links.map((link) => (
-        <LinkCard key={link.id} link={link} onDelete={handleDelete} layout={layout} />
+        <motion.div key={link.id} variants={itemVariants}>
+          <LinkCard link={link} onDelete={handleDelete} layout={layout} />
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   )
 }
