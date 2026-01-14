@@ -268,7 +268,7 @@ export function Sidebar({
           value={searchQuery}
           onChange={(e) => onSearchChange?.(e.target.value)}
           placeholder={t('sidebar.searchPlaceholder')}
-          className="w-full px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card dark:bg-zinc-800 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
         />
       </section>
 
@@ -279,7 +279,7 @@ export function Sidebar({
             onOpenExternalSearch?.()
             onClose?.()
           }}
-          className="w-full px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+          className="w-full px-3 py-2 text-sm font-medium text-surface-foreground dark:text-zinc-300 bg-muted dark:bg-zinc-800 hover:bg-accent dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
           whileTap={{ scale: 0.97 }}
           transition={quickSpring}
         >
@@ -442,10 +442,10 @@ export function Sidebar({
       </section>
 
       {/* Data Management */}
-      <section className="pt-4 border-t border-zinc-200 dark:border-zinc-700">
+      <section className="pt-4 border-t border-border">
         <motion.button
           onClick={() => setIsExportModalOpen(true)}
-          className="w-full px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+          className="w-full px-3 py-2 text-sm font-medium text-surface-foreground dark:text-zinc-300 bg-muted dark:bg-zinc-800 hover:bg-accent dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
           whileTap={{ scale: 0.97 }}
           transition={quickSpring}
         >
@@ -472,7 +472,7 @@ export function Sidebar({
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-60 h-[calc(100vh-3.5rem)] border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4 overflow-y-auto">
+      <aside className="hidden md:flex flex-col w-60 h-[calc(100vh-3.5rem)] border-r border-border bg-surface dark:bg-zinc-900 p-4 overflow-y-auto">
         {sidebarContent}
       </aside>
 
@@ -492,18 +492,18 @@ export function Sidebar({
 
             {/* Drawer Panel */}
             <motion.aside
-              className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] flex flex-col bg-zinc-50 dark:bg-zinc-900 shadow-2xl md:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] flex flex-col bg-surface dark:bg-zinc-900 shadow-2xl md:hidden"
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={smoothSpring}
             >
               {/* Drawer Header */}
-              <div className="flex items-center justify-between h-14 px-4 border-b border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center justify-between h-14 px-4 border-b border-border">
                 <span className="text-lg font-bold">메뉴</span>
                 <motion.button
                   onClick={onClose}
-                  className="p-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                  className="p-2 text-muted-foreground hover:bg-muted dark:hover:bg-zinc-800 rounded-lg transition-colors"
                   whileTap={{ scale: 0.9 }}
                   transition={quickSpring}
                   aria-label="메뉴 닫기"

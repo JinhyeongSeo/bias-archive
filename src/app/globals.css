@@ -1,31 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #18181b;
+  /* Linear-style warm off-white background instead of harsh pure white */
+  --background: #f8f8f8;
+  --foreground: #1a1a1a;
 
-  /* Card and surface colors */
+  /* Card and surface colors - subtle elevation through color */
   --card: #ffffff;
-  --card-foreground: #18181b;
-  --surface: #fafafa;
-  --surface-foreground: #27272a;
+  --card-foreground: #1a1a1a;
+  --surface: #f3f3f3;
+  --surface-foreground: #2d2d2d;
 
-  /* Border colors */
-  --border: #e4e4e7;
-  --border-subtle: #f4f4f5;
+  /* Border colors - softer, less harsh */
+  --border: #e5e5e5;
+  --border-subtle: #efefef;
 
-  /* Muted colors */
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
+  /* Muted colors - warmer grays */
+  --muted: #f0f0f0;
+  --muted-foreground: #6b6b6b;
 
   /* Toss-style colors */
   --toss-blue: #3182f6;
-  --toss-blue-light: #e8f3ff;
+  --toss-blue-light: #ebf4ff;
   --toss-blue-dark: #1b64da;
 
   /* Accent colors */
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
+  --accent: #f0f0f0;
+  --accent-foreground: #1a1a1a;
 }
 
 .dark {

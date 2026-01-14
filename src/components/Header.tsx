@@ -17,13 +17,13 @@ export function Header() {
   const { open: openMobileMenu } = useMobileMenu()
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 z-50">
+    <header className="fixed top-0 left-0 right-0 h-14 border-b border-border bg-card dark:bg-zinc-950 z-50">
       <div className="flex items-center justify-between h-full px-4">
         <div className="flex items-center gap-3 sm:gap-6">
           {/* Mobile menu button */}
           <motion.button
             onClick={openMobileMenu}
-            className="md:hidden p-2 -ml-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+            className="md:hidden p-2 -ml-2 text-muted-foreground hover:bg-muted dark:hover:bg-zinc-800 rounded-lg transition-colors"
             whileTap={{ scale: 0.9 }}
             transition={quickSpring}
             aria-label="메뉴 열기"
@@ -45,7 +45,7 @@ export function Header() {
           <nav className="hidden sm:flex items-center gap-4">
             <MotionLink
               href={`/${locale}/gif`}
-              className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+              className="text-sm text-muted-foreground hover:text-blue-500 dark:hover:text-blue-400 hover:bg-muted dark:hover:bg-zinc-800 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
               whileTap={{ scale: 0.95 }}
               transition={quickSpring}
             >
