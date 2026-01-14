@@ -10,6 +10,7 @@ export type Database = {
           group_name: string | null
           group_id: string | null
           sort_order: number | null
+          user_id: string | null
           created_at: string
           updated_at: string
         }
@@ -21,6 +22,7 @@ export type Database = {
           group_name?: string | null
           group_id?: string | null
           sort_order?: number | null
+          user_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -32,6 +34,7 @@ export type Database = {
           group_name?: string | null
           group_id?: string | null
           sort_order?: number | null
+          user_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -51,6 +54,7 @@ export type Database = {
           name_en: string | null
           name_ko: string | null
           sort_order: number | null
+          user_id: string | null
           created_at: string
           updated_at: string
         }
@@ -60,6 +64,7 @@ export type Database = {
           name_en?: string | null
           name_ko?: string | null
           sort_order?: number | null
+          user_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -69,6 +74,7 @@ export type Database = {
           name_en?: string | null
           name_ko?: string | null
           sort_order?: number | null
+          user_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -84,6 +90,7 @@ export type Database = {
           original_date: string | null
           author_name: string | null
           bias_id: string | null
+          user_id: string | null
           created_at: string
           updated_at: string
         }
@@ -97,6 +104,7 @@ export type Database = {
           original_date?: string | null
           author_name?: string | null
           bias_id?: string | null
+          user_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -110,6 +118,7 @@ export type Database = {
           original_date?: string | null
           author_name?: string | null
           bias_id?: string | null
+          user_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -126,16 +135,19 @@ export type Database = {
         Row: {
           id: string
           name: string
+          user_id: string | null
           created_at: string
         }
         Insert: {
           id?: string
           name: string
+          user_id?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           name?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -143,14 +155,17 @@ export type Database = {
         Row: {
           link_id: string
           tag_id: string
+          user_id: string | null
         }
         Insert: {
           link_id: string
           tag_id: string
+          user_id?: string | null
         }
         Update: {
           link_id?: string
           tag_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -176,6 +191,7 @@ export type Database = {
           media_url: string
           media_type: 'image' | 'video' | 'gif'
           position: number
+          user_id: string | null
           created_at: string
         }
         Insert: {
@@ -184,6 +200,7 @@ export type Database = {
           media_url: string
           media_type: 'image' | 'video' | 'gif'
           position?: number
+          user_id?: string | null
           created_at?: string
         }
         Update: {
@@ -192,6 +209,7 @@ export type Database = {
           media_url?: string
           media_type?: 'image' | 'video' | 'gif'
           position?: number
+          user_id?: string | null
         }
         Relationships: [
           {
