@@ -7,11 +7,11 @@ import { NameLanguageProvider } from '@/contexts/NameLanguageContext'
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <NameLanguageProvider>
-        <RefreshProvider>
+      <RefreshProvider>
+        <NameLanguageProvider>
           {children}
-        </RefreshProvider>
-      </NameLanguageProvider>
+        </NameLanguageProvider>
+      </RefreshProvider>
     </ThemeProvider>
   )
 }
