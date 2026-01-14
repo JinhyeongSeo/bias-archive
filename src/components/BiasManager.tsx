@@ -171,7 +171,14 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
       const response = await fetch('/api/biases/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ members: membersToAdd }),
+        body: JSON.stringify({
+          members: membersToAdd,
+          group: {
+            name: selectedGroup.name,
+            nameEn: selectedGroup.name,
+            nameKo: selectedGroup.nameOriginal,
+          },
+        }),
       })
 
       if (response.ok) {

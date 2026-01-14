@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
-import type { Bias, BiasInsert, BiasUpdate } from '@/types/database'
+import type { Bias, BiasInsert, BiasUpdate, BiasWithGroup, Group } from '@/types/database'
 
-export type { Bias, BiasInsert, BiasUpdate }
+export type { Bias, BiasInsert, BiasUpdate, BiasWithGroup }
 
 /**
  * Get all biases
@@ -48,13 +48,15 @@ export async function createBias(
   name: string,
   groupName?: string | null,
   nameEn?: string | null,
-  nameKo?: string | null
+  nameKo?: string | null,
+  groupId?: string | null
 ): Promise<Bias> {
   const insertData: BiasInsert = {
     name,
     group_name: groupName || null,
     name_en: nameEn || null,
     name_ko: nameKo || null,
+    group_id: groupId || null,
   }
 
   const { data, error } = await supabase
@@ -113,4 +115,43 @@ export async function deleteBias(id: string): Promise<void> {
   if (error) {
     throw error
   }
+}
+
+/**
+ * Get all biases with their group information
+ * Sorted by group name, then by name within group
+ */
+export async function getBiasesWithGroups(): Promise<BiasWithGroup[]> {
+  // First get all biases
+  const { data: biases, error: biasError } = await supabase
+    .from('biases')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (biasError) {
+    throw biasError
+  }
+
+  // Get all groups
+  const { data: groups, error: groupError } = await supabase
+    .from('groups')
+    .select('*')
+
+  if (groupError) {
+    throw groupError
+  }
+
+  // Create a map of group_id to group for quick lookup
+  const groupMap = new Map<string, Group>()
+  for (const group of groups ?? []) {
+    groupMap.set(group.id, group)
+  }
+
+  // Join biases with their groups
+  const biasesWithGroups: BiasWithGroup[] = (biases ?? []).map((bias) => ({
+    ...bias,
+    group: bias.group_id ? groupMap.get(bias.group_id) ?? null : null,
+  }))
+
+  return biasesWithGroups
 }

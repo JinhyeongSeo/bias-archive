@@ -1,0 +1,127 @@
+import { supabase } from './supabase'
+import type { Group, GroupInsert } from '@/types/database'
+
+export type { Group, GroupInsert }
+
+/**
+ * Get all groups
+ * Sorted by name ascending
+ */
+export async function getGroups(): Promise<Group[]> {
+  const { data, error } = await supabase
+    .from('groups')
+    .select('*')
+    .order('name', { ascending: true })
+
+  if (error) {
+    throw error
+  }
+
+  return data ?? []
+}
+
+/**
+ * Get a single group by ID
+ */
+export async function getGroup(id: string): Promise<Group | null> {
+  const { data, error } = await supabase
+    .from('groups')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null
+    }
+    throw error
+  }
+
+  return data
+}
+
+/**
+ * Get a group by name (matches name, name_en, or name_ko)
+ */
+export async function getGroupByName(name: string): Promise<Group | null> {
+  const nameLower = name.toLowerCase()
+
+  const { data, error } = await supabase
+    .from('groups')
+    .select('*')
+
+  if (error) {
+    throw error
+  }
+
+  // Find group matching any of the name fields (case-insensitive)
+  const group = (data ?? []).find(
+    (g) =>
+      g.name.toLowerCase() === nameLower ||
+      g.name_en?.toLowerCase() === nameLower ||
+      g.name_ko?.toLowerCase() === nameLower
+  )
+
+  return group ?? null
+}
+
+/**
+ * Create a new group
+ */
+export async function createGroup(
+  name: string,
+  nameEn?: string | null,
+  nameKo?: string | null
+): Promise<Group> {
+  const insertData: GroupInsert = {
+    name,
+    name_en: nameEn || null,
+    name_ko: nameKo || null,
+  }
+
+  const { data, error } = await supabase
+    .from('groups')
+    .insert([insertData])
+    .select()
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
+/**
+ * Get or create a group by name
+ * Returns existing group if found by name/name_en/name_ko, otherwise creates new
+ */
+export async function getOrCreateGroup(
+  name: string,
+  nameEn?: string | null,
+  nameKo?: string | null
+): Promise<Group> {
+  // Try to find existing group by any name field
+  const existing = await getGroupByName(name)
+  if (existing) {
+    return existing
+  }
+
+  // Also check by nameEn and nameKo if provided
+  if (nameEn) {
+    const byEn = await getGroupByName(nameEn)
+    if (byEn) {
+      return byEn
+    }
+  }
+
+  if (nameKo) {
+    const byKo = await getGroupByName(nameKo)
+    if (byKo) {
+      return byKo
+    }
+  }
+
+  // Create new group
+  return createGroup(name, nameEn, nameKo)
+}

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { getOrCreateGroup } from '@/lib/groups'
 import type { BiasInsert } from '@/types/database'
+
+interface GroupInfo {
+  name: string
+  nameEn?: string
+  nameKo?: string
+}
 
 interface BatchMember {
   name: string
@@ -11,23 +18,36 @@ interface BatchMember {
 
 interface BatchRequest {
   members: BatchMember[]
+  group?: GroupInfo
 }
 
 /**
  * POST /api/biases/batch
  * Create multiple biases at once (for adding all members of a group)
  * Skips members that already exist (by name)
+ * Creates or reuses group record and links via group_id FK
  */
 export async function POST(request: NextRequest) {
   try {
     const body: BatchRequest = await request.json()
-    const { members } = body
+    const { members, group } = body
 
     if (!members || !Array.isArray(members) || members.length === 0) {
       return NextResponse.json(
         { error: '추가할 멤버가 없습니다' },
         { status: 400 }
       )
+    }
+
+    // Get or create the group record if group info is provided
+    let groupId: string | null = null
+    if (group?.name) {
+      const groupRecord = await getOrCreateGroup(
+        group.name,
+        group.nameEn,
+        group.nameKo
+      )
+      groupId = groupRecord.id
     }
 
     // Get existing biases to check for duplicates
@@ -59,10 +79,11 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Prepare insert data
+    // Prepare insert data with group_id
     const insertData: BiasInsert[] = newMembers.map((member) => ({
       name: member.name,
       group_name: member.groupName || null,
+      group_id: groupId,
       name_en: member.nameEn || null,
       name_ko: member.nameKo || null,
     }))
@@ -79,6 +100,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       added: newMembers.length,
       skipped,
+      groupId,
     })
   } catch (error) {
     console.error('Error batch creating biases:', error)
