@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import type { Platform } from '@/lib/metadata'
 import type { LinkMedia } from '@/types/database'
-import { getProxiedImageUrl } from '@/lib/proxy'
+import { getProxiedImageUrl, getProxiedVideoUrl } from '@/lib/proxy'
 
 interface EmbedViewerProps {
   url: string
@@ -222,7 +222,7 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
         {isVideo ? (
           <video
             key={currentItem.media_url}
-            src={currentItem.media_url}
+            src={getProxiedVideoUrl(currentItem.media_url)}
             controls
             autoPlay
             loop

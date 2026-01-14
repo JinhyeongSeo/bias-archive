@@ -7,7 +7,7 @@ import type { Platform } from '@/lib/metadata'
 import { TagEditor } from './TagEditor'
 import { ViewerModal } from './ViewerModal'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
-import { getProxiedImageUrl } from '@/lib/proxy'
+import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl } from '@/lib/proxy'
 
 type LinkWithTags = Link & { tags: Tag[] }
 type LinkWithMedia = Link & { media?: LinkMedia[] }
@@ -45,12 +45,6 @@ function formatDate(dateString: string): string {
     month: 'short',
     day: 'numeric',
   })
-}
-
-// Check if URL is a video file
-function isVideoUrl(url: string): boolean {
-  const lower = url.toLowerCase()
-  return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov')
 }
 
 export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: LinkCardProps) {
@@ -126,7 +120,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
           {link.thumbnail_url ? (
             isVideoUrl(link.thumbnail_url) ? (
               <video
-                src={link.thumbnail_url}
+                src={getProxiedVideoUrl(link.thumbnail_url!)}
                 className="absolute inset-0 w-full h-full object-cover"
                 muted
                 playsInline
