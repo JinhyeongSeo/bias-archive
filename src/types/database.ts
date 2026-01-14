@@ -8,6 +8,7 @@ export type Database = {
           name_en: string | null
           name_ko: string | null
           group_name: string | null
+          group_id: string | null
           created_at: string
           updated_at: string
         }
@@ -17,6 +18,7 @@ export type Database = {
           name_en?: string | null
           name_ko?: string | null
           group_name?: string | null
+          group_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -26,6 +28,41 @@ export type Database = {
           name_en?: string | null
           name_ko?: string | null
           group_name?: string | null
+          group_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'biases_group_id_fkey'
+            columns: ['group_id']
+            isOneToOne: false
+            referencedRelation: 'groups'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      groups: {
+        Row: {
+          id: string
+          name: string
+          name_en: string | null
+          name_ko: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          name_en?: string | null
+          name_ko?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          name_en?: string | null
+          name_ko?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -178,6 +215,7 @@ export type Database = {
 
 // Convenience types
 export type Bias = Database['public']['Tables']['biases']['Row']
+export type Group = Database['public']['Tables']['groups']['Row']
 export type Link = Database['public']['Tables']['links']['Row']
 export type Tag = Database['public']['Tables']['tags']['Row']
 export type LinkTag = Database['public']['Tables']['link_tags']['Row']
@@ -185,6 +223,7 @@ export type LinkMedia = Database['public']['Tables']['link_media']['Row']
 
 // Insert types
 export type BiasInsert = Database['public']['Tables']['biases']['Insert']
+export type GroupInsert = Database['public']['Tables']['groups']['Insert']
 export type LinkInsert = Database['public']['Tables']['links']['Insert']
 export type TagInsert = Database['public']['Tables']['tags']['Insert']
 export type LinkTagInsert = Database['public']['Tables']['link_tags']['Insert']
@@ -192,6 +231,7 @@ export type LinkMediaInsert = Database['public']['Tables']['link_media']['Insert
 
 // Update types
 export type BiasUpdate = Database['public']['Tables']['biases']['Update']
+export type GroupUpdate = Database['public']['Tables']['groups']['Update']
 export type LinkUpdate = Database['public']['Tables']['links']['Update']
 export type TagUpdate = Database['public']['Tables']['tags']['Update']
 export type LinkTagUpdate = Database['public']['Tables']['link_tags']['Update']
@@ -199,3 +239,4 @@ export type LinkMediaUpdate = Database['public']['Tables']['link_media']['Update
 
 // Composite types
 export type LinkWithMedia = Link & { media: LinkMedia[] }
+export type BiasWithGroup = Bias & { group: Group | null }
