@@ -3,11 +3,21 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Toss-style colors */
+  --toss-blue: #3182f6;
+  --toss-blue-light: #e8f3ff;
+  --toss-blue-dark: #1b64da;
 }
 
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+
+  /* Toss-style colors (dark mode) */
+  --toss-blue: #4593fc;
+  --toss-blue-light: #1e3a5f;
+  --toss-blue-dark: #6ba8ff;
 }
 
 @theme inline {
@@ -15,6 +25,11 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Toss-style colors for Tailwind */
+  --color-toss-blue: var(--toss-blue);
+  --color-toss-blue-light: var(--toss-blue-light);
+  --color-toss-blue-dark: var(--toss-blue-dark);
 }
 
 body {
