@@ -1,12 +1,17 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useTranslations } from 'next-intl'
-import type { Bias, Tag } from '@/types/database'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
+import type { Bias, Tag, Group } from '@/types/database'
 import { BiasManager } from './BiasManager'
 import { ExportModal } from './ExportModal'
 import { useRefresh } from '@/contexts/RefreshContext'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
+
+interface GroupedTags {
+  group: Group | null
+  tags: Tag[]
+}
 
 interface SidebarProps {
   refreshTrigger?: number
@@ -32,10 +37,12 @@ export function Sidebar({
   onOpenExternalSearch,
 }: SidebarProps) {
   const t = useTranslations()
+  const locale = useLocale()
   const { tagRefreshTrigger } = useRefresh()
-  const { getTagDisplayName } = useNameLanguage()
+  const { getTagDisplayName, nameLanguage } = useNameLanguage()
   const [biases, setBiases] = useState<Bias[]>([])
   const [tags, setTags] = useState<Tag[]>([])
+  const [groups, setGroups] = useState<Group[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isTagsLoading, setIsTagsLoading] = useState(true)
   const [isExportModalOpen, setIsExportModalOpen] = useState(false)
@@ -77,13 +84,27 @@ export function Sidebar({
     }
   }, [])
 
+  const fetchGroups = useCallback(async () => {
+    try {
+      const response = await fetch('/api/groups')
+      if (response.ok) {
+        const data = await response.json()
+        setGroups(data)
+      }
+    } catch (error) {
+      console.error('Error fetching groups:', error)
+    }
+  }, [])
+
   useEffect(() => {
     fetchBiases()
     fetchTags()
-  }, [fetchBiases, fetchTags, refreshTrigger, tagRefreshTrigger])
+    fetchGroups()
+  }, [fetchBiases, fetchTags, fetchGroups, refreshTrigger, tagRefreshTrigger])
 
   async function handleBiasChange() {
     await fetchBiases()
+    await fetchGroups()
   }
 
   function handleTagClick(tagId: string) {
@@ -94,6 +115,84 @@ export function Sidebar({
       onSelectTag?.(tagId)
     }
   }
+
+  // Get display name for group based on language mode
+  const getGroupDisplayName = useCallback((group: Group): string => {
+    const effectiveLanguage: 'en' | 'ko' = nameLanguage === 'auto'
+      ? (locale === 'ko' ? 'ko' : 'en')
+      : nameLanguage
+
+    if (effectiveLanguage === 'en') {
+      return group.name_en || group.name
+    } else {
+      return group.name_ko || group.name
+    }
+  }, [nameLanguage, locale])
+
+  // Group tags by bias's group
+  const groupedTags = useMemo((): GroupedTags[] => {
+    // Create bias name to bias mapping (check all name variants)
+    const biasMap = new Map<string, Bias>()
+    for (const bias of biases) {
+      biasMap.set(bias.name.toLowerCase(), bias)
+      if (bias.name_en) biasMap.set(bias.name_en.toLowerCase(), bias)
+      if (bias.name_ko) biasMap.set(bias.name_ko.toLowerCase(), bias)
+    }
+
+    // Create group map
+    const groupMap = new Map<string, Group>()
+    for (const group of groups) {
+      groupMap.set(group.id, group)
+    }
+
+    // Group tags by their bias's group_id
+    const grouped = new Map<string | null, Tag[]>()
+
+    for (const tag of tags) {
+      const matchingBias = biasMap.get(tag.name.toLowerCase())
+      const groupId = matchingBias?.group_id || null
+
+      if (!grouped.has(groupId)) {
+        grouped.set(groupId, [])
+      }
+      grouped.get(groupId)!.push(tag)
+    }
+
+    // Convert to array with group info
+    const result: GroupedTags[] = []
+
+    // First add groups (sorted by name)
+    const sortedGroupIds = Array.from(grouped.keys())
+      .filter((id) => id !== null)
+      .sort((a, b) => {
+        const groupA = groupMap.get(a!)
+        const groupB = groupMap.get(b!)
+        return (groupA?.name || '').localeCompare(groupB?.name || '')
+      })
+
+    for (const groupId of sortedGroupIds) {
+      const group = groupMap.get(groupId!)
+      if (group) {
+        result.push({
+          group,
+          tags: grouped.get(groupId)!,
+        })
+      }
+    }
+
+    // Add ungrouped tags at the end
+    if (grouped.has(null) && grouped.get(null)!.length > 0) {
+      result.push({
+        group: null,
+        tags: grouped.get(null)!,
+      })
+    }
+
+    return result
+  }, [tags, biases, groups])
+
+  // Check if there are any grouped tags
+  const hasGroupedTags = groupedTags.some((g) => g.group !== null)
 
   return (
     <aside className="hidden md:flex flex-col w-60 h-[calc(100vh-3.5rem)] border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4 overflow-y-auto">
@@ -202,7 +301,36 @@ export function Sidebar({
           <p className="text-sm text-zinc-400 dark:text-zinc-500">
             {t('sidebar.noTags')}
           </p>
+        ) : hasGroupedTags ? (
+          // Group-based tag display
+          <div className="space-y-2">
+            {groupedTags.map(({ group, tags: groupTags }) => (
+              <div key={group?.id || 'ungrouped'}>
+                {/* Group header (visual only, not clickable) */}
+                <div className="px-1 py-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  {group ? getGroupDisplayName(group) : t('sidebar.ungrouped') || '그룹 없음'}
+                </div>
+                {/* Tags in this group */}
+                <div className="flex flex-wrap gap-1 px-1">
+                  {groupTags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => handleTagClick(tag.id)}
+                      className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                        selectedTagId === tag.id
+                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium'
+                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                      }`}
+                    >
+                      {getTagDisplayName(tag.name)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
+          // Flat tag display (no groups)
           <ul className="space-y-1">
             {tags.map((tag) => (
               <li key={tag.id}>
@@ -242,6 +370,7 @@ export function Sidebar({
         onImportComplete={() => {
           fetchBiases()
           fetchTags()
+          fetchGroups()
         }}
       />
     </aside>
