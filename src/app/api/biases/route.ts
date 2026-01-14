@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getBiases, createBias } from '@/lib/biases'
+import { getOrCreateGroup } from '@/lib/groups'
 
 /**
  * GET /api/biases
@@ -18,15 +19,27 @@ export async function GET() {
   }
 }
 
+interface GroupInfo {
+  name: string
+  nameEn?: string
+  nameKo?: string
+}
+
 /**
  * POST /api/biases
  * Create a new bias
- * Body: { name, groupName?, nameEn?, nameKo? }
+ * Body: { name, groupName?, nameEn?, nameKo?, group?: { name, nameEn?, nameKo? } }
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, groupName, nameEn, nameKo } = body
+    const { name, groupName, nameEn, nameKo, group } = body as {
+      name: string
+      groupName?: string
+      nameEn?: string
+      nameKo?: string
+      group?: GroupInfo
+    }
 
     // Validate required field
     if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -36,11 +49,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get or create group if group info is provided
+    let groupId: string | null = null
+    if (group?.name) {
+      const groupRecord = await getOrCreateGroup(
+        group.name,
+        group.nameEn,
+        group.nameKo
+      )
+      groupId = groupRecord.id
+    }
+
     const bias = await createBias(
       name.trim(),
       groupName?.trim() || null,
       nameEn?.trim() || null,
-      nameKo?.trim() || null
+      nameKo?.trim() || null,
+      groupId
     )
     return NextResponse.json(bias, { status: 201 })
   } catch (error) {

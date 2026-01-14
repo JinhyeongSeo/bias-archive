@@ -75,6 +75,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   const [memberSearchResults, setMemberSearchResults] = useState<KpopMemberWithGroup[]>([])
   const [showMemberDropdown, setShowMemberDropdown] = useState(false)
   const [isSearchingMembers, setIsSearchingMembers] = useState(false)
+  const [selectedGroupInfo, setSelectedGroupInfo] = useState<{ name: string; nameEn: string; nameKo: string } | null>(null)
 
   // Local bias order for optimistic updates during drag
   const [localBiases, setLocalBiases] = useState<Bias[]>(biases)
@@ -414,6 +415,13 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     setNameKo(member.name_original) // Korean name
     if (member.group) {
       setGroupName(member.group.name_original) // Korean group name
+      setSelectedGroupInfo({
+        name: member.group.name,
+        nameEn: member.group.name,
+        nameKo: member.group.name_original,
+      })
+    } else {
+      setSelectedGroupInfo(null)
     }
     setShowMemberDropdown(false)
     setMemberSearchResults([])
@@ -541,6 +549,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
           groupName: groupName.trim() || null,
           nameEn: nameEn.trim() || null,
           nameKo: nameKo.trim() || null,
+          group: selectedGroupInfo,
         }),
       })
 
@@ -549,6 +558,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         setGroupName('')
         setNameEn('')
         setNameKo('')
+        setSelectedGroupInfo(null)
         setIsFormOpen(false)
         onBiasAdded()
       } else {
