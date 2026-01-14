@@ -17,12 +17,16 @@ interface HeyeSearchResponse {
   results: HeyeSearchResult[]
   totalPages: number
   currentPage: number
+  totalResults: number
+  hasMore: boolean
 }
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const query = searchParams.get('q')
   const page = parseInt(searchParams.get('page') || '1', 10)
+  const limit = parseInt(searchParams.get('limit') || '0', 10) // 0 means no limit
+  const offset = parseInt(searchParams.get('offset') || '0', 10)
 
   if (!query) {
     return NextResponse.json(
@@ -127,10 +131,23 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Apply offset and limit for client-side pagination within a page
+    const totalResults = results.length
+    const paginatedResults = limit > 0
+      ? results.slice(offset, offset + limit)
+      : results.slice(offset)
+
+    // Check if there are more results available
+    const hasMoreInPage = offset + paginatedResults.length < totalResults
+    const hasMorePages = totalPages > page
+    const hasMore = hasMoreInPage || hasMorePages
+
     const responseData: HeyeSearchResponse = {
-      results,
+      results: paginatedResults,
       totalPages,
       currentPage: page,
+      totalResults,
+      hasMore,
     }
 
     return NextResponse.json(responseData)

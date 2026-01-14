@@ -35,6 +35,11 @@ interface YouTubeApiSearchItem {
 
 interface YouTubeApiResponse {
   items: YouTubeApiSearchItem[]
+  nextPageToken?: string
+  pageInfo?: {
+    totalResults: number
+    resultsPerPage: number
+  }
   error?: {
     message: string
     code: number
@@ -44,20 +49,27 @@ interface YouTubeApiResponse {
 export interface YouTubeSearchOptions {
   order?: 'relevance' | 'date' | 'viewCount' | 'rating'
   publishedAfter?: string // ISO 8601 format
+  pageToken?: string // For pagination
+}
+
+export interface YouTubeSearchResponse {
+  results: YouTubeSearchResult[]
+  nextPageToken?: string
+  hasMore: boolean
 }
 
 /**
  * Search YouTube videos using YouTube Data API v3
  * @param query - Search query string
  * @param maxResults - Maximum number of results (default: 10, max: 50)
- * @param options - Optional search options (order, publishedAfter)
- * @returns Array of YouTube search results
+ * @param options - Optional search options (order, publishedAfter, pageToken)
+ * @returns YouTube search response with results, nextPageToken, and hasMore flag
  */
 export async function searchYouTube(
   query: string,
   maxResults: number = 10,
   options: YouTubeSearchOptions = {}
-): Promise<YouTubeSearchResult[]> {
+): Promise<YouTubeSearchResponse> {
   const apiKey = process.env.YOUTUBE_API_KEY
 
   if (!apiKey) {
@@ -85,6 +97,9 @@ export async function searchYouTube(
   if (options.publishedAfter) {
     params.set('publishedAfter', options.publishedAfter)
   }
+  if (options.pageToken) {
+    params.set('pageToken', options.pageToken)
+  }
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 10000)
@@ -103,7 +118,7 @@ export async function searchYouTube(
       )
     }
 
-    return data.items.map((item) => ({
+    const results = data.items.map((item) => ({
       videoId: item.id.videoId,
       title: item.snippet.title,
       thumbnailUrl:
@@ -114,6 +129,12 @@ export async function searchYouTube(
       channelTitle: item.snippet.channelTitle,
       publishedAt: item.snippet.publishedAt,
     }))
+
+    return {
+      results,
+      nextPageToken: data.nextPageToken,
+      hasMore: !!data.nextPageToken,
+    }
   } finally {
     clearTimeout(timeoutId)
   }

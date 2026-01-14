@@ -17,6 +17,8 @@ interface KgirlsSearchResponse {
   results: KgirlsSearchResult[]
   totalPages: number
   currentPage: number
+  totalResults: number
+  hasMore: boolean
 }
 
 /**
@@ -35,6 +37,8 @@ export async function GET(request: NextRequest) {
   const query = searchParams.get('q')
   const page = parseInt(searchParams.get('page') || '1', 10)
   const board = searchParams.get('board') || 'mgall' // mgall or issue
+  const limit = parseInt(searchParams.get('limit') || '0', 10) // 0 means no limit
+  const offset = parseInt(searchParams.get('offset') || '0', 10)
 
   if (!query) {
     return NextResponse.json(
@@ -146,15 +150,23 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const responseData = {
-      results,
+    // Apply offset and limit for client-side pagination within a page
+    const totalResults = results.length
+    const paginatedResults = limit > 0
+      ? results.slice(offset, offset + limit)
+      : results.slice(offset)
+
+    // Check if there are more results available
+    const hasMoreInPage = offset + paginatedResults.length < totalResults
+    const hasMorePages = totalPages > page
+    const hasMore = hasMoreInPage || hasMorePages
+
+    const responseData: KgirlsSearchResponse = {
+      results: paginatedResults,
       totalPages,
       currentPage: page,
-      _debug: {
-        thumbnailsFound: thumbnails.length,
-        postIdsFound: postIds.length,
-        resultsWithThumbnails: results.filter(r => r.thumbnailUrl).length,
-      }
+      totalResults,
+      hasMore,
     }
 
     return NextResponse.json(responseData)

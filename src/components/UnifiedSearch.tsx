@@ -63,6 +63,8 @@ interface PlatformResults {
   isLoadingMore: boolean
   error: string | null
   currentPage: number
+  currentOffset: number // For heye/kgirls pagination within page
+  nextPageToken?: string // For YouTube pagination
 }
 
 interface UnifiedSearchProps {
@@ -174,11 +176,17 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
   }
 
   // Search functions for each platform
-  const searchYouTube = async (searchQuery: string, page: number = 1): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
+  const searchYouTube = async (searchQuery: string, pageToken?: string): Promise<{ results: EnrichedResult[], hasMore: boolean, nextPageToken?: string }> => {
     const params = new URLSearchParams({
       q: searchQuery,
-      max: String(RESULTS_PER_PLATFORM * page), // YouTube API doesn't have proper pagination, so we fetch more
+      max: String(RESULTS_PER_PLATFORM),
+      order: 'relevance',
+      period: 'month', // Default to this month for more recent results
     })
+    if (pageToken) {
+      params.set('pageToken', pageToken)
+    }
+
     const response = await fetch(`/api/youtube/search?${params}`)
     const data = await response.json()
 
@@ -186,7 +194,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       throw new Error(data.error || 'YouTube 검색 실패')
     }
 
-    const allResults = (data as YouTubeResult[]).map(item => ({
+    const results = (data.results as YouTubeResult[]).map(item => ({
       url: `https://www.youtube.com/watch?v=${item.videoId}`,
       title: item.title,
       thumbnailUrl: item.thumbnailUrl,
@@ -197,13 +205,10 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       isSaving: false,
     }))
 
-    // Return only new results for this page
-    const startIndex = (page - 1) * RESULTS_PER_PLATFORM
-    const pageResults = allResults.slice(startIndex, startIndex + RESULTS_PER_PLATFORM)
-
     return {
-      results: pageResults,
-      hasMore: allResults.length > page * RESULTS_PER_PLATFORM,
+      results,
+      hasMore: data.hasMore ?? false,
+      nextPageToken: data.nextPageToken,
     }
   }
 
@@ -268,15 +273,21 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     return { results, hasMore: data.hasMore ?? false }
   }
 
-  const searchHeye = async (searchQuery: string, page: number = 1): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
-    const response = await fetch(`/api/search/heye?q=${encodeURIComponent(searchQuery)}&page=${page}`)
+  const searchHeye = async (searchQuery: string, page: number = 1, offset: number = 0): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
+    const params = new URLSearchParams({
+      q: searchQuery,
+      page: String(page),
+      limit: String(RESULTS_PER_PLATFORM),
+      offset: String(offset),
+    })
+    const response = await fetch(`/api/search/heye?${params}`)
     const data = await response.json()
 
     if (!response.ok) {
       throw new Error(data.error || 'heye.kr 검색 실패')
     }
 
-    const results = (data.results as HeyeResult[]).slice(0, RESULTS_PER_PLATFORM).map(item => ({
+    const results = (data.results as HeyeResult[]).map(item => ({
       url: item.url,
       title: item.title,
       thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
@@ -288,19 +299,26 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
     return {
       results,
-      hasMore: data.totalPages ? page < data.totalPages : results.length >= RESULTS_PER_PLATFORM,
+      hasMore: data.hasMore ?? false,
     }
   }
 
-  const searchKgirls = async (searchQuery: string, page: number = 1): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
-    const response = await fetch(`/api/search/kgirls?q=${encodeURIComponent(searchQuery)}&page=${page}&board=mgall`)
+  const searchKgirls = async (searchQuery: string, page: number = 1, offset: number = 0): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
+    const params = new URLSearchParams({
+      q: searchQuery,
+      page: String(page),
+      board: 'mgall',
+      limit: String(RESULTS_PER_PLATFORM),
+      offset: String(offset),
+    })
+    const response = await fetch(`/api/search/kgirls?${params}`)
     const data = await response.json()
 
     if (!response.ok) {
       throw new Error(data.error || 'kgirls.net 검색 실패')
     }
 
-    const results = (data.results as KgirlsResult[]).slice(0, RESULTS_PER_PLATFORM).map(item => ({
+    const results = (data.results as KgirlsResult[]).map(item => ({
       url: item.url,
       title: item.title,
       thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
@@ -312,7 +330,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
     return {
       results,
-      hasMore: data.totalPages ? page < data.totalPages : results.length >= RESULTS_PER_PLATFORM,
+      hasMore: data.hasMore ?? false,
     }
   }
 
@@ -334,6 +352,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
         isLoadingMore: false,
         error: null,
         currentPage: 1,
+        currentOffset: 0,
       })
     }
     setPlatformResults(initialResults)
@@ -343,8 +362,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
     if (enabledPlatforms.has('youtube')) {
       searchPromises.push(
-        searchYouTube(query, 1)
-          .then(({ results, hasMore }) => {
+        searchYouTube(query)
+          .then(({ results, hasMore, nextPageToken }) => {
             setPlatformResults(prev => {
               const next = new Map(prev)
               next.set('youtube', {
@@ -355,6 +374,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 isLoadingMore: false,
                 error: null,
                 currentPage: 1,
+                currentOffset: 0,
+                nextPageToken,
               })
               return next
             })
@@ -370,6 +391,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 isLoadingMore: false,
                 error: error.message,
                 currentPage: 1,
+                currentOffset: 0,
               })
               return next
             })
@@ -391,6 +413,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 isLoadingMore: false,
                 error: null,
                 currentPage: 1,
+                currentOffset: 0,
               })
               return next
             })
@@ -406,6 +429,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 isLoadingMore: false,
                 error: error.message,
                 currentPage: 1,
+                currentOffset: 0,
               })
               return next
             })
@@ -415,7 +439,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
     if (enabledPlatforms.has('heye')) {
       searchPromises.push(
-        searchHeye(query, 1)
+        searchHeye(query, 1, 0)
           .then(({ results, hasMore }) => {
             setPlatformResults(prev => {
               const next = new Map(prev)
@@ -427,6 +451,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 isLoadingMore: false,
                 error: null,
                 currentPage: 1,
+                currentOffset: results.length,
               })
               return next
             })
@@ -442,6 +467,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 isLoadingMore: false,
                 error: error.message,
                 currentPage: 1,
+                currentOffset: 0,
               })
               return next
             })
@@ -451,7 +477,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
     if (enabledPlatforms.has('kgirls')) {
       searchPromises.push(
-        searchKgirls(query, 1)
+        searchKgirls(query, 1, 0)
           .then(({ results, hasMore }) => {
             setPlatformResults(prev => {
               const next = new Map(prev)
@@ -463,6 +489,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 isLoadingMore: false,
                 error: null,
                 currentPage: 1,
+                currentOffset: results.length,
               })
               return next
             })
@@ -478,6 +505,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 isLoadingMore: false,
                 error: error.message,
                 currentPage: 1,
+                currentOffset: 0,
               })
               return next
             })
@@ -494,8 +522,6 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     const currentData = platformResults.get(platform)
     if (!currentData || currentData.isLoadingMore || !currentData.hasMore) return
 
-    const nextPage = currentData.currentPage + 1
-
     // Set loading more state
     setPlatformResults(prev => {
       const next = new Map(prev)
@@ -507,20 +533,28 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     })
 
     try {
-      let searchResult: { results: EnrichedResult[], hasMore: boolean }
+      let searchResult: { results: EnrichedResult[], hasMore: boolean, nextPageToken?: string }
+      let newPage = currentData.currentPage
+      let newOffset = currentData.currentOffset
 
       switch (platform) {
         case 'youtube':
-          searchResult = await searchYouTube(query, nextPage)
+          // Use pageToken for YouTube pagination
+          searchResult = await searchYouTube(query, currentData.nextPageToken)
           break
         case 'twitter':
-          searchResult = await searchTwitter(query, nextPage)
+          newPage = currentData.currentPage + 1
+          searchResult = await searchTwitter(query, newPage)
           break
         case 'heye':
-          searchResult = await searchHeye(query, nextPage)
+          // Use offset-based pagination within the same page first
+          searchResult = await searchHeye(query, currentData.currentPage, currentData.currentOffset)
+          newOffset = currentData.currentOffset + searchResult.results.length
           break
         case 'kgirls':
-          searchResult = await searchKgirls(query, nextPage)
+          // Use offset-based pagination within the same page first
+          searchResult = await searchKgirls(query, currentData.currentPage, currentData.currentOffset)
+          newOffset = currentData.currentOffset + searchResult.results.length
           break
         default:
           return
@@ -539,7 +573,9 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             results: [...data.results, ...newResults],
             hasMore: searchResult.hasMore,
             isLoadingMore: false,
-            currentPage: nextPage,
+            currentPage: newPage,
+            currentOffset: newOffset,
+            nextPageToken: searchResult.nextPageToken,
           })
         }
         return next

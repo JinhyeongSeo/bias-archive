@@ -39,6 +39,7 @@ function periodToPublishedAfter(period: PeriodType): string {
  *   - max: maximum results (optional, default: 10, max: 50)
  *   - order: sort order (optional: relevance, date, viewCount, rating)
  *   - period: time filter (optional: today, week, month, year)
+ *   - pageToken: pagination token for next page (optional)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
     const maxResults = parseInt(searchParams.get('max') || '10', 10)
     const order = searchParams.get('order') as OrderType | null
     const period = searchParams.get('period') as PeriodType | null
+    const pageToken = searchParams.get('pageToken')
 
     if (!query || query.trim() === '') {
       return NextResponse.json(
@@ -71,9 +73,12 @@ export async function GET(request: NextRequest) {
     if (period) {
       options.publishedAfter = periodToPublishedAfter(period)
     }
+    if (pageToken) {
+      options.pageToken = pageToken
+    }
 
-    const results = await searchYouTube(query, maxResults, options)
-    return NextResponse.json(results)
+    const response = await searchYouTube(query, maxResults, options)
+    return NextResponse.json(response)
   } catch (error) {
     console.error('[YouTube Search] Error:', error)
 

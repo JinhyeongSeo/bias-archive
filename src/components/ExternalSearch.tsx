@@ -197,7 +197,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       throw new Error(data.error || 'YouTube 검색 실패')
     }
 
-    return (data as YouTubeResult[]).map(item => ({
+    // API now returns { results, hasMore, nextPageToken }
+    return (data.results as YouTubeResult[]).map(item => ({
       url: `https://www.youtube.com/watch?v=${item.videoId}`,
       title: item.title,
       thumbnailUrl: item.thumbnailUrl,
