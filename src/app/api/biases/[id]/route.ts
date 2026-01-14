@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getBias, updateBias, deleteBias } from '@/lib/biases'
+import { createClient } from '@/lib/supabase-server'
 
 type RouteParams = {
   params: Promise<{ id: string }>
@@ -33,11 +34,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 /**
  * PUT /api/biases/[id]
- * Update a bias
+ * Update a bias (requires authentication)
  * Body: { name, groupName?, nameEn?, nameKo? }
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    // Check authentication
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다' },
+        { status: 401 }
+      )
+    }
+
     const { id } = await params
     const body = await request.json()
     const { name, groupName, nameEn, nameKo } = body
@@ -69,10 +80,20 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 /**
  * DELETE /api/biases/[id]
- * Delete a bias
+ * Delete a bias (requires authentication)
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    // Check authentication
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다' },
+        { status: 401 }
+      )
+    }
+
     const { id } = await params
     await deleteBias(id)
     return NextResponse.json({ success: true })

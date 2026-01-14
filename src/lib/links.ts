@@ -5,11 +5,18 @@ export type { Link, LinkInsert, LinkUpdate, LinkMedia }
 
 /**
  * Create a new link
+ * @param data - Link data to insert
+ * @param userId - Optional user ID for authenticated users
  */
-export async function createLink(data: LinkInsert): Promise<Link> {
+export async function createLink(data: LinkInsert, userId?: string | null): Promise<Link> {
+  const insertData = {
+    ...data,
+    user_id: userId || null,
+  }
+
   const { data: link, error } = await supabase
     .from('links')
-    .insert([data])
+    .insert([insertData])
     .select()
     .single()
 

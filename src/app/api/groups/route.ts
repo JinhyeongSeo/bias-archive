@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getGroups, createGroup } from '@/lib/groups'
+import { createClient } from '@/lib/supabase-server'
 
 /**
  * GET /api/groups
@@ -20,10 +21,20 @@ export async function GET() {
 
 /**
  * POST /api/groups
- * Create a new group
+ * Create a new group (requires authentication)
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { name, nameEn, nameKo } = body
 
@@ -34,7 +45,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const group = await createGroup(name, nameEn, nameKo)
+    const group = await createGroup(name, nameEn, nameKo, user.id)
     return NextResponse.json(group, { status: 201 })
   } catch (error) {
     console.error('Error creating group:', error)

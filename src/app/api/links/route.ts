@@ -4,6 +4,7 @@ import type { LinkInsert, MediaData } from '@/lib/links'
 import { getBiases } from '@/lib/biases'
 import { getOrCreateTag, addTagToLink } from '@/lib/tags'
 import { extractAutoTags, combineTextForTagExtraction } from '@/lib/autoTag'
+import { createClient } from '@/lib/supabase-server'
 
 /**
  * GET /api/links
@@ -42,13 +43,23 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/links
- * Create a new link
+ * Create a new link (requires authentication)
  * Body: { url, title, description, thumbnailUrl, platform, originalDate, biasId, searchQuery, media }
  * searchQuery: optional hint for auto-tagging (e.g., from external search)
  * media: optional array of { url, type } for multi-image support (e.g., Twitter)
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { url, title, description, thumbnailUrl, platform, originalDate, authorName, biasId, searchQuery, media } = body
 
@@ -91,7 +102,7 @@ export async function POST(request: NextRequest) {
       bias_id: biasId || null,
     }
 
-    const link = await createLink(linkData)
+    const link = await createLink(linkData, user.id)
 
     // Save media if provided (e.g., Twitter multi-image)
     let savedMedia: MediaData[] = []
@@ -131,7 +142,7 @@ export async function POST(request: NextRequest) {
     const linkedTags = []
     for (const tagName of extractedTagNames) {
       try {
-        const tag = await getOrCreateTag(tagName)
+        const tag = await getOrCreateTag(tagName, user.id)
         await addTagToLink(link.id, tag.id)
         linkedTags.push(tag)
       } catch (error) {

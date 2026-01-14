@@ -68,16 +68,19 @@ export async function getGroupByName(name: string): Promise<Group | null> {
 
 /**
  * Create a new group
+ * @param userId - Optional user ID for authenticated users
  */
 export async function createGroup(
   name: string,
   nameEn?: string | null,
-  nameKo?: string | null
+  nameKo?: string | null,
+  userId?: string | null
 ): Promise<Group> {
   const insertData: GroupInsert = {
     name,
     name_en: nameEn || null,
     name_ko: nameKo || null,
+    user_id: userId || null,
   }
 
   const { data, error } = await supabase
@@ -96,11 +99,13 @@ export async function createGroup(
 /**
  * Get or create a group by name
  * Returns existing group if found by name/name_en/name_ko, otherwise creates new
+ * @param userId - Optional user ID for authenticated users (used when creating)
  */
 export async function getOrCreateGroup(
   name: string,
   nameEn?: string | null,
-  nameKo?: string | null
+  nameKo?: string | null,
+  userId?: string | null
 ): Promise<Group> {
   // Try to find existing group by any name field
   const existing = await getGroupByName(name)
@@ -124,7 +129,7 @@ export async function getOrCreateGroup(
   }
 
   // Create new group
-  return createGroup(name, nameEn, nameKo)
+  return createGroup(name, nameEn, nameKo, userId)
 }
 
 /**

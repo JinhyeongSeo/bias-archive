@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getBiases, createBias } from '@/lib/biases'
 import { getOrCreateGroup } from '@/lib/groups'
+import { createClient } from '@/lib/supabase-server'
 
 /**
  * GET /api/biases
@@ -27,11 +28,21 @@ interface GroupInfo {
 
 /**
  * POST /api/biases
- * Create a new bias
+ * Create a new bias (requires authentication)
  * Body: { name, groupName?, nameEn?, nameKo?, group?: { name, nameEn?, nameKo? } }
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { name, groupName, nameEn, nameKo, group } = body as {
       name: string
@@ -55,7 +66,8 @@ export async function POST(request: NextRequest) {
       const groupRecord = await getOrCreateGroup(
         group.name,
         group.nameEn,
-        group.nameKo
+        group.nameKo,
+        user.id
       )
       groupId = groupRecord.id
     }
@@ -65,7 +77,8 @@ export async function POST(request: NextRequest) {
       groupName?.trim() || null,
       nameEn?.trim() || null,
       nameKo?.trim() || null,
-      groupId
+      groupId,
+      user.id
     )
     return NextResponse.json(bias, { status: 201 })
   } catch (error) {

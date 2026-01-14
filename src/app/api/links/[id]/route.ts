@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getLinkById, deleteLink } from '@/lib/links'
+import { createClient } from '@/lib/supabase-server'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -41,10 +42,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 /**
  * DELETE /api/links/[id]
- * Delete a link by ID
+ * Delete a link by ID (requires authentication)
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    // Check authentication
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다' },
+        { status: 401 }
+      )
+    }
+
     const { id } = await params
 
     if (!id) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getOrCreateGroup } from '@/lib/groups'
+import { createClient } from '@/lib/supabase-server'
 import type { BiasInsert } from '@/types/database'
 
 interface GroupInfo {
@@ -24,11 +25,22 @@ interface BatchRequest {
 /**
  * POST /api/biases/batch
  * Create multiple biases at once (for adding all members of a group)
+ * Requires authentication
  * Skips members that already exist (by name)
  * Creates or reuses group record and links via group_id FK
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const serverClient = await createClient()
+    const { data: { user } } = await serverClient.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다' },
+        { status: 401 }
+      )
+    }
+
     const body: BatchRequest = await request.json()
     const { members, group } = body
 
@@ -45,7 +57,8 @@ export async function POST(request: NextRequest) {
       const groupRecord = await getOrCreateGroup(
         group.name,
         group.nameEn,
-        group.nameKo
+        group.nameKo,
+        user.id
       )
       groupId = groupRecord.id
     }
@@ -79,13 +92,14 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Prepare insert data with group_id
+    // Prepare insert data with group_id and user_id
     const insertData: BiasInsert[] = newMembers.map((member) => ({
       name: member.name,
       group_name: member.groupName || null,
       group_id: groupId,
       name_en: member.nameEn || null,
       name_ko: member.nameKo || null,
+      user_id: user.id,
     }))
 
     // Batch insert

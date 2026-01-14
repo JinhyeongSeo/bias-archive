@@ -44,13 +44,15 @@ export async function getBias(id: string): Promise<Bias | null> {
 
 /**
  * Create a new bias
+ * @param userId - Optional user ID for authenticated users
  */
 export async function createBias(
   name: string,
   groupName?: string | null,
   nameEn?: string | null,
   nameKo?: string | null,
-  groupId?: string | null
+  groupId?: string | null,
+  userId?: string | null
 ): Promise<Bias> {
   const insertData: BiasInsert = {
     name,
@@ -58,6 +60,7 @@ export async function createBias(
     name_en: nameEn || null,
     name_ko: nameKo || null,
     group_id: groupId || null,
+    user_id: userId || null,
   }
 
   const { data, error } = await supabase

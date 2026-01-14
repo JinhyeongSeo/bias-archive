@@ -44,15 +44,19 @@ export async function getTagByName(name: string): Promise<Tag | null> {
 /**
  * Create a new tag
  * If tag with same name exists, returns the existing tag
+ * @param userId - Optional user ID for authenticated users
  */
-export async function createTag(name: string): Promise<Tag> {
+export async function createTag(name: string, userId?: string | null): Promise<Tag> {
   // Check if tag already exists
   const existingTag = await getTagByName(name)
   if (existingTag) {
     return existingTag
   }
 
-  const insertData: TagInsert = { name }
+  const insertData: TagInsert = {
+    name,
+    user_id: userId || null,
+  }
 
   const { data, error } = await supabase
     .from('tags')
@@ -70,9 +74,10 @@ export async function createTag(name: string): Promise<Tag> {
 /**
  * Get or create a tag by name
  * Returns existing tag if found, creates new one if not
+ * @param userId - Optional user ID for authenticated users (used when creating)
  */
-export async function getOrCreateTag(name: string): Promise<Tag> {
-  return createTag(name)
+export async function getOrCreateTag(name: string, userId?: string | null): Promise<Tag> {
+  return createTag(name, userId)
 }
 
 /**

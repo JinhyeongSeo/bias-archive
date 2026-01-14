@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-13)
 
 ## Current Position
 
-Phase: 19 of 19 (Bias UI Improvements)
-Plan: 1 of 1 in current phase
-Status: Phase complete
-Last activity: 2026-01-14 — Completed 19-01-PLAN.md
+Phase: 20 of 20 (Authentication)
+Plan: 0 of ? in current phase
+Status: Not started (needs planning)
+Last activity: 2026-01-14 — Added Phase 20
 
-Progress: ████████████████████ 100% (19/19 phases complete)
+Progress: ███████████████████░ 95% (19/20 phases complete)
 
 ## Performance Metrics
 
@@ -101,6 +101,7 @@ Progress: ████████████████████ 100% (19/
 - Phase 17 (old) removed: heye.kr iframe Embed (기술적 제약으로 스킵)
 - Phase 17 added: External Media Proxy (이미지는 wsrv.nl, 비디오는 Cloudflare Workers)
 - Phase 18 added: Footer Contact (연락처 정보 Footer 추가)
+- Phase 20 added: Authentication (사용자 로그인/회원가입 기능)
 
 ### Deferred Issues
 

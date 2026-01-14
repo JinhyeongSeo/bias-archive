@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTags, createTag, getTagsInUse } from '@/lib/tags'
+import { createClient } from '@/lib/supabase-server'
 
 /**
  * GET /api/tags
@@ -25,11 +26,21 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/tags
- * Create a new tag
+ * Create a new tag (requires authentication)
  * Body: { name }
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { name } = body
 
@@ -50,7 +61,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const tag = await createTag(trimmedName)
+    const tag = await createTag(trimmedName, user.id)
     return NextResponse.json(tag, { status: 201 })
   } catch (error) {
     console.error('Error creating tag:', error)
