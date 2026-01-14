@@ -8,6 +8,10 @@
     "gif": "GIF 생성",
     "settings": "설정"
   },
+  "header": {
+    "nameLanguage": "이름",
+    "nameLanguageAuto": "자동"
+  },
   "sidebar": {
     "search": "검색",
     "searchPlaceholder": "제목, 설명, 작성자 검색...",

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { ThemeToggle } from './ThemeToggle'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { NameLanguageToggle } from './NameLanguageToggle'
 
 export function Header() {
   const locale = useLocale()
@@ -28,7 +29,8 @@ export function Header() {
             </Link>
           </nav>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <NameLanguageToggle />
           <LanguageSwitcher />
           <ThemeToggle />
         </div>

@@ -8,6 +8,10 @@
     "gif": "GIF Maker",
     "settings": "Settings"
   },
+  "header": {
+    "nameLanguage": "Name",
+    "nameLanguageAuto": "Auto"
+  },
   "sidebar": {
     "search": "Search",
     "searchPlaceholder": "Search title, description, author...",

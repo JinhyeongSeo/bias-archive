@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { Bias } from '@/types/database'
+import { useNameLanguage } from '@/contexts/NameLanguageContext'
 
 interface KpopGroup {
   id: string
@@ -23,6 +24,7 @@ interface BiasManagerProps {
 }
 
 export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerProps) {
+  const { getDisplayName } = useNameLanguage()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [name, setName] = useState('')
   const [groupName, setGroupName] = useState('')
@@ -266,10 +268,11 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
   }
 
   function formatBiasName(bias: Bias): string {
+    const displayName = getDisplayName(bias)
     if (bias.group_name) {
-      return `${bias.name} (${bias.group_name})`
+      return `${displayName} (${bias.group_name})`
     }
-    return bias.name
+    return displayName
   }
 
   return (
