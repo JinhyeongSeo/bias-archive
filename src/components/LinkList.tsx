@@ -169,9 +169,9 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
         animate="visible"
         exit="exit"
       >
-        {links.map((link) => (
+        {links.map((link, index) => (
           <motion.div key={link.id} variants={itemVariants}>
-            <LinkCard link={link} onDelete={handleDelete} layout={layout} />
+            <LinkCard link={link} onDelete={handleDelete} layout={layout} priority={index < 6} />
           </motion.div>
         ))}
       </motion.div>

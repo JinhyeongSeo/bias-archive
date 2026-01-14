@@ -21,6 +21,7 @@ interface LinkCardProps {
   onDelete?: (id: string) => void
   onTagsChange?: (linkId: string, tags: Tag[]) => void
   layout?: LayoutType
+  priority?: boolean
 }
 
 const platformLabels: Record<Platform, string> = {
@@ -50,7 +51,7 @@ function formatDate(dateString: string): string {
   })
 }
 
-export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: LinkCardProps) {
+export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid', priority = false }: LinkCardProps) {
   const locale = useLocale()
   const [deleting, setDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -395,7 +396,9 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
               src={getProxiedImageUrl(link.thumbnail_url)}
               alt={link.title || 'Thumbnail'}
               fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className="object-cover"
+              priority={priority}
             />
           )
         ) : (
