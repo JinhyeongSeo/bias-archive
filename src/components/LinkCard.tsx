@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { useLocale } from 'next-intl'
+import { motion } from 'framer-motion'
 import type { Link, Tag, LinkMedia } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
 import { TagEditor } from './TagEditor'
 import { ViewerModal } from './ViewerModal'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
 import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl } from '@/lib/proxy'
+import { quickSpring } from '@/lib/animations'
 
 type LinkWithTags = Link & { tags: Tag[] }
 type LinkWithMedia = Link & { media?: LinkMedia[] }
@@ -118,7 +120,12 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
   // List layout - horizontal card with thumbnail on left
   if (layout === 'list') {
     return (
-      <div className="group relative flex rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <motion.div
+        className="group relative flex rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+        whileHover={{ y: -2, scale: 1.01 }}
+        whileTap={{ scale: 0.99 }}
+        transition={quickSpring}
+      >
         {/* Thumbnail */}
         <div
           className={`relative w-40 sm:w-48 flex-shrink-0 bg-zinc-100 dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}
@@ -219,24 +226,26 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {/* Play/View button for supported platforms */}
           {supportsViewer && (
-            <button
+            <motion.button
               onClick={() => setViewerOpen(true)}
               className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-green-500 dark:hover:text-green-400 shadow-sm transition-colors"
               title="뷰어로 재생"
+              whileTap={{ scale: 0.9 }}
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
-            </button>
+            </motion.button>
           )}
 
           {/* Open link button */}
-          <a
+          <motion.a
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
             className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400 shadow-sm transition-colors"
             title="원본 링크 열기"
+            whileTap={{ scale: 0.9 }}
           >
             <svg
               className="w-4 h-4"
@@ -251,10 +260,10 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                 d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
               />
             </svg>
-          </a>
+          </motion.a>
 
           {/* Edit tags button */}
-          <button
+          <motion.button
             onClick={() => setEditingTags(!editingTags)}
             className={`p-1.5 rounded-md shadow-sm transition-colors ${
               editingTags
@@ -262,6 +271,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                 : 'bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400'
             }`}
             title="태그 편집"
+            whileTap={{ scale: 0.9 }}
           >
             <svg
               className="w-4 h-4"
@@ -276,16 +286,17 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                 d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
               />
             </svg>
-          </button>
+          </motion.button>
 
           {/* Delete button */}
           {showConfirm ? (
             <div className="flex gap-1">
-              <button
+              <motion.button
                 onClick={handleCancelDelete}
                 disabled={deleting}
                 className="p-1.5 rounded-md bg-zinc-200 dark:bg-zinc-600 text-zinc-600 dark:text-zinc-300 shadow-sm transition-colors"
                 title="취소"
+                whileTap={{ scale: 0.9 }}
               >
                 <svg
                   className="w-4 h-4"
@@ -300,12 +311,13 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                     d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 onClick={handleDelete}
                 disabled={deleting}
                 className="p-1.5 rounded-md bg-red-500 text-white shadow-sm hover:bg-red-600 transition-colors disabled:opacity-50"
                 title="삭제 확인"
+                whileTap={{ scale: 0.9 }}
               >
                 <svg
                   className="w-4 h-4"
@@ -320,13 +332,14 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
-              </button>
+              </motion.button>
             </div>
           ) : (
-            <button
+            <motion.button
               onClick={handleDelete}
               className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-red-500 dark:hover:text-red-400 shadow-sm transition-colors"
               title="삭제"
+              whileTap={{ scale: 0.9 }}
             >
               <svg
                 className="w-4 h-4"
@@ -341,7 +354,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                 />
               </svg>
-            </button>
+            </motion.button>
           )}
         </div>
 
@@ -351,13 +364,18 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
           isOpen={viewerOpen}
           onClose={() => setViewerOpen(false)}
         />
-      </div>
+      </motion.div>
     )
   }
 
   // Grid layout - vertical card (default)
   return (
-    <div className="group relative rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <motion.div
+      className="group relative rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+      whileHover={{ y: -2, scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      transition={quickSpring}
+    >
       {/* Thumbnail */}
       <div
         className={`relative aspect-video bg-zinc-100 dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}
@@ -460,24 +478,26 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {/* Play/View button for supported platforms */}
         {supportsViewer && (
-          <button
+          <motion.button
             onClick={() => setViewerOpen(true)}
             className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-green-500 dark:hover:text-green-400 shadow-sm transition-colors"
             title="뷰어로 재생"
+            whileTap={{ scale: 0.9 }}
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
-          </button>
+          </motion.button>
         )}
 
         {/* Open link button */}
-        <a
+        <motion.a
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
           className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400 shadow-sm transition-colors"
           title="원본 링크 열기"
+          whileTap={{ scale: 0.9 }}
         >
           <svg
             className="w-4 h-4"
@@ -492,10 +512,10 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
               d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
             />
           </svg>
-        </a>
+        </motion.a>
 
         {/* Edit tags button */}
-        <button
+        <motion.button
           onClick={() => setEditingTags(!editingTags)}
           className={`p-1.5 rounded-md shadow-sm transition-colors ${
             editingTags
@@ -503,6 +523,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
               : 'bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400'
           }`}
           title="태그 편집"
+          whileTap={{ scale: 0.9 }}
         >
           <svg
             className="w-4 h-4"
@@ -517,16 +538,17 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
               d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
             />
           </svg>
-        </button>
+        </motion.button>
 
         {/* Delete button */}
         {showConfirm ? (
           <div className="flex gap-1">
-            <button
+            <motion.button
               onClick={handleCancelDelete}
               disabled={deleting}
               className="p-1.5 rounded-md bg-zinc-200 dark:bg-zinc-600 text-zinc-600 dark:text-zinc-300 shadow-sm transition-colors"
               title="취소"
+              whileTap={{ scale: 0.9 }}
             >
               <svg
                 className="w-4 h-4"
@@ -541,12 +563,13 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={handleDelete}
               disabled={deleting}
               className="p-1.5 rounded-md bg-red-500 text-white shadow-sm hover:bg-red-600 transition-colors disabled:opacity-50"
               title="삭제 확인"
+              whileTap={{ scale: 0.9 }}
             >
               <svg
                 className="w-4 h-4"
@@ -561,13 +584,14 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-            </button>
+            </motion.button>
           </div>
         ) : (
-          <button
+          <motion.button
             onClick={handleDelete}
             className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-red-500 dark:hover:text-red-400 shadow-sm transition-colors"
             title="삭제"
+            whileTap={{ scale: 0.9 }}
           >
             <svg
               className="w-4 h-4"
@@ -582,7 +606,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
               />
             </svg>
-          </button>
+          </motion.button>
         )}
       </div>
 
@@ -592,6 +616,6 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
         isOpen={viewerOpen}
         onClose={() => setViewerOpen(false)}
       />
-    </div>
+    </motion.div>
   )
 }
