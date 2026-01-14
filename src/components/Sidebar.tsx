@@ -146,25 +146,25 @@ export function Sidebar({
       groupMap.set(group.id, group)
     }
 
-    // Create group name to tag mapping (for clicking group headers)
-    const groupNameToTag = new Map<string, Tag>()
+    // Create group name -> group_id mapping for O(1) lookup
+    const groupNameToId = new Map<string, string>()
+    for (const group of groups) {
+      groupNameToId.set(group.name.toLowerCase(), group.id)
+      if (group.name_en) groupNameToId.set(group.name_en.toLowerCase(), group.id)
+      if (group.name_ko) groupNameToId.set(group.name_ko.toLowerCase(), group.id)
+    }
+
+    // Create group_id -> tag mapping (for clicking group headers)
+    const groupIdToTag = new Map<string, Tag>()
     for (const tag of tags) {
-      const tagNameLower = tag.name.toLowerCase()
-      // Check if this tag matches any group name
-      for (const group of groups) {
-        if (
-          tagNameLower === group.name.toLowerCase() ||
-          (group.name_en && tagNameLower === group.name_en.toLowerCase()) ||
-          (group.name_ko && tagNameLower === group.name_ko.toLowerCase())
-        ) {
-          groupNameToTag.set(group.id, tag)
-          break
-        }
+      const groupId = groupNameToId.get(tag.name.toLowerCase())
+      if (groupId && !groupIdToTag.has(groupId)) {
+        groupIdToTag.set(groupId, tag)
       }
     }
 
     // Create set of tag IDs that are group names (to hide from member list)
-    const groupTagIds = new Set(Array.from(groupNameToTag.values()).map((t) => t.id))
+    const groupTagIds = new Set(Array.from(groupIdToTag.values()).map((t) => t.id))
 
     // Group tags by their bias's group_id
     const grouped = new Map<string | null, Tag[]>()
@@ -203,7 +203,7 @@ export function Sidebar({
         result.push({
           group,
           tags: grouped.get(groupId)!,
-          groupTag: groupNameToTag.get(groupId!),
+          groupTag: groupIdToTag.get(groupId!),
         })
       }
     }
