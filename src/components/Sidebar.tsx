@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { Bias, Tag, Group } from '@/types/database'
 import { BiasManager } from './BiasManager'
 import { ExportModal } from './ExportModal'
 import { useRefresh } from '@/contexts/RefreshContext'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
-import { quickSpring } from '@/lib/animations'
+import { quickSpring, smoothSpring, easeOutExpo } from '@/lib/animations'
 
 interface GroupedTags {
   group: Group | null
@@ -27,6 +27,9 @@ interface SidebarProps {
   selectedPlatform?: string | null
   onSelectPlatform?: (platform: string | null) => void
   onOpenExternalSearch?: () => void
+  // Mobile drawer
+  isOpen?: boolean
+  onClose?: () => void
 }
 
 export function Sidebar({
@@ -38,6 +41,8 @@ export function Sidebar({
   selectedPlatform,
   onSelectPlatform,
   onOpenExternalSearch,
+  isOpen = false,
+  onClose,
 }: SidebarProps) {
   const t = useTranslations()
   const locale = useLocale()
@@ -227,8 +232,32 @@ export function Sidebar({
   // Check if there are any grouped tags
   const hasGroupedTags = groupedTags.some((g) => g.group !== null)
 
-  return (
-    <aside className="hidden md:flex flex-col w-60 h-[calc(100vh-3.5rem)] border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4 overflow-y-auto">
+  // Close mobile drawer on ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose?.()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
+  // Prevent body scroll when mobile drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
+
+  // Sidebar content (shared between desktop and mobile)
+  const sidebarContent = (
+    <>
       {/* Search Input */}
       <section className="mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2">
@@ -246,7 +275,10 @@ export function Sidebar({
       {/* External Search Button */}
       <section className="mb-6">
         <motion.button
-          onClick={onOpenExternalSearch}
+          onClick={() => {
+            onOpenExternalSearch?.()
+            onClose?.()
+          }}
           className="w-full px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
           whileTap={{ scale: 0.97 }}
           transition={quickSpring}
@@ -302,7 +334,7 @@ export function Sidebar({
       </section>
 
       {/* Tags / Album Mode */}
-      <section>
+      <section className="flex-1">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">
             {t('sidebar.tags')}
@@ -410,7 +442,7 @@ export function Sidebar({
       </section>
 
       {/* Data Management */}
-      <section className="mt-auto pt-4 border-t border-zinc-200 dark:border-zinc-700">
+      <section className="pt-4 border-t border-zinc-200 dark:border-zinc-700">
         <motion.button
           onClick={() => setIsExportModalOpen(true)}
           className="w-full px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
@@ -434,6 +466,62 @@ export function Sidebar({
           fetchGroups()
         }}
       />
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex flex-col w-60 h-[calc(100vh-3.5rem)] border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4 overflow-y-auto">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Drawer */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={easeOutExpo}
+              onClick={onClose}
+            />
+
+            {/* Drawer Panel */}
+            <motion.aside
+              className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] flex flex-col bg-zinc-50 dark:bg-zinc-900 shadow-2xl md:hidden"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={smoothSpring}
+            >
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between h-14 px-4 border-b border-zinc-200 dark:border-zinc-800">
+                <span className="text-lg font-bold">메뉴</span>
+                <motion.button
+                  onClick={onClose}
+                  className="p-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                  whileTap={{ scale: 0.9 }}
+                  transition={quickSpring}
+                  aria-label="메뉴 닫기"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </motion.button>
+              </div>
+
+              {/* Drawer Content */}
+              <div className="flex-1 overflow-y-auto p-4 flex flex-col">
+                {sidebarContent}
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   )
 }

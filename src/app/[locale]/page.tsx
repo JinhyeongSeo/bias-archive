@@ -9,6 +9,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { ExternalSearch } from '@/components/ExternalSearch'
 import { LayoutToggle } from '@/components/LayoutToggle'
 import { Timeline } from '@/components/Timeline'
+import { useMobileMenu } from '@/contexts/MobileMenuContext'
 
 type LayoutType = 'grid' | 'list'
 
@@ -26,6 +27,7 @@ function HomeContent() {
   const [savedUrls, setSavedUrls] = useState<string[]>([])
   const [isExternalSearchOpen, setIsExternalSearchOpen] = useState(false)
   const [layout, setLayout] = useState<LayoutType>('grid')
+  const { isOpen: isMobileMenuOpen, close: closeMobileMenu } = useMobileMenu()
 
   // Load tag from URL parameter on mount
   useEffect(() => {
@@ -87,6 +89,8 @@ function HomeContent() {
         selectedPlatform={selectedPlatform}
         onSelectPlatform={setSelectedPlatform}
         onOpenExternalSearch={() => setIsExternalSearchOpen(true)}
+        isOpen={isMobileMenuOpen}
+        onClose={closeMobileMenu}
       />
 
       <main className="flex-1 flex flex-col items-center pt-12 px-4 sm:px-8">

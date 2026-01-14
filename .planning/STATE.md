@@ -109,6 +109,7 @@ Progress: ████████████████████ 95% (20/2
 - Phase 18 added: Footer Contact (연락처 정보 Footer 추가)
 - Phase 20 added: Authentication (사용자 로그인/회원가입 기능)
 - Phase 21 added: Design Overhaul (토스 스타일 애니메이션, 트렌디한 디자인 전면 개편)
+- Phase 21-05 확장: 모바일 최적화, 이름 언어 auto 고정, 라이트 모드 색상 수정 추가
 
 ### Deferred Issues
 

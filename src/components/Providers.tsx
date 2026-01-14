@@ -3,6 +3,7 @@
 import { ThemeProvider } from 'next-themes'
 import { RefreshProvider } from '@/contexts/RefreshContext'
 import { NameLanguageProvider } from '@/contexts/NameLanguageContext'
+import { MobileMenuProvider } from '@/contexts/MobileMenuContext'
 import { AuthProvider } from '@/components/AuthProvider'
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -11,7 +12,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <RefreshProvider>
           <NameLanguageProvider>
-            {children}
+            <MobileMenuProvider>
+              {children}
+            </MobileMenuProvider>
           </NameLanguageProvider>
         </RefreshProvider>
       </AuthProvider>

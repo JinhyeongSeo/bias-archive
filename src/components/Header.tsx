@@ -5,8 +5,8 @@ import { useLocale, useTranslations } from 'next-intl'
 import { motion } from 'framer-motion'
 import { ThemeToggle } from './ThemeToggle'
 import { LanguageSwitcher } from './LanguageSwitcher'
-import { NameLanguageToggle } from './NameLanguageToggle'
 import { UserMenu } from './UserMenu'
+import { useMobileMenu } from '@/contexts/MobileMenuContext'
 import { quickSpring } from '@/lib/animations'
 
 const MotionLink = motion.create(Link)
@@ -14,11 +14,25 @@ const MotionLink = motion.create(Link)
 export function Header() {
   const locale = useLocale()
   const t = useTranslations()
+  const { open: openMobileMenu } = useMobileMenu()
 
   return (
     <header className="fixed top-0 left-0 right-0 h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 z-50">
       <div className="flex items-center justify-between h-full px-4">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
+          {/* Mobile menu button */}
+          <motion.button
+            onClick={openMobileMenu}
+            className="md:hidden p-2 -ml-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+            whileTap={{ scale: 0.9 }}
+            transition={quickSpring}
+            aria-label="메뉴 열기"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </motion.button>
+
           <MotionLink
             href={`/${locale}`}
             className="text-lg font-bold hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
@@ -42,8 +56,7 @@ export function Header() {
             </MotionLink>
           </nav>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <NameLanguageToggle />
+        <div className="flex items-center gap-1 sm:gap-3">
           <LanguageSwitcher />
           <ThemeToggle />
           <UserMenu />

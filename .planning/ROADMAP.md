@@ -369,13 +369,16 @@ Plans:
 - 카드 기반 UI 레이아웃 개선
 - 스켈레톤 로딩 및 부드러운 페이지 전환
 - 모바일 퍼스트 반응형 디자인 강화
+- 모바일 사이드바 접근성 개선
+- 이름 언어 토글 제거 (auto 모드 고정)
+- 라이트 모드 색상 개선
 
 Plans:
 - [x] 21-01: Animation Foundation (framer-motion, primitives, CSS 변수) ✓
 - [ ] 21-02: Button & Card Animation
 - [ ] 21-03: Modal & List Animation
 - [ ] 21-04: Skeleton Loading
-- [ ] 21-05: Final Polish & Cleanup
+- [ ] 21-05: Final Polish & Cleanup (모바일 최적화, 이름 언어 auto 고정, 라이트 모드 수정 포함)
 
 ## Progress
 
