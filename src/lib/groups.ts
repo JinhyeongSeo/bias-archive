@@ -5,12 +5,13 @@ export type { Group, GroupInsert }
 
 /**
  * Get all groups
- * Sorted by name ascending
+ * Sorted by sort_order ascending (NULLS LAST), then name ascending as fallback
  */
 export async function getGroups(): Promise<Group[]> {
   const { data, error } = await supabase
     .from('groups')
     .select('*')
+    .order('sort_order', { ascending: true, nullsFirst: false })
     .order('name', { ascending: true })
 
   if (error) {
@@ -124,4 +125,33 @@ export async function getOrCreateGroup(
 
   // Create new group
   return createGroup(name, nameEn, nameKo)
+}
+
+/**
+ * Reorder groups by updating their sort_order values
+ * @param orderedIds - Array of group IDs in desired order
+ */
+export async function reorderGroups(orderedIds: string[]): Promise<void> {
+  // Update each group with its new sort_order (1-indexed)
+  const updates = orderedIds.map((id, index) => ({
+    id,
+    sort_order: index + 1,
+  }))
+
+  // Use Promise.all for parallel updates
+  const results = await Promise.all(
+    updates.map(({ id, sort_order }) =>
+      supabase
+        .from('groups')
+        .update({ sort_order })
+        .eq('id', id)
+    )
+  )
+
+  // Check for any errors
+  const errors = results.filter((result) => result.error)
+  if (errors.length > 0) {
+    console.error('Errors updating group sort_order:', errors.map((e) => e.error))
+    throw new Error(`Failed to update ${errors.length} group(s)`)
+  }
 }

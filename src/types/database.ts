@@ -50,6 +50,7 @@ export type Database = {
           name: string
           name_en: string | null
           name_ko: string | null
+          sort_order: number | null
           created_at: string
           updated_at: string
         }
@@ -58,6 +59,7 @@ export type Database = {
           name: string
           name_en?: string | null
           name_ko?: string | null
+          sort_order?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -66,6 +68,7 @@ export type Database = {
           name?: string
           name_en?: string | null
           name_ko?: string | null
+          sort_order?: number | null
           updated_at?: string
         }
         Relationships: []

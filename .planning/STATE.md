@@ -91,6 +91,7 @@ Progress: ███████████████ 100% (15/15 phases compl
 - Milestone v1.2 created: Group Organization (Phase 15)
 - Phase 15 added: Group-Based Bias Organization (그룹별 최애 분류)
 - Phase 16 added: Drag & Drop Reorder (태그/최애 순서 드래그 변경)
+- Phase 17 added: heye.kr iframe Embed (heye.kr 영상 iframe 임베드)
 
 ### Deferred Issues
 

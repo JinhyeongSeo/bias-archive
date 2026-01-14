@@ -62,12 +62,18 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
 
   // Local bias order for optimistic updates during drag
   const [localBiases, setLocalBiases] = useState<Bias[]>(biases)
+  const [localGroups, setLocalGroups] = useState<Group[]>(groups)
   const [isReordering, setIsReordering] = useState(false)
 
   // Sync localBiases when biases prop changes (from server)
   useEffect(() => {
     setLocalBiases(biases)
   }, [biases])
+
+  // Sync localGroups when groups prop changes (from server)
+  useEffect(() => {
+    setLocalGroups(groups)
+  }, [groups])
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -87,7 +93,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   // Group biases by their group_id
   const groupedBiases = useMemo((): GroupedBiases[] => {
     const groupMap = new Map<string, Group>()
-    for (const group of groups) {
+    for (const group of localGroups) {
       groupMap.set(group.id, group)
     }
 
@@ -111,21 +117,14 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     // Convert to array with group info
     const result: GroupedBiases[] = []
 
-    // First add groups (sorted by name)
-    const sortedGroupIds = Array.from(grouped.keys())
-      .filter((id) => id !== null)
-      .sort((a, b) => {
-        const groupA = groupMap.get(a!)
-        const groupB = groupMap.get(b!)
-        return (groupA?.name || '').localeCompare(groupB?.name || '')
-      })
-
-    for (const groupId of sortedGroupIds) {
-      const group = groupMap.get(groupId!)
-      result.push({
-        group: group || null,
-        biases: grouped.get(groupId)!,
-      })
+    // Add groups in localGroups order (respects sort_order from server)
+    for (const group of localGroups) {
+      if (grouped.has(group.id)) {
+        result.push({
+          group,
+          biases: grouped.get(group.id)!,
+        })
+      }
     }
 
     // Add ungrouped biases at the end
@@ -137,7 +136,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     }
 
     return result
-  }, [localBiases, groups])
+  }, [localBiases, localGroups])
 
   // Save collapsed groups to localStorage
   const toggleGroupCollapse = useCallback((groupId: string) => {
@@ -171,21 +170,58 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     }
   }, [nameLanguage, locale])
 
-  // Handle drag end for reordering biases within a group
+  // Handle drag end for reordering biases or groups
   const handleDragEnd = useCallback(async (result: DropResult) => {
-    const { source, destination, draggableId } = result
+    const { source, destination, type } = result
 
     // Dropped outside a valid droppable
     if (!destination) return
 
-    // Dropped in a different group - not allowed in this phase
+    // Dropped in the same position
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return
+
+    // Handle group reordering
+    if (type === 'GROUP') {
+      // Only reorder actual groups (not ungrouped)
+      const groupsOnly = groupedBiases.filter(g => g.group !== null)
+      if (source.index >= groupsOnly.length || destination.index >= groupsOnly.length) return
+
+      const reorderedGroups = Array.from(localGroups)
+      const [movedGroup] = reorderedGroups.splice(source.index, 1)
+      reorderedGroups.splice(destination.index, 0, movedGroup)
+
+      // Optimistic update
+      setLocalGroups(reorderedGroups)
+      setIsReordering(true)
+
+      try {
+        const orderedIds = reorderedGroups.map(g => g.id)
+        const response = await fetch('/api/groups/reorder', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderedIds }),
+        })
+
+        if (!response.ok) {
+          setLocalGroups(groups)
+          console.error('Failed to save group reorder')
+        } else {
+          onBiasReordered?.()
+        }
+      } catch (error) {
+        setLocalGroups(groups)
+        console.error('Error saving group reorder:', error)
+      } finally {
+        setIsReordering(false)
+      }
+      return
+    }
+
+    // Handle bias reordering within a group
+    // Dropped in a different group - not allowed
     if (source.droppableId !== destination.droppableId) return
 
-    // Dropped in the same position
-    if (source.index === destination.index) return
-
     // Find the group's biases
-    const groupId = source.droppableId === 'ungrouped' ? null : source.droppableId
     const groupBiases = groupedBiases.find(
       (g) => (g.group?.id || 'ungrouped') === source.droppableId
     )?.biases
@@ -246,7 +282,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     } finally {
       setIsReordering(false)
     }
-  }, [groupedBiases, localBiases, biases, onBiasReordered])
+  }, [groupedBiases, localBiases, localGroups, biases, groups, onBiasReordered])
 
   // Debounced group search
   const searchGroups = useCallback(async (query: string) => {
@@ -479,106 +515,241 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       {/* Grouped bias list with drag and drop */}
       {groupedBiases.length > 0 && (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="space-y-1">
-            {groupedBiases.map(({ group, biases: groupBiases }) => {
-              const groupId = group?.id || 'ungrouped'
-              const isCollapsed = collapsedGroups.has(groupId)
-              const groupDisplayName = group ? getGroupDisplayName(group) : '그룹 없음'
+          <Droppable droppableId="groups-list" type="GROUP">
+            {(groupsProvided) => (
+              <div
+                ref={groupsProvided.innerRef}
+                {...groupsProvided.droppableProps}
+                className="space-y-1"
+              >
+                {groupedBiases.map(({ group, biases: groupBiases }, groupIndex) => {
+                  const groupId = group?.id || 'ungrouped'
+                  const isCollapsed = collapsedGroups.has(groupId)
+                  const groupDisplayName = group ? getGroupDisplayName(group) : '그룹 없음'
+                  const isUngrouped = group === null
 
-              return (
-                <div key={groupId}>
-                  {/* Group header */}
-                  <button
-                    type="button"
-                    onClick={() => toggleGroupCollapse(groupId)}
-                    className="w-full flex items-center gap-1 px-2 py-1 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-                  >
-                    <svg
-                      className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    <span>{groupDisplayName}</span>
-                    <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">
-                      ({groupBiases.length})
-                    </span>
-                  </button>
+                  // Ungrouped items are not draggable as a group
+                  if (isUngrouped) {
+                    return (
+                      <div key={groupId}>
+                        {/* Ungrouped header - not draggable */}
+                        <button
+                          type="button"
+                          onClick={() => toggleGroupCollapse(groupId)}
+                          className="w-full flex items-center gap-1 px-2 py-1 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                        >
+                          <svg
+                            className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                          <span>{groupDisplayName}</span>
+                          <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">
+                            ({groupBiases.length})
+                          </span>
+                        </button>
 
-                  {/* Group members - Droppable area */}
-                  {!isCollapsed && (
-                    <Droppable droppableId={groupId}>
-                      {(provided, snapshot) => (
-                        <ul
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className={`ml-4 space-y-0.5 min-h-[2rem] rounded-md transition-colors ${
-                            snapshot.isDraggingOver ? 'bg-pink-50 dark:bg-pink-900/20' : ''
+                        {/* Ungrouped members - Droppable area */}
+                        {!isCollapsed && (
+                          <Droppable droppableId={groupId} type="BIAS">
+                            {(provided, snapshot) => (
+                              <ul
+                                ref={provided.innerRef}
+                                {...provided.droppableProps}
+                                className={`ml-4 space-y-0.5 min-h-[2rem] rounded-md transition-colors ${
+                                  snapshot.isDraggingOver ? 'bg-pink-50 dark:bg-pink-900/20' : ''
+                                }`}
+                              >
+                                {groupBiases.map((bias, index) => (
+                                  <Draggable key={bias.id} draggableId={bias.id} index={index}>
+                                    {(provided, snapshot) => (
+                                      <li
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        className={`flex items-center justify-between group px-2 py-1 text-sm text-zinc-700 dark:text-zinc-300 rounded-md transition-all ${
+                                          snapshot.isDragging
+                                            ? 'bg-white dark:bg-zinc-800 shadow-lg ring-2 ring-pink-500/50'
+                                            : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                        }`}
+                                      >
+                                        <div
+                                          {...provided.dragHandleProps}
+                                          className="flex items-center gap-1 flex-1 min-w-0 cursor-grab active:cursor-grabbing"
+                                        >
+                                          <svg
+                                            className="w-4 h-4 text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                            viewBox="0 0 24 24"
+                                            fill="currentColor"
+                                          >
+                                            <circle cx="9" cy="6" r="1.5" />
+                                            <circle cx="15" cy="6" r="1.5" />
+                                            <circle cx="9" cy="12" r="1.5" />
+                                            <circle cx="15" cy="12" r="1.5" />
+                                            <circle cx="9" cy="18" r="1.5" />
+                                            <circle cx="15" cy="18" r="1.5" />
+                                          </svg>
+                                          <span className="truncate">{getDisplayName(bias)}</span>
+                                        </div>
+                                        <button
+                                          onClick={() => handleDelete(bias.id, getDisplayName(bias))}
+                                          disabled={deletingId === bias.id}
+                                          className="opacity-0 group-hover:opacity-100 ml-2 p-0.5 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50 flex-shrink-0"
+                                          title="삭제"
+                                        >
+                                          {deletingId === bias.id ? (
+                                            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                            </svg>
+                                          ) : (
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                          )}
+                                        </button>
+                                      </li>
+                                    )}
+                                  </Draggable>
+                                ))}
+                                {provided.placeholder}
+                              </ul>
+                            )}
+                          </Droppable>
+                        )}
+                      </div>
+                    )
+                  }
+
+                  // Draggable group
+                  return (
+                    <Draggable key={groupId} draggableId={`group-${groupId}`} index={groupIndex}>
+                      {(groupDragProvided, groupDragSnapshot) => (
+                        <div
+                          ref={groupDragProvided.innerRef}
+                          {...groupDragProvided.draggableProps}
+                          className={`rounded-md transition-all ${
+                            groupDragSnapshot.isDragging ? 'bg-zinc-50 dark:bg-zinc-800/50 shadow-lg ring-2 ring-pink-500/30' : ''
                           }`}
                         >
-                          {groupBiases.map((bias, index) => (
-                            <Draggable key={bias.id} draggableId={bias.id} index={index}>
+                          {/* Group header with drag handle */}
+                          <div className="flex items-center group/header">
+                            <div
+                              {...groupDragProvided.dragHandleProps}
+                              className="p-1 cursor-grab active:cursor-grabbing opacity-0 group-hover/header:opacity-100 transition-opacity"
+                            >
+                              <svg
+                                className="w-4 h-4 text-zinc-400 dark:text-zinc-500"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                              >
+                                <circle cx="9" cy="6" r="1.5" />
+                                <circle cx="15" cy="6" r="1.5" />
+                                <circle cx="9" cy="12" r="1.5" />
+                                <circle cx="15" cy="12" r="1.5" />
+                                <circle cx="9" cy="18" r="1.5" />
+                                <circle cx="15" cy="18" r="1.5" />
+                              </svg>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleGroupCollapse(groupId)}
+                              className="flex-1 flex items-center gap-1 px-1 py-1 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                            >
+                              <svg
+                                className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                              <span>{groupDisplayName}</span>
+                              <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">
+                                ({groupBiases.length})
+                              </span>
+                            </button>
+                          </div>
+
+                          {/* Group members - Droppable area */}
+                          {!isCollapsed && (
+                            <Droppable droppableId={groupId} type="BIAS">
                               {(provided, snapshot) => (
-                                <li
+                                <ul
                                   ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  className={`flex items-center justify-between group px-2 py-1 text-sm text-zinc-700 dark:text-zinc-300 rounded-md transition-all ${
-                                    snapshot.isDragging
-                                      ? 'bg-white dark:bg-zinc-800 shadow-lg ring-2 ring-pink-500/50'
-                                      : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                  {...provided.droppableProps}
+                                  className={`ml-6 space-y-0.5 min-h-[2rem] rounded-md transition-colors ${
+                                    snapshot.isDraggingOver ? 'bg-pink-50 dark:bg-pink-900/20' : ''
                                   }`}
                                 >
-                                  {/* Drag handle */}
-                                  <div
-                                    {...provided.dragHandleProps}
-                                    className="flex items-center gap-1 flex-1 min-w-0 cursor-grab active:cursor-grabbing"
-                                  >
-                                    <svg
-                                      className="w-4 h-4 text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                      viewBox="0 0 24 24"
-                                      fill="currentColor"
-                                    >
-                                      <circle cx="9" cy="6" r="1.5" />
-                                      <circle cx="15" cy="6" r="1.5" />
-                                      <circle cx="9" cy="12" r="1.5" />
-                                      <circle cx="15" cy="12" r="1.5" />
-                                      <circle cx="9" cy="18" r="1.5" />
-                                      <circle cx="15" cy="18" r="1.5" />
-                                    </svg>
-                                    <span className="truncate">{getDisplayName(bias)}</span>
-                                  </div>
-                                  <button
-                                    onClick={() => handleDelete(bias.id, getDisplayName(bias))}
-                                    disabled={deletingId === bias.id}
-                                    className="opacity-0 group-hover:opacity-100 ml-2 p-0.5 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50 flex-shrink-0"
-                                    title="삭제"
-                                  >
-                                    {deletingId === bias.id ? (
-                                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                      </svg>
-                                    ) : (
-                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    )}
-                                  </button>
-                                </li>
+                                  {groupBiases.map((bias, index) => (
+                                    <Draggable key={bias.id} draggableId={bias.id} index={index}>
+                                      {(provided, snapshot) => (
+                                        <li
+                                          ref={provided.innerRef}
+                                          {...provided.draggableProps}
+                                          className={`flex items-center justify-between group px-2 py-1 text-sm text-zinc-700 dark:text-zinc-300 rounded-md transition-all ${
+                                            snapshot.isDragging
+                                              ? 'bg-white dark:bg-zinc-800 shadow-lg ring-2 ring-pink-500/50'
+                                              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                          }`}
+                                        >
+                                          {/* Drag handle */}
+                                          <div
+                                            {...provided.dragHandleProps}
+                                            className="flex items-center gap-1 flex-1 min-w-0 cursor-grab active:cursor-grabbing"
+                                          >
+                                            <svg
+                                              className="w-4 h-4 text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                              viewBox="0 0 24 24"
+                                              fill="currentColor"
+                                            >
+                                              <circle cx="9" cy="6" r="1.5" />
+                                              <circle cx="15" cy="6" r="1.5" />
+                                              <circle cx="9" cy="12" r="1.5" />
+                                              <circle cx="15" cy="12" r="1.5" />
+                                              <circle cx="9" cy="18" r="1.5" />
+                                              <circle cx="15" cy="18" r="1.5" />
+                                            </svg>
+                                            <span className="truncate">{getDisplayName(bias)}</span>
+                                          </div>
+                                          <button
+                                            onClick={() => handleDelete(bias.id, getDisplayName(bias))}
+                                            disabled={deletingId === bias.id}
+                                            className="opacity-0 group-hover:opacity-100 ml-2 p-0.5 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50 flex-shrink-0"
+                                            title="삭제"
+                                          >
+                                            {deletingId === bias.id ? (
+                                              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                              </svg>
+                                            ) : (
+                                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                              </svg>
+                                            )}
+                                          </button>
+                                        </li>
+                                      )}
+                                    </Draggable>
+                                  ))}
+                                  {provided.placeholder}
+                                </ul>
                               )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-                        </ul>
+                            </Droppable>
+                          )}
+                        </div>
                       )}
-                    </Droppable>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+                    </Draggable>
+                  )
+                })}
+                {groupsProvided.placeholder}
+              </div>
+            )}
+          </Droppable>
         </DragDropContext>
       )}
 
