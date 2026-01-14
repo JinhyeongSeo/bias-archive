@@ -98,16 +98,32 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   const memberSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Load collapsed groups from localStorage
+  // Default: all groups collapsed (stored value tracks which are EXPANDED)
   useEffect(() => {
     try {
       const stored = localStorage.getItem(COLLAPSED_GROUPS_KEY)
       if (stored) {
-        setCollapsedGroups(new Set(JSON.parse(stored)))
+        // stored contains expanded groups, so collapsed = all groups - expanded
+        const expandedGroups = new Set<string>(JSON.parse(stored))
+        const allGroupIds = new Set(localGroups.map(g => g.id))
+        allGroupIds.add('ungrouped') // include ungrouped
+        const collapsed = new Set<string>()
+        for (const id of allGroupIds) {
+          if (!expandedGroups.has(id)) {
+            collapsed.add(id)
+          }
+        }
+        setCollapsedGroups(collapsed)
+      } else {
+        // No stored preference: collapse all groups by default
+        const allGroupIds = new Set(localGroups.map(g => g.id))
+        allGroupIds.add('ungrouped')
+        setCollapsedGroups(allGroupIds)
       }
     } catch (error) {
       console.error('Error loading collapsed groups:', error)
     }
-  }, [])
+  }, [localGroups])
 
   // Group biases by their group_id
   const groupedBiases = useMemo((): GroupedBiases[] => {
@@ -157,24 +173,32 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     return result
   }, [localBiases, localGroups])
 
-  // Save collapsed groups to localStorage
+  // Save expanded groups to localStorage (inverted logic for default-collapsed)
   const toggleGroupCollapse = useCallback((groupId: string) => {
     setCollapsedGroups((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(groupId)) {
-        newSet.delete(groupId)
+        newSet.delete(groupId) // expanding
       } else {
-        newSet.add(groupId)
+        newSet.add(groupId) // collapsing
       }
-      // Save to localStorage
+      // Save expanded groups (inverse of collapsed) to localStorage
       try {
-        localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify(Array.from(newSet)))
+        const allGroupIds = new Set(localGroups.map(g => g.id))
+        allGroupIds.add('ungrouped')
+        const expandedGroups: string[] = []
+        for (const id of allGroupIds) {
+          if (!newSet.has(id)) {
+            expandedGroups.push(id)
+          }
+        }
+        localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify(expandedGroups))
       } catch (error) {
         console.error('Error saving collapsed groups:', error)
       }
       return newSet
     })
-  }, [])
+  }, [localGroups])
 
   // Get display name for group based on language mode
   const getGroupDisplayName = useCallback((group: Group): string => {
