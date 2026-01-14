@@ -11,7 +11,7 @@ None
 ## Milestones
 
 - ✅ **v1.0 MVP** - Phases 1-10 (shipped 2026-01-14)
-- ✅ **v1.1 Multilingual Mode** - Phases 11-13 (shipped 2026-01-14)
+- ✅ **v1.1 Multilingual Mode** - Phases 11-14 (shipped 2026-01-14)
 
 ## Phases
 
@@ -32,6 +32,7 @@ None
 - [x] **Phase 11: Bias Schema Extension** - biases 테이블에 name_en/name_ko 필드 추가 ✓
 - [x] **Phase 12: Language Toggle UI** - 언어 모드 토글 및 표시 전환 ✓
 - [x] **Phase 13: Enhanced Tag Matching** - 영어/한글 양방향 태그 인식 ✓
+- [x] **Phase 14: Tag Multilingual Display** - 언어 모드에 따른 태그 표시 전환 ✓
 
 ## Phase Details
 
@@ -209,10 +210,26 @@ Plans:
 Plans:
 - [x] 13-01: autoTag 양방향 매칭 (영어/한글 어느 쪽으로든 태그 인식) ✓
 
+#### Phase 14: Tag Multilingual Display
+
+**Goal**: 언어 모드에 따라 태그를 해당 언어(name_en/name_ko)로 표시
+**Depends on**: Phase 13
+**Research**: Unlikely (내부 로직 확장)
+**Plans**: TBD
+
+**기능 설명:**
+
+- 영어 모드: 태그가 "Sullyoon"으로 표시
+- 한글 모드: 태그가 "설윤"으로 표시
+- 태그 저장은 기존대로 유지, 표시만 언어 모드에 따라 변환
+
+Plans:
+- [x] 14-01: getTagDisplayName 헬퍼 및 컴포넌트 적용 ✓
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → ... → 10 → 11 → 12 → 13
+Phases execute in numeric order: 1 → 2 → ... → 10 → 11 → 12 → 13 → 14
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -229,3 +246,4 @@ Phases execute in numeric order: 1 → 2 → ... → 10 → 11 → 12 → 13
 | 11. Bias Schema Extension | v1.1 | 1/1 | Complete | 2026-01-14 |
 | 12. Language Toggle UI | v1.1 | 1/1 | Complete | 2026-01-14 |
 | 13. Enhanced Tag Matching | v1.1 | 1/1 | Complete | 2026-01-14 |
+| 14. Tag Multilingual Display | v1.1 | 1/1 | Complete | 2026-01-14 |
