@@ -5,25 +5,25 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 15 - Group-Based Bias Organization
+**Current focus:** Phase 17 - External Media Proxy
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 15 of 15 (Group-Based Bias Organization) ✓
+Phase: 17 of 17 (External Media Proxy) ✓
 Plan: 2 of 2 in current phase ✓
 Status: Complete
-Last activity: 2026-01-14 — Phase 15 Complete
+Last activity: 2026-01-14 — Phase 17 Complete
 
-Progress: ███████████████ 100% (15/15 phases complete)
+Progress: █████████████████ 100% (17/17 phases complete)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 29
+- Total plans completed: 33
 - Average duration: ~8 min
-- Total execution time: ~229 min
+- Total execution time: ~253 min
 
 **By Phase:**
 
@@ -44,11 +44,13 @@ Progress: ███████████████ 100% (15/15 phases compl
 | 13. Enhanced Tag Matching | 1 | 1 min | 1 min |
 | 14. Tag Multilingual Display | 1 | 5 min | 5 min |
 | 15. Group-Based Bias Organization | 2 | ~10 min | 5 min |
+| 16. Drag & Drop Reorder | 2 | ~10 min | 5 min |
+| 17. External Media Proxy | 2 | ~14 min | 7 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 13-01 (1m), 14-01 (5m), 15-01 (5m), 15-02 (5m)
-- Trend: v1.2 Group Organization 완료!
+- Last 5 plans: 15-02 (5m), 16-01 (5m), 16-02 (5m), 17-01 (8m), 17-02 (6m)
+- Trend: v1.3 External Media Proxy 완료!
 
 ## Accumulated Context
 
@@ -81,6 +83,8 @@ Progress: ███████████████ 100% (15/15 phases compl
 - autoTag 양방향 매칭: name, name_en, name_ko 세 필드 모두 검색
 - groups 테이블로 최애 그룹 관리, biases.group_id FK로 연결
 - getOrCreateGroup 패턴으로 중복 없이 그룹 자동 생성
+- wsrv.nl로 이미지 프록시 (heye.kr, kgirls.net 핫링크 우회)
+- Cloudflare Workers로 비디오 프록시 (video-proxy.jh4clover.workers.dev)
 
 ### Roadmap Evolution
 
@@ -91,7 +95,8 @@ Progress: ███████████████ 100% (15/15 phases compl
 - Milestone v1.2 created: Group Organization (Phase 15)
 - Phase 15 added: Group-Based Bias Organization (그룹별 최애 분류)
 - Phase 16 added: Drag & Drop Reorder (태그/최애 순서 드래그 변경)
-- Phase 17 removed: heye.kr iframe Embed (기술적 제약으로 스킵 - Vercel 무료 플랜 4.5MB 응답 제한, Same-Origin Policy로 iframe 내 비디오 조작 불가)
+- Phase 17 (old) removed: heye.kr iframe Embed (기술적 제약으로 스킵)
+- Phase 17 added: External Media Proxy (이미지는 wsrv.nl, 비디오는 Cloudflare Workers)
 
 ### Deferred Issues
 
@@ -99,7 +104,7 @@ Progress: ███████████████ 100% (15/15 phases compl
 
 ### Pending Todos
 
-None. All v1.2 milestones complete.
+None. All v1.3 milestones complete.
 
 ### Blockers/Concerns
 
@@ -108,5 +113,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-14
-Stopped at: Phase 15 Complete (v1.2 Group Organization 마일스톤 완료)
+Stopped at: Phase 17 Complete (v1.3 External Media Proxy 마일스톤 완료)
 Resume file: None

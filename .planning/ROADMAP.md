@@ -13,6 +13,7 @@ None
 - ✅ **v1.0 MVP** - Phases 1-10 (shipped 2026-01-14)
 - ✅ **v1.1 Multilingual Mode** - Phases 11-14 (shipped 2026-01-14)
 - ✅ **v1.2 Group Organization** - Phase 15 (shipped 2026-01-14)
+- ✅ **v1.3 External Media Proxy** - Phases 16-17 (shipped 2026-01-14)
 
 ## Phases
 
@@ -36,6 +37,7 @@ None
 - [x] **Phase 14: Tag Multilingual Display** - 언어 모드에 따른 태그 표시 전환 ✓
 - [x] **Phase 15: Group-Based Bias Organization** - 그룹 테이블 추가, 최애를 그룹별로 분류/표시 ✓
 - [x] **Phase 16: Drag & Drop Reorder** - 태그/최애 순서를 드래그로 변경 ✓
+- [x] **Phase 17: External Media Proxy** - 핫링크 보호 미디어 외부 프록시 전환 ✓
 
 ## Phase Details
 
@@ -266,6 +268,34 @@ Plans:
 - [x] 16-01: Schema & API (sort_order 컬럼, reorder API) ✓
 - [x] 16-02: Drag & Drop UI (BiasManager 드래그 앤 드롭) ✓
 
+### Phase 17: External Media Proxy ✓
+
+**Goal**: 핫링크 보호된 미디어(heye.kr, kgirls.net)를 외부 무료 프록시로 전환
+**Depends on**: Phase 16
+**Research**: Complete (조사 완료)
+**Plans**: 2
+
+**조사 결과:**
+
+- wsrv.nl: 무료 이미지 캐시 & 리사이즈 서비스 (BSD 3-Clause)
+  - Cloudflare 300+ 데이터센터 글로벌 캐싱
+  - 사용법: `https://wsrv.nl/?url=이미지URL`
+  - 시간당 600만 이미지 처리, 월 400TB 트래픽
+- Cloudflare Workers: 무료 서버리스 함수
+  - 하루 100,000 요청, 분당 1,000 요청
+  - 비디오 프록시용으로 활용 (비영리 개인 프로젝트)
+
+**기능 설명:**
+
+- 이미지: wsrv.nl 프록시로 전환
+- 비디오(MP4, MOV 등): Cloudflare Workers 프록시 배포
+- 기존 `/api/proxy/image` API 대체
+- Vercel 서버리스 함수 부하 감소
+
+Plans:
+- [x] 17-01: wsrv.nl 이미지 프록시 적용 ✓
+- [x] 17-02: Cloudflare Worker 비디오 프록시 배포 ✓
+
 ## Progress
 
 **Execution Order:**
@@ -289,3 +319,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 14. Tag Multilingual Display | v1.1 | 1/1 | Complete | 2026-01-14 |
 | 15. Group-Based Bias Organization | v1.2 | 2/2 | Complete | 2026-01-14 |
 | 16. Drag & Drop Reorder | v1.3 | 2/2 | Complete | 2026-01-14 |
+| 17. External Media Proxy | v1.3 | 2/2 | Complete | 2026-01-14 |
