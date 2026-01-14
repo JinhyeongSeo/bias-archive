@@ -40,7 +40,7 @@ None
 - [x] **Phase 17: External Media Proxy** - 핫링크 보호 미디어 외부 프록시 전환 ✓
 - [x] **Phase 18: Footer Contact** - 연락처 정보가 담긴 Footer 컴포넌트 추가 ✓
 - [x] **Phase 19: Bias UI Improvements** - 버튼 레이아웃 수정 및 멤버 자동완성 ✓
-- [ ] **Phase 20: Authentication** - 사용자 로그인/회원가입 기능
+- [x] **Phase 20: Authentication** - 사용자 로그인/회원가입 기능 ✓
 
 ## Phase Details
 
@@ -350,7 +350,9 @@ Plans:
 
 Plans:
 
-- [ ] TBD (run /gsd:plan-phase 20 to break down)
+- [x] 20-01: Auth Infrastructure (user_id 컬럼, RLS 정책, @supabase/ssr 설정) ✓
+- [x] 20-02: Auth UI (AuthProvider, 로그인/회원가입 페이지, UserMenu) ✓
+- [x] 20-03: Protected Routes & API (미들웨어 세션 관리, API 인증 체크) ✓
 
 ## Progress
 
@@ -378,4 +380,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 17. External Media Proxy | v1.3 | 2/2 | Complete | 2026-01-14 |
 | 18. Footer Contact | - | 1/1 | Complete | 2026-01-14 |
 | 19. Bias UI Improvements | - | 1/1 | Complete | 2026-01-14 |
-| 20. Authentication | - | 0/0 | Not Started | - |
+| 20. Authentication | - | 3/3 | Complete | 2026-01-14 |
