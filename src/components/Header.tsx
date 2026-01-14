@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { ThemeToggle } from './ThemeToggle'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { NameLanguageToggle } from './NameLanguageToggle'
+import { UserMenu } from './UserMenu'
 
 export function Header() {
   const locale = useLocale()
@@ -33,6 +34,7 @@ export function Header() {
           <NameLanguageToggle />
           <LanguageSwitcher />
           <ThemeToggle />
+          <UserMenu />
         </div>
       </div>
     </header>
