@@ -8,7 +8,9 @@ import { BiasManager } from './BiasManager'
 import { ExportModal } from './ExportModal'
 import { useRefresh } from '@/contexts/RefreshContext'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
-import { quickSpring, smoothSpring, easeOutExpo } from '@/lib/animations'
+import { quickSpring, smoothSpring, easeOutExpo, pressScale } from '@/lib/animations'
+
+const TAG_COLLAPSED_GROUPS_KEY = 'sidebar-tag-collapsed-groups'
 
 interface GroupedTags {
   group: Group | null
@@ -55,6 +57,9 @@ export function Sidebar({
   const [isGroupsLoading, setIsGroupsLoading] = useState(true)
   const [isTagsLoading, setIsTagsLoading] = useState(true)
   const [isExportModalOpen, setIsExportModalOpen] = useState(false)
+
+  // Collapsed state for tag groups
+  const [tagCollapsedGroups, setTagCollapsedGroups] = useState<Set<string>>(new Set())
 
   const PLATFORMS = [
     { id: null, label: t('sidebar.platformAll') },
@@ -127,6 +132,59 @@ export function Sidebar({
     }
   }
 
+  // Load collapsed tag groups from localStorage (default: all collapsed)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(TAG_COLLAPSED_GROUPS_KEY)
+      if (stored) {
+        const expandedGroups = new Set<string>(JSON.parse(stored))
+        const allGroupIds = new Set(groups.map(g => g.id))
+        allGroupIds.add('ungrouped')
+        const collapsed = new Set<string>()
+        for (const id of allGroupIds) {
+          if (!expandedGroups.has(id)) {
+            collapsed.add(id)
+          }
+        }
+        setTagCollapsedGroups(collapsed)
+      } else {
+        // Default: all collapsed
+        const allGroupIds = new Set(groups.map(g => g.id))
+        allGroupIds.add('ungrouped')
+        setTagCollapsedGroups(allGroupIds)
+      }
+    } catch (error) {
+      console.error('Error loading tag collapsed groups:', error)
+    }
+  }, [groups])
+
+  // Toggle tag group collapse
+  const toggleTagGroupCollapse = useCallback((groupId: string) => {
+    setTagCollapsedGroups((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId)
+      } else {
+        newSet.add(groupId)
+      }
+      // Save expanded groups to localStorage
+      try {
+        const allGroupIds = new Set(groups.map(g => g.id))
+        allGroupIds.add('ungrouped')
+        const expandedGroups: string[] = []
+        for (const id of allGroupIds) {
+          if (!newSet.has(id)) {
+            expandedGroups.push(id)
+          }
+        }
+        localStorage.setItem(TAG_COLLAPSED_GROUPS_KEY, JSON.stringify(expandedGroups))
+      } catch (error) {
+        console.error('Error saving tag collapsed groups:', error)
+      }
+      return newSet
+    })
+  }, [groups])
+
   // Get display name for group based on language mode
   const getGroupDisplayName = useCallback((group: Group): string => {
     const effectiveLanguage: 'en' | 'ko' = nameLanguage === 'auto'
@@ -198,24 +256,16 @@ export function Sidebar({
     // Convert to array with group info
     const result: GroupedTags[] = []
 
-    // First add groups (sorted by name)
-    const sortedGroupIds = Array.from(grouped.keys())
-      .filter((id) => id !== null)
-      .sort((a, b) => {
-        const groupA = groupMap.get(a!)
-        const groupB = groupMap.get(b!)
-        return (groupA?.name || '').localeCompare(groupB?.name || '')
-      })
+    // First add groups (sorted by groups sort_order)
+    // Filter groups that have tags, then sort by sort_order
+    const groupsWithTags = groups.filter((g) => grouped.has(g.id))
 
-    for (const groupId of sortedGroupIds) {
-      const group = groupMap.get(groupId!)
-      if (group) {
-        result.push({
-          group,
-          tags: grouped.get(groupId)!,
-          groupTag: groupIdToTag.get(groupId!),
-        })
-      }
+    for (const group of groupsWithTags) {
+      result.push({
+        group,
+        tags: grouped.get(group.id)!,
+        groupTag: groupIdToTag.get(group.id),
+      })
     }
 
     // Add ungrouped tags at the end
@@ -374,49 +424,80 @@ export function Sidebar({
             {t('sidebar.noTags')}
           </p>
         ) : hasGroupedTags ? (
-          // Group-based tag display
-          <div className="space-y-2">
-            {groupedTags.map(({ group, tags: groupTags, groupTag }) => (
-              <div key={group?.id || 'ungrouped'}>
-                {/* Group header - clickable if group tag exists */}
-                {group && groupTag ? (
-                  <motion.button
-                    onClick={() => handleTagClick(groupTag.id)}
-                    className={`px-1 py-0.5 text-xs font-medium transition-smooth ${
-                      selectedTagId === groupTag.id
-                        ? 'text-primary'
-                        : 'text-muted-foreground hover:text-primary hover:underline'
-                    }`}
-                    whileTap={{ scale: 0.95 }}
-                    transition={quickSpring}
-                  >
-                    {getGroupDisplayName(group)}
-                  </motion.button>
-                ) : (
-                  <div className="px-1 py-0.5 text-xs font-medium text-muted-foreground">
-                    {group ? getGroupDisplayName(group) : t('sidebar.ungrouped') || '그룹 없음'}
-                  </div>
-                )}
-                {/* Tags in this group */}
-                <div className="flex flex-wrap gap-1 px-1">
-                  {groupTags.map((tag) => (
+          // Group-based tag display with collapsible groups
+          <div className="space-y-1">
+            {groupedTags.map(({ group, tags: groupTags, groupTag }) => {
+              const groupId = group?.id || 'ungrouped'
+              const isCollapsed = tagCollapsedGroups.has(groupId)
+              const groupDisplayName = group ? getGroupDisplayName(group) : t('sidebar.ungrouped') || '그룹 없음'
+
+              return (
+                <div key={groupId}>
+                  {/* Group header with collapse toggle */}
+                  <div className="flex items-center">
                     <motion.button
-                      key={tag.id}
-                      onClick={() => handleTagClick(tag.id)}
-                      className={`px-2.5 py-1 text-xs rounded-lg transition-smooth ${
-                        selectedTagId === tag.id
-                          ? 'bg-primary text-white font-medium shadow-sm'
-                          : 'bg-muted text-surface-foreground hover:bg-accent'
-                      }`}
-                      whileTap={{ scale: 0.95 }}
-                      transition={quickSpring}
+                      type="button"
+                      onClick={() => toggleTagGroupCollapse(groupId)}
+                      className="flex items-center gap-1 px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-smooth rounded"
+                      {...pressScale}
                     >
-                      {getTagDisplayName(tag.name)}
+                      <motion.svg
+                        className="w-3 h-3"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        animate={{ rotate: isCollapsed ? 0 : 90 }}
+                        transition={quickSpring}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </motion.svg>
+                      <span>{groupDisplayName}</span>
+                      <span className="text-muted-foreground ml-0.5">
+                        ({groupTags.length})
+                      </span>
                     </motion.button>
-                  ))}
+                    {/* Clickable group tag link */}
+                    {group && groupTag && (
+                      <motion.button
+                        onClick={() => handleTagClick(groupTag.id)}
+                        className={`ml-1 text-xs transition-smooth ${
+                          selectedTagId === groupTag.id
+                            ? 'text-primary'
+                            : 'text-muted-foreground hover:text-primary hover:underline'
+                        }`}
+                        whileTap={{ scale: 0.95 }}
+                        transition={quickSpring}
+                        title={`${groupDisplayName} 태그 선택`}
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                      </motion.button>
+                    )}
+                  </div>
+                  {/* Tags in this group - collapsible */}
+                  {!isCollapsed && (
+                    <div className="flex flex-wrap gap-1 px-4 mt-0.5">
+                      {groupTags.map((tag) => (
+                        <motion.button
+                          key={tag.id}
+                          onClick={() => handleTagClick(tag.id)}
+                          className={`px-2.5 py-1 text-xs rounded-lg transition-smooth ${
+                            selectedTagId === tag.id
+                              ? 'bg-primary text-white font-medium shadow-sm'
+                              : 'bg-muted text-surface-foreground hover:bg-accent'
+                          }`}
+                          whileTap={{ scale: 0.95 }}
+                          transition={quickSpring}
+                        >
+                          {getTagDisplayName(tag.name)}
+                        </motion.button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         ) : (
           // Flat tag display (no groups)
