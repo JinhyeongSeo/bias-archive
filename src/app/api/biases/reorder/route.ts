@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { reorderBiases } from '@/lib/biases'
+import { reorderBiases, moveBiasToGroup } from '@/lib/biases'
 
 /**
  * PUT /api/biases/reorder
- * Update the sort order of biases
+ * Update the sort order of biases, optionally moving to a different group
  * Body: { orderedIds: string[] } - array of bias IDs in desired order
+ * Body (for group move): { biasId: string, targetGroupId: string | null, orderedIds: string[] }
  */
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { orderedIds } = body
+    const { orderedIds, biasId, targetGroupId } = body
 
     // Validate request body
     if (!orderedIds || !Array.isArray(orderedIds)) {
@@ -34,7 +35,26 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    await reorderBiases(orderedIds)
+    // If biasId is provided, this is a group move operation
+    if (biasId) {
+      if (typeof biasId !== 'string' || biasId.trim() === '') {
+        return NextResponse.json(
+          { error: 'biasId must be a non-empty string' },
+          { status: 400 }
+        )
+      }
+      // targetGroupId can be null (for ungrouped) or a string
+      if (targetGroupId !== null && (typeof targetGroupId !== 'string' || targetGroupId.trim() === '')) {
+        return NextResponse.json(
+          { error: 'targetGroupId must be null or a non-empty string' },
+          { status: 400 }
+        )
+      }
+      await moveBiasToGroup(biasId, targetGroupId, orderedIds)
+    } else {
+      await reorderBiases(orderedIds)
+    }
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error reordering biases:', error)
