@@ -145,12 +145,22 @@ export function Sidebar({
       groupMap.set(group.id, group)
     }
 
+    // Create group name to group_id mapping (for tags that match group names)
+    const groupNameMap = new Map<string, string>()
+    for (const group of groups) {
+      groupNameMap.set(group.name.toLowerCase(), group.id)
+      if (group.name_en) groupNameMap.set(group.name_en.toLowerCase(), group.id)
+      if (group.name_ko) groupNameMap.set(group.name_ko.toLowerCase(), group.id)
+    }
+
     // Group tags by their bias's group_id
     const grouped = new Map<string | null, Tag[]>()
 
     for (const tag of tags) {
-      const matchingBias = biasMap.get(tag.name.toLowerCase())
-      const groupId = matchingBias?.group_id || null
+      const tagNameLower = tag.name.toLowerCase()
+      const matchingBias = biasMap.get(tagNameLower)
+      // Check if tag matches a bias, or if it matches a group name directly
+      const groupId = matchingBias?.group_id || groupNameMap.get(tagNameLower) || null
 
       if (!grouped.has(groupId)) {
         grouped.set(groupId, [])
