@@ -29,7 +29,7 @@ None
 - [x] **Phase 8: heye.kr Parser** - heye.kr 커뮤니티 게시판에서 이미지/GIF 추출 ✓
 - [x] **Phase 9: kgirls.net Parser** - kgirls.net 커뮤니티(issue, mgall)에서 이미지/GIF/MP4 추출 ✓
 - [x] **Phase 10: Idol Group Member Auto-Fill** - 그룹 이름 입력 시 멤버들의 영어/한글 이름 자동 추가 ✓
-- [ ] **Phase 11: Bias Schema Extension** - biases 테이블에 name_en/name_ko 필드 추가
+- [x] **Phase 11: Bias Schema Extension** - biases 테이블에 name_en/name_ko 필드 추가 ✓
 - [ ] **Phase 12: Language Toggle UI** - 언어 모드 토글 및 표시 전환
 - [ ] **Phase 13: Enhanced Tag Matching** - 영어/한글 양방향 태그 인식
 
@@ -179,15 +179,15 @@ Plans:
 
 **Milestone Goal:** 최애 이름을 영어/한글 둘 다 저장하고, 언어 모드에 따라 표시하며, 태그 매칭도 양방향으로 지원
 
-#### Phase 11: Bias Schema Extension
+#### Phase 11: Bias Schema Extension ✓
 
 **Goal**: biases 테이블에 name_en/name_ko 필드 추가, 기존 데이터 마이그레이션
 **Depends on**: Phase 10 (완료됨)
 **Research**: Unlikely (Supabase migration 패턴 확립됨)
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 11-01: TBD (run /gsd:plan-phase 11 to break down)
+- [x] 11-01: DB 스키마 확장, API 업데이트, UI 다국어 이름 입력 ✓
 
 #### Phase 12: Language Toggle UI
 
@@ -226,6 +226,6 @@ Phases execute in numeric order: 1 → 2 → ... → 10 → 11 → 12 → 13
 | 8. heye.kr Parser | v1.0 | 2/2 | Complete | 2026-01-14 |
 | 9. kgirls.net Parser | v1.0 | 2/2 | Complete | 2026-01-14 |
 | 10. Idol Group Auto-Fill | v1.0 | 2/2 | Complete | 2026-01-14 |
-| 11. Bias Schema Extension | v1.1 | 0/? | Not started | - |
+| 11. Bias Schema Extension | v1.1 | 1/1 | Complete | 2026-01-14 |
 | 12. Language Toggle UI | v1.1 | 0/? | Not started | - |
 | 13. Enhanced Tag Matching | v1.1 | 0/? | Not started | - |

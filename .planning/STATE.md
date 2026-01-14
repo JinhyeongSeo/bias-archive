@@ -11,19 +11,19 @@ See: .planning/PROJECT.md (updated 2026-01-13)
 ## Current Position
 
 Phase: 11 of 13 (Bias Schema Extension)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-01-14 — Milestone v1.1 created
+Plan: 1 of 1 in current phase
+Status: Phase complete
+Last activity: 2026-01-14 — Completed 11-01-PLAN.md
 
-Progress: ██████████░░░ 77% (10/13 phases complete)
+Progress: ███████████░░ 85% (11/13 phases complete)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 25
+- Total plans completed: 26
 - Average duration: ~8 min
-- Total execution time: ~216 min
+- Total execution time: ~220 min
 
 **By Phase:**
 
@@ -39,11 +39,12 @@ Progress: ██████████░░░ 77% (10/13 phases complete)
 | 8. heye.kr Parser | 2 | ~40 min | 20 min |
 | 9. kgirls.net Parser | 2 | ~10 min | 5 min |
 | 10. Idol Group Auto-Fill | 2 | ~25 min | 13 min |
+| 11. Bias Schema Extension | 1 | 4 min | 4 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 08-02 (12m), 09-01 (5m), 09-02 (5m), 10-01 (10m), 10-02 (15m)
-- Trend: Phase 10은 kpopnet.json 패키지 통합으로 효율적 구현
+- Last 5 plans: 09-01 (5m), 09-02 (5m), 10-01 (10m), 10-02 (15m), 11-01 (4m)
+- Trend: Phase 11은 스키마 확장 위주로 빠르게 완료
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Progress: ██████████░░░ 77% (10/13 phases complete)
 - kgirls.net 파서 추가 (XE CMS 기반, /files/ 경로 미디어 추출)
 - kpopnet.json 패키지로 아이돌 그룹/멤버 데이터 연동
 - 그룹 일괄 추가 시 한글 이름(name_original) 저장 (태그 매칭 용이)
+- biases 테이블에 name_en/name_ko nullable 컬럼 추가 (다국어 지원)
+- 기존 name 필드 유지 (표시용, 하위 호환성)
 
 ### Roadmap Evolution
 
@@ -91,5 +94,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-14
-Stopped at: Milestone v1.1 initialization - 다국어 모드 계획
+Stopped at: Completed Phase 11 (Bias Schema Extension)
 Resume file: None
