@@ -1040,7 +1040,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
             <motion.button
               type="button"
               onClick={resetGroupMode}
-              className="px-2 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              className="px-2 py-1.5 text-sm text-muted-foreground bg-accent hover:bg-accent/80 rounded-md transition-colors"
               {...pressScale}
             >
               취소
@@ -1097,27 +1097,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
               </ul>
             )}
           </div>
-          <input
-            type="text"
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            placeholder="그룹명 (선택)"
-            className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
-          />
-          <input
-            type="text"
-            value={nameEn}
-            onChange={(e) => setNameEn(e.target.value)}
-            placeholder="영어 이름 (선택)"
-            className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
-          />
-          <input
-            type="text"
-            value={nameKo}
-            onChange={(e) => setNameKo(e.target.value)}
-            placeholder="한글 이름 (선택)"
-            className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
-          />
           <div className="flex gap-2">
             <motion.button
               type="submit"
@@ -1138,7 +1117,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                 setMemberSearchResults([])
                 setShowMemberDropdown(false)
               }}
-              className="px-2 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              className="px-2 py-1.5 text-sm text-muted-foreground bg-accent hover:bg-accent/80 rounded-md transition-colors"
               {...pressScale}
             >
               취소
