@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { useLocale } from 'next-intl'
 import type { Link, Tag, LinkMedia } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
 import { TagEditor } from './TagEditor'
@@ -48,6 +49,7 @@ function formatDate(dateString: string): string {
 }
 
 export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: LinkCardProps) {
+  const locale = useLocale()
   const [deleting, setDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [editingTags, setEditingTags] = useState(false)
@@ -73,6 +75,11 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
       const response = await fetch(`/api/links/${link.id}`, {
         method: 'DELETE',
       })
+
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
 
       if (!response.ok) {
         const data = await response.json()

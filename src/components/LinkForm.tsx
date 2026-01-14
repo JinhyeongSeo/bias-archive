@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { useLocale } from 'next-intl'
 import type { LinkMetadata, Platform } from '@/lib/metadata'
 import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl } from '@/lib/proxy'
 
@@ -32,6 +33,7 @@ const platformColors: Record<Platform, string> = {
 }
 
 export function LinkForm({ onSave }: LinkFormProps) {
+  const locale = useLocale()
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -104,6 +106,11 @@ export function LinkForm({ onSave }: LinkFormProps) {
           media: preview.media,
         }),
       })
+
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
 
       const data = await response.json()
 

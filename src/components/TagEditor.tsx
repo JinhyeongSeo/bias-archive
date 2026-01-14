@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useLocale } from 'next-intl'
 import type { Tag } from '@/types/database'
 import { useRefresh } from '@/contexts/RefreshContext'
 
@@ -12,6 +13,7 @@ interface TagEditorProps {
 }
 
 export function TagEditor({ linkId, currentTags, onTagsChange, onClose }: TagEditorProps) {
+  const locale = useLocale()
   const { refreshTags } = useRefresh()
   const [inputValue, setInputValue] = useState('')
   const [allTags, setAllTags] = useState<Tag[]>([])
@@ -72,6 +74,11 @@ export function TagEditor({ linkId, currentTags, onTagsChange, onClose }: TagEdi
         body: JSON.stringify({ name: trimmedName }),
       })
 
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
+
       if (response.ok) {
         const updatedTags = await response.json()
         onTagsChange(updatedTags)
@@ -95,6 +102,11 @@ export function TagEditor({ linkId, currentTags, onTagsChange, onClose }: TagEdi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tagId }),
       })
+
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
 
       if (response.ok) {
         const updatedTags = await response.json()

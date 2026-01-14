@@ -527,6 +527,11 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         }),
       })
 
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
+
       if (response.ok) {
         const result = await response.json()
         const message = result.skipped > 0
@@ -577,6 +582,11 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         }),
       })
 
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
+
       if (response.ok) {
         setName('')
         setGroupName('')
@@ -607,6 +617,11 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       const response = await fetch(`/api/biases/${id}`, {
         method: 'DELETE',
       })
+
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
 
       if (response.ok) {
         onBiasDeleted()

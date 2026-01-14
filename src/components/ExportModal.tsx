@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import type { ExportData, ImportResult } from '@/lib/export'
 
 interface ExportModalProps {
@@ -14,6 +14,7 @@ interface ExportModalProps {
 type TabType = 'export' | 'import'
 
 export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalProps) {
+  const locale = useLocale()
   const t = useTranslations('export')
   const te = useTranslations('errors')
   const [activeTab, setActiveTab] = useState<TabType>('export')
@@ -158,6 +159,11 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(importPreview),
       })
+
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
 
       if (!response.ok) {
         const errorData = await response.json()
