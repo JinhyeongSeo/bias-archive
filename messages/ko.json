@@ -156,5 +156,12 @@
     "youtubeFailed": "YouTube 검색 실패",
     "twitterNotConfigured": "Twitter 검색이 설정되지 않았습니다",
     "twitterFailed": "Twitter 검색 실패"
+  },
+  "footer": {
+    "contact": "문의하기",
+    "copyright": "© 2026 내 최애 아카이브. All rights reserved.",
+    "github": "GitHub",
+    "twitter": "Twitter",
+    "email": "이메일"
   }
 }

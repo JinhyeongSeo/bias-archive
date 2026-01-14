@@ -156,5 +156,12 @@
     "youtubeFailed": "YouTube search failed",
     "twitterNotConfigured": "Twitter search is not configured",
     "twitterFailed": "Twitter search failed"
+  },
+  "footer": {
+    "contact": "Contact",
+    "copyright": "© 2026 My Bias Archive. All rights reserved.",
+    "github": "GitHub",
+    "twitter": "Twitter",
+    "email": "Email"
   }
 }
