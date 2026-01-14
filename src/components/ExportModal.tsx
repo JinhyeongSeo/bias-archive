@@ -2,8 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslations, useLocale } from 'next-intl'
 import type { ExportData, ImportResult } from '@/lib/export'
+import {
+  modalOverlay,
+  modalContent,
+  smoothSpring,
+  easeOutExpo,
+  pressScale,
+  quickSpring,
+} from '@/lib/animations'
 
 interface ExportModalProps {
   isOpen: boolean
@@ -180,28 +189,43 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
     }
   }
 
-  if (!isOpen) return null
-
-  const modalContent = (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-      onClick={handleBackdropClick}
-    >
-      <div className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-xl overflow-hidden shadow-2xl">
+  const modalElement = (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          onClick={handleBackdropClick}
+          variants={modalOverlay}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={easeOutExpo}
+        >
+          <motion.div
+            className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-xl overflow-hidden shadow-2xl"
+            variants={modalContent}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={smoothSpring}
+            onClick={(e) => e.stopPropagation()}
+          >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-700">
           <h2 className="font-semibold text-zinc-900 dark:text-zinc-100 text-lg">
             {t('title')}
           </h2>
-          <button
+          <motion.button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition-colors"
             aria-label={t('close')}
+            whileTap={{ scale: 0.9 }}
+            transition={quickSpring}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </button>
+          </motion.button>
         </div>
 
         {/* Tabs */}
@@ -247,16 +271,17 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
                 </div>
               )}
 
-              <button
+              <motion.button
                 onClick={handleExport}
                 disabled={isExporting}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors"
+                {...pressScale}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 {isExporting ? t('downloading') : t('download')}
-              </button>
+              </motion.button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -300,53 +325,72 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
               )}
 
               {/* Import result */}
-              {importResult && (
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-2">{t('importComplete')}</p>
-                  <div className="text-sm text-green-600 dark:text-green-400">
-                    <p>{t('added')}: {t('links')} {importResult.imported.links}, {t('tags')} {importResult.imported.tags}, {t('biases')} {importResult.imported.biases}</p>
-                    <p>{t('skipped')}: {t('links')} {importResult.skipped.links}, {t('tags')} {importResult.skipped.tags}, {t('biases')} {importResult.skipped.biases}</p>
-                    {importResult.errors.length > 0 && (
-                      <div className="mt-2 text-red-600 dark:text-red-400">
-                        <p className="font-medium">{t('errors')}:</p>
-                        <ul className="list-disc list-inside text-xs">
-                          {importResult.errors.slice(0, 5).map((err, i) => (
-                            <li key={i}>{err}</li>
-                          ))}
-                          {importResult.errors.length > 5 && (
-                            <li>...+{importResult.errors.length - 5}</li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              <AnimatePresence>
+                {importResult && (
+                  <motion.div
+                    className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={quickSpring}
+                  >
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-2">{t('importComplete')}</p>
+                    <div className="text-sm text-green-600 dark:text-green-400">
+                      <p>{t('added')}: {t('links')} {importResult.imported.links}, {t('tags')} {importResult.imported.tags}, {t('biases')} {importResult.imported.biases}</p>
+                      <p>{t('skipped')}: {t('links')} {importResult.skipped.links}, {t('tags')} {importResult.skipped.tags}, {t('biases')} {importResult.skipped.biases}</p>
+                      {importResult.errors.length > 0 && (
+                        <div className="mt-2 text-red-600 dark:text-red-400">
+                          <p className="font-medium">{t('errors')}:</p>
+                          <ul className="list-disc list-inside text-xs">
+                            {importResult.errors.slice(0, 5).map((err, i) => (
+                              <li key={i}>{err}</li>
+                            ))}
+                            {importResult.errors.length > 5 && (
+                              <li>...+{importResult.errors.length - 5}</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Error */}
-              {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                </div>
-              )}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={quickSpring}
+                  >
+                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              <button
+              <motion.button
                 onClick={handleImport}
                 disabled={!importPreview || isImporting || !!importResult}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium rounded-lg transition-colors"
+                {...pressScale}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
                 {isImporting ? t('uploading') : importResult ? t('success') : t('import')}
-              </button>
+              </motion.button>
             </div>
           )}
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 
   if (typeof window === 'undefined') return null
-  return createPortal(modalContent, document.body)
+  return createPortal(modalElement, document.body)
 }

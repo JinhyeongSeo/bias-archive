@@ -1,7 +1,18 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { getProxiedImageUrl } from '@/lib/proxy'
+import {
+  modalOverlay,
+  modalContent,
+  smoothSpring,
+  easeOutExpo,
+  pressScale,
+  listItem,
+  staggerContainer,
+  quickSpring,
+} from '@/lib/animations'
 
 type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls'
 type YouTubeOrder = 'relevance' | 'date' | 'viewCount'
@@ -451,322 +462,366 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     }
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative w-full max-w-2xl mx-4 max-h-[85vh] bg-white dark:bg-zinc-900 rounded-xl shadow-2xl flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            외부 검색
-          </h2>
-          <button
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          variants={modalOverlay}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={easeOutExpo}
+        >
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={onClose}
-            className="p-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+          />
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {/* Platform Selection */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => handlePlatformChange('youtube')}
-              className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                platform === 'youtube'
-                  ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 ring-2 ring-red-500/20'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-              }`}
-            >
-              YouTube
-            </button>
-            <button
-              onClick={() => handlePlatformChange('twitter')}
-              className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                platform === 'twitter'
-                  ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-              }`}
-            >
-              Twitter
-            </button>
-            <button
-              onClick={() => handlePlatformChange('heye')}
-              className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                platform === 'heye'
-                  ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 ring-2 ring-orange-500/20'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-              }`}
-            >
-              heye.kr
-            </button>
-            <button
-              onClick={() => handlePlatformChange('kgirls')}
-              className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                platform === 'kgirls'
-                  ? 'bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 ring-2 ring-pink-500/20'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-              }`}
-            >
-              kgirls
-            </button>
-          </div>
+          {/* Modal */}
+          <motion.div
+            className="relative w-full max-w-2xl mx-4 max-h-[85vh] bg-white dark:bg-zinc-900 rounded-xl shadow-2xl flex flex-col"
+            variants={modalContent}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={smoothSpring}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                외부 검색
+              </h2>
+              <motion.button
+                onClick={onClose}
+                className="p-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                whileTap={{ scale: 0.9 }}
+                transition={quickSpring}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </motion.button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Platform Selection */}
+              <div className="flex gap-2">
+                <motion.button
+                  onClick={() => handlePlatformChange('youtube')}
+                  className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                    platform === 'youtube'
+                      ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 ring-2 ring-red-500/20'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
+                  {...pressScale}
+                >
+                  YouTube
+                </motion.button>
+                <motion.button
+                  onClick={() => handlePlatformChange('twitter')}
+                  className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                    platform === 'twitter'
+                      ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
+                  {...pressScale}
+                >
+                  Twitter
+                </motion.button>
+                <motion.button
+                  onClick={() => handlePlatformChange('heye')}
+                  className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                    platform === 'heye'
+                      ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 ring-2 ring-orange-500/20'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
+                  {...pressScale}
+                >
+                  heye.kr
+                </motion.button>
+                <motion.button
+                  onClick={() => handlePlatformChange('kgirls')}
+                  className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                    platform === 'kgirls'
+                      ? 'bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 ring-2 ring-pink-500/20'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
+                  {...pressScale}
+                >
+                  kgirls
+                </motion.button>
+              </div>
 
           {/* Platform Notice */}
-          {platform === 'twitter' && (
-            <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-4 py-2 rounded-lg">
-              과거 인기 트윗 검색 (최신은 URL 직접 입력)
-            </p>
-          )}
-          {platform === 'heye' && (
-            <p className="text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-4 py-2 rounded-lg">
-              heye.kr 커뮤니티 게시판 검색
-            </p>
-          )}
-          {platform === 'kgirls' && (
-            <div className="flex items-center gap-3 bg-pink-50 dark:bg-pink-900/20 px-4 py-2 rounded-lg">
-              <p className="text-sm text-pink-600 dark:text-pink-400">
-                kgirls.net
-              </p>
-              <select
-                value={kgirlsBoard}
-                onChange={(e) => {
-                  setKgirlsBoard(e.target.value as 'mgall' | 'issue')
-                  setResults([])
-                  setKgirlsPage(1)
-                  setKgirlsTotalPages(0)
-                }}
-                className="px-3 py-1 text-sm border border-pink-200 dark:border-pink-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              >
-                <option value="mgall">마이너갤</option>
-                <option value="issue">볼거리</option>
-              </select>
-            </div>
-          )}
-
-          {/* Search Input */}
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="검색어 입력..."
-              autoFocus
-              className="flex-1 px-4 py-2.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleSearch}
-              disabled={isLoading || !query.trim()}
-              className="px-6 py-2.5 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? '검색 중...' : '검색'}
-            </button>
-          </div>
-
-          {/* YouTube Filters */}
-          {platform === 'youtube' && (
-            <div className="flex gap-3">
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-zinc-500 dark:text-zinc-400">정렬</label>
-                <select
-                  value={youtubeOrder}
-                  onChange={(e) => setYoutubeOrder(e.target.value as YouTubeOrder)}
-                  className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="relevance">관련성순</option>
-                  <option value="viewCount">조회수순</option>
-                  <option value="date">최신순</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-zinc-500 dark:text-zinc-400">기간</label>
-                <select
-                  value={youtubePeriod}
-                  onChange={(e) => setYoutubePeriod(e.target.value as YouTubePeriod)}
-                  className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">전체</option>
-                  <option value="today">오늘</option>
-                  <option value="week">이번주</option>
-                  <option value="month">이번달</option>
-                  <option value="year">올해</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          {/* Error Message */}
-          {error && (
-            <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg">
-              {error}
-              {notConfigured && (
-                <span className="block mt-1 text-zinc-500 dark:text-zinc-400">
-                  API 키 설정이 필요합니다
-                </span>
+              {platform === 'twitter' && (
+                <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-4 py-2 rounded-lg">
+                  과거 인기 트윗 검색 (최신은 URL 직접 입력)
+                </p>
               )}
-            </p>
-          )}
+              {platform === 'heye' && (
+                <p className="text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-4 py-2 rounded-lg">
+                  heye.kr 커뮤니티 게시판 검색
+                </p>
+              )}
+              {platform === 'kgirls' && (
+                <div className="flex items-center gap-3 bg-pink-50 dark:bg-pink-900/20 px-4 py-2 rounded-lg">
+                  <p className="text-sm text-pink-600 dark:text-pink-400">
+                    kgirls.net
+                  </p>
+                  <select
+                    value={kgirlsBoard}
+                    onChange={(e) => {
+                      setKgirlsBoard(e.target.value as 'mgall' | 'issue')
+                      setResults([])
+                      setKgirlsPage(1)
+                      setKgirlsTotalPages(0)
+                    }}
+                    className="px-3 py-1 text-sm border border-pink-200 dark:border-pink-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  >
+                    <option value="mgall">마이너갤</option>
+                    <option value="issue">볼거리</option>
+                  </select>
+                </div>
+              )}
 
-          {/* Results */}
-          {results.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                {results.length}개의 결과
-                {platform === 'heye' && heyeTotalPages > 1 && (
-                  <span className="ml-2">
-                    (페이지 {heyePage}/{heyeTotalPages})
-                  </span>
-                )}
-                {platform === 'kgirls' && kgirlsTotalPages > 1 && (
-                  <span className="ml-2">
-                    (페이지 {kgirlsPage}/{kgirlsTotalPages})
-                  </span>
-                )}
-              </p>
-              {results.map((result, index) => (
-                <div
-                  key={result.url}
-                  className="flex gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700"
+              {/* Search Input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  placeholder="검색어 입력..."
+                  autoFocus
+                  className="flex-1 px-4 py-2.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <motion.button
+                  onClick={handleSearch}
+                  disabled={isLoading || !query.trim()}
+                  className="px-6 py-2.5 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  {...pressScale}
                 >
-                  {/* Thumbnail - larger size */}
-                  {result.thumbnailUrl ? (
-                    <img
-                      src={result.thumbnailUrl}
-                      alt=""
-                      className="w-32 h-20 object-cover rounded-lg flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-32 h-20 bg-zinc-200 dark:bg-zinc-700 rounded-lg flex-shrink-0 flex items-center justify-center">
-                      <span className="text-sm text-zinc-400">No image</span>
+                  {isLoading ? '검색 중...' : '검색'}
+                </motion.button>
+              </div>
+
+              {/* YouTube Filters */}
+              {platform === 'youtube' && (
+                <div className="flex gap-3">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-zinc-500 dark:text-zinc-400">정렬</label>
+                    <select
+                      value={youtubeOrder}
+                      onChange={(e) => setYoutubeOrder(e.target.value as YouTubeOrder)}
+                      className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="relevance">관련성순</option>
+                      <option value="viewCount">조회수순</option>
+                      <option value="date">최신순</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-zinc-500 dark:text-zinc-400">기간</label>
+                    <select
+                      value={youtubePeriod}
+                      onChange={(e) => setYoutubePeriod(e.target.value as YouTubePeriod)}
+                      className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">전체</option>
+                      <option value="today">오늘</option>
+                      <option value="week">이번주</option>
+                      <option value="month">이번달</option>
+                      <option value="year">올해</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Error Message */}
+              <AnimatePresence>
+                {error && (
+                  <motion.p
+                    className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={quickSpring}
+                  >
+                    {error}
+                    {notConfigured && (
+                      <span className="block mt-1 text-zinc-500 dark:text-zinc-400">
+                        API 키 설정이 필요합니다
+                      </span>
+                    )}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              {/* Results */}
+              {results.length > 0 && (
+                <motion.div
+                  className="space-y-3"
+                  variants={staggerContainer}
+                  initial="initial"
+                  animate="animate"
+                >
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                    {results.length}개의 결과
+                    {platform === 'heye' && heyeTotalPages > 1 && (
+                      <span className="ml-2">
+                        (페이지 {heyePage}/{heyeTotalPages})
+                      </span>
+                    )}
+                    {platform === 'kgirls' && kgirlsTotalPages > 1 && (
+                      <span className="ml-2">
+                        (페이지 {kgirlsPage}/{kgirlsTotalPages})
+                      </span>
+                    )}
+                  </p>
+                  {results.map((result, index) => (
+                    <motion.div
+                      key={result.url}
+                      className="flex gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700"
+                      variants={listItem}
+                      transition={quickSpring}
+                    >
+                      {/* Thumbnail - larger size */}
+                      {result.thumbnailUrl ? (
+                        <img
+                          src={result.thumbnailUrl}
+                          alt=""
+                          className="w-32 h-20 object-cover rounded-lg flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-32 h-20 bg-zinc-200 dark:bg-zinc-700 rounded-lg flex-shrink-0 flex items-center justify-center">
+                          <span className="text-sm text-zinc-400">No image</span>
+                        </div>
+                      )}
+
+                      {/* Info - more space */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 line-clamp-2">
+                            {result.title}
+                          </h4>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${getPlatformBadgeStyle(result.platform)}`}>
+                              {getPlatformLabel(result.platform)}
+                            </span>
+                            {result.author && (
+                              <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[200px]">
+                                {result.author}
+                              </span>
+                            )}
+                            {result.publishedAt && (
+                              <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                                {formatDate(result.publishedAt)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Save Button - larger */}
+                      <div className="flex-shrink-0 flex items-center">
+                        {result.isSaved ? (
+                          <span className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                            저장됨
+                          </span>
+                        ) : (
+                          <motion.button
+                            onClick={() => handleSave(index)}
+                            disabled={result.isSaving}
+                            className="px-4 py-1.5 text-xs font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                            {...pressScale}
+                          >
+                            {result.isSaving ? '저장 중...' : '저장'}
+                          </motion.button>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+
+                  {/* Heye Pagination */}
+                  {platform === 'heye' && heyeTotalPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 pt-2">
+                      <motion.button
+                        onClick={() => handleHeyePageChange(heyePage - 1)}
+                        disabled={heyePage <= 1 || isLoading}
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                        {...pressScale}
+                      >
+                        이전
+                      </motion.button>
+                      <span className="text-sm text-zinc-500 dark:text-zinc-400 px-2">
+                        {heyePage} / {heyeTotalPages}
+                      </span>
+                      <motion.button
+                        onClick={() => handleHeyePageChange(heyePage + 1)}
+                        disabled={heyePage >= heyeTotalPages || isLoading}
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                        {...pressScale}
+                      >
+                        다음
+                      </motion.button>
                     </div>
                   )}
 
-                  {/* Info - more space */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-between">
-                    <div>
-                      <h4 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 line-clamp-2">
-                        {result.title}
-                      </h4>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getPlatformBadgeStyle(result.platform)}`}>
-                          {getPlatformLabel(result.platform)}
-                        </span>
-                        {result.author && (
-                          <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[200px]">
-                            {result.author}
-                          </span>
-                        )}
-                        {result.publishedAt && (
-                          <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                            {formatDate(result.publishedAt)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Save Button - larger */}
-                  <div className="flex-shrink-0 flex items-center">
-                    {result.isSaved ? (
-                      <span className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 rounded-lg">
-                        저장됨
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handleSave(index)}
-                        disabled={result.isSaving}
-                        className="px-4 py-1.5 text-xs font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                  {/* Kgirls Pagination */}
+                  {platform === 'kgirls' && kgirlsTotalPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 pt-2">
+                      <motion.button
+                        onClick={() => handleKgirlsPageChange(kgirlsPage - 1)}
+                        disabled={kgirlsPage <= 1 || isLoading}
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                        {...pressScale}
                       >
-                        {result.isSaving ? '저장 중...' : '저장'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {/* Heye Pagination */}
-              {platform === 'heye' && heyeTotalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 pt-2">
-                  <button
-                    onClick={() => handleHeyePageChange(heyePage - 1)}
-                    disabled={heyePage <= 1 || isLoading}
-                    className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  >
-                    이전
-                  </button>
-                  <span className="text-sm text-zinc-500 dark:text-zinc-400 px-2">
-                    {heyePage} / {heyeTotalPages}
-                  </span>
-                  <button
-                    onClick={() => handleHeyePageChange(heyePage + 1)}
-                    disabled={heyePage >= heyeTotalPages || isLoading}
-                    className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  >
-                    다음
-                  </button>
-                </div>
+                        이전
+                      </motion.button>
+                      <span className="text-sm text-zinc-500 dark:text-zinc-400 px-2">
+                        {kgirlsPage} / {kgirlsTotalPages}
+                      </span>
+                      <motion.button
+                        onClick={() => handleKgirlsPageChange(kgirlsPage + 1)}
+                        disabled={kgirlsPage >= kgirlsTotalPages || isLoading}
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                        {...pressScale}
+                      >
+                        다음
+                      </motion.button>
+                    </div>
+                  )}
+                </motion.div>
               )}
 
-              {/* Kgirls Pagination */}
-              {platform === 'kgirls' && kgirlsTotalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 pt-2">
-                  <button
-                    onClick={() => handleKgirlsPageChange(kgirlsPage - 1)}
-                    disabled={kgirlsPage <= 1 || isLoading}
-                    className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  >
-                    이전
-                  </button>
-                  <span className="text-sm text-zinc-500 dark:text-zinc-400 px-2">
-                    {kgirlsPage} / {kgirlsTotalPages}
-                  </span>
-                  <button
-                    onClick={() => handleKgirlsPageChange(kgirlsPage + 1)}
-                    disabled={kgirlsPage >= kgirlsTotalPages || isLoading}
-                    className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  >
-                    다음
-                  </button>
-                </div>
+              {/* Empty State */}
+              {!isLoading && !error && results.length === 0 && query && (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center py-8">
+                  검색 결과가 없습니다
+                </p>
+              )}
+
+              {/* Initial State */}
+              {!isLoading && !error && results.length === 0 && !query && (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center py-8">
+                  검색어를 입력하고 검색 버튼을 클릭하세요
+                </p>
               )}
             </div>
-          )}
 
-          {/* Empty State */}
-          {!isLoading && !error && results.length === 0 && query && (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center py-8">
-              검색 결과가 없습니다
-            </p>
-          )}
-
-          {/* Initial State */}
-          {!isLoading && !error && results.length === 0 && !query && (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center py-8">
-              검색어를 입력하고 검색 버튼을 클릭하세요
-            </p>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-3 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 rounded-b-xl">
-          <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center">
-            ESC 키로 닫기
-          </p>
-        </div>
-      </div>
-    </div>
+            {/* Footer */}
+            <div className="px-6 py-3 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 rounded-b-xl">
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center">
+                ESC 키로 닫기
+              </p>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
