@@ -6,6 +6,7 @@ import type { Link, Tag, LinkMedia } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
 import { TagEditor } from './TagEditor'
 import { ViewerModal } from './ViewerModal'
+import { useNameLanguage } from '@/contexts/NameLanguageContext'
 
 type LinkWithTags = Link & { tags: Tag[] }
 type LinkWithMedia = Link & { media?: LinkMedia[] }
@@ -57,6 +58,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
   const [editingTags, setEditingTags] = useState(false)
   const [tags, setTags] = useState<Tag[]>(link.tags || [])
   const [viewerOpen, setViewerOpen] = useState(false)
+  const { getTagDisplayName } = useNameLanguage()
 
   const platform = (link.platform || 'other') as Platform
 
@@ -194,7 +196,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                   key={tag.id}
                   className="px-2 py-0.5 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
                 >
-                  {tag.name}
+                  {getTagDisplayName(tag.name)}
                 </span>
               ))}
             </div>
@@ -435,7 +437,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
                 key={tag.id}
                 className="px-2 py-0.5 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
               >
-                {tag.name}
+                {getTagDisplayName(tag.name)}
               </span>
             ))}
           </div>

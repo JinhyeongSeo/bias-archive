@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import type { Link, Tag, LinkMedia } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
 import { EmbedViewer } from './EmbedViewer'
+import { useNameLanguage } from '@/contexts/NameLanguageContext'
 
 type LinkWithTags = Link & { tags: Tag[] }
 type LinkWithMedia = Link & { media?: LinkMedia[] }
@@ -26,6 +27,7 @@ function formatDate(dateString: string): string {
 
 export function ViewerModal({ link, isOpen, onClose }: ViewerModalProps) {
   const platform = (link.platform || 'other') as Platform
+  const { getTagDisplayName } = useNameLanguage()
 
   // Handle ESC key to close modal
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -104,7 +106,7 @@ export function ViewerModal({ link, isOpen, onClose }: ViewerModalProps) {
                   key={tag.id}
                   className="px-2 py-0.5 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
                 >
-                  {tag.name}
+                  {getTagDisplayName(tag.name)}
                 </span>
               ))}
             </div>

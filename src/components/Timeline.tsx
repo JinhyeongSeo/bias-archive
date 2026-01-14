@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import type { Link, Tag } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
+import { useNameLanguage } from '@/contexts/NameLanguageContext'
 
 type LinkWithTags = Link & { tags: Tag[] }
 
@@ -145,6 +146,7 @@ interface TimelineCardProps {
 
 function TimelineCard({ link }: TimelineCardProps) {
   const platform = (link.platform || 'other') as Platform
+  const { getTagDisplayName } = useNameLanguage()
 
   return (
     <a
@@ -210,7 +212,7 @@ function TimelineCard({ link }: TimelineCardProps) {
                 key={tag.id}
                 className="px-2 py-0.5 text-xs rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200"
               >
-                {tag.name}
+                {getTagDisplayName(tag.name)}
               </span>
             ))}
             {link.tags.length > 3 && (
