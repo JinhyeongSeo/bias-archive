@@ -163,5 +163,21 @@
     "github": "GitHub",
     "twitter": "Twitter",
     "email": "Email"
+  },
+  "auth": {
+    "login": "Login",
+    "signup": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "loginButton": "Login",
+    "signupButton": "Sign Up",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "loginError": "Login failed. Please check your email and password.",
+    "signupError": "Sign up failed. Please try again.",
+    "signupSuccess": "Sign up complete! Please check your email.",
+    "logout": "Logout",
+    "loggingIn": "Logging in...",
+    "signingUp": "Signing up..."
   }
 }

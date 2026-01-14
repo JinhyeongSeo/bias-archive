@@ -163,5 +163,21 @@
     "github": "GitHub",
     "twitter": "Twitter",
     "email": "이메일"
+  },
+  "auth": {
+    "login": "로그인",
+    "signup": "회원가입",
+    "email": "이메일",
+    "password": "비밀번호",
+    "loginButton": "로그인",
+    "signupButton": "회원가입",
+    "noAccount": "계정이 없으신가요?",
+    "hasAccount": "이미 계정이 있으신가요?",
+    "loginError": "로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.",
+    "signupError": "회원가입에 실패했습니다. 다시 시도해주세요.",
+    "signupSuccess": "회원가입이 완료되었습니다! 이메일을 확인해주세요.",
+    "logout": "로그아웃",
+    "loggingIn": "로그인 중...",
+    "signingUp": "가입 중..."
   }
 }
