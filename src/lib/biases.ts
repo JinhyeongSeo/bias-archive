@@ -186,29 +186,3 @@ export async function reorderBiases(orderedIds: string[]): Promise<void> {
     throw new Error(`Failed to update ${errors.length} bias(es)`)
   }
 }
-
-/**
- * Move a bias to a different group and update sort orders
- * @param biasId - ID of the bias to move
- * @param targetGroupId - Target group ID (null for ungrouped)
- * @param orderedIds - Array of bias IDs in desired order within target group
- */
-export async function moveBiasToGroup(
-  biasId: string,
-  targetGroupId: string | null,
-  orderedIds: string[]
-): Promise<void> {
-  // Update the bias's group_id
-  const { error: moveError } = await supabase
-    .from('biases')
-    .update({ group_id: targetGroupId })
-    .eq('id', biasId)
-
-  if (moveError) {
-    console.error('Error moving bias to group:', moveError)
-    throw new Error('Failed to move bias to group')
-  }
-
-  // Update sort_order for all biases in the target group
-  await reorderBiases(orderedIds)
-}

@@ -171,84 +171,64 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     }
   }, [nameLanguage, locale])
 
-  // Handle drag end for reordering biases (within group or across groups)
+  // Handle drag end for reordering biases within a group
   const handleDragEnd = useCallback(async (result: DropResult) => {
     const { source, destination, draggableId } = result
 
     // Dropped outside a valid droppable
     if (!destination) return
 
-    // Dropped in the same position within the same group
-    if (source.droppableId === destination.droppableId && source.index === destination.index) return
+    // Dropped in a different group - not allowed in this phase
+    if (source.droppableId !== destination.droppableId) return
 
-    const sourceGroupId = source.droppableId === 'ungrouped' ? null : source.droppableId
-    const destGroupId = destination.droppableId === 'ungrouped' ? null : destination.droppableId
-    const isGroupMove = sourceGroupId !== destGroupId
+    // Dropped in the same position
+    if (source.index === destination.index) return
 
-    // Find source and destination group biases
-    const sourceGroupBiases = groupedBiases.find(
+    // Find the group's biases
+    const groupId = source.droppableId === 'ungrouped' ? null : source.droppableId
+    const groupBiases = groupedBiases.find(
       (g) => (g.group?.id || 'ungrouped') === source.droppableId
     )?.biases
-    const destGroupBiases = groupedBiases.find(
-      (g) => (g.group?.id || 'ungrouped') === destination.droppableId
-    )?.biases
 
-    if (!sourceGroupBiases) return
+    if (!groupBiases) return
 
-    // Get the moved item
-    const movedItem = sourceGroupBiases[source.index]
-    if (!movedItem) return
+    // Reorder within the group
+    const reorderedGroupBiases = Array.from(groupBiases)
+    const [movedItem] = reorderedGroupBiases.splice(source.index, 1)
+    reorderedGroupBiases.splice(destination.index, 0, movedItem)
 
-    // Build new bias lists
-    let newDestGroupBiases: BiasWithGroup[]
+    // Build new full bias list maintaining other groups' order
+    const newLocalBiases = localBiases.map((bias) => {
+      // Find if this bias is in the reordered group
+      const newIndex = reorderedGroupBiases.findIndex((b) => b.id === bias.id)
+      if (newIndex !== -1) {
+        return { ...bias, sort_order: newIndex }
+      }
+      return bias
+    })
 
-    if (isGroupMove) {
-      // Moving to a different group
-      const newSourceGroupBiases = sourceGroupBiases.filter((_, i) => i !== source.index)
-      newDestGroupBiases = destGroupBiases ? [...destGroupBiases] : []
-      // Insert at destination index with updated group_id
-      const movedItemWithNewGroup = { ...movedItem, group_id: destGroupId, group: destGroupId ? groups.find(g => g.id === destGroupId) || null : null }
-      newDestGroupBiases.splice(destination.index, 0, movedItemWithNewGroup)
+    // Sort by the new order within groups
+    newLocalBiases.sort((a, b) => {
+      // Same group? Sort by new sort_order
+      if (a.group_id === b.group_id) {
+        return (a.sort_order ?? 0) - (b.sort_order ?? 0)
+      }
+      // Different groups - maintain original relative order
+      return 0
+    })
 
-      // Update local biases optimistically
-      const newLocalBiases = localBiases.map((bias) => {
-        if (bias.id === movedItem.id) {
-          return { ...bias, group_id: destGroupId }
-        }
-        return bias
-      })
-      setLocalBiases(newLocalBiases)
-    } else {
-      // Reordering within the same group
-      newDestGroupBiases = Array.from(sourceGroupBiases)
-      const [removed] = newDestGroupBiases.splice(source.index, 1)
-      newDestGroupBiases.splice(destination.index, 0, removed)
-
-      // Update local biases with new sort_order
-      const newLocalBiases = localBiases.map((bias) => {
-        const newIndex = newDestGroupBiases.findIndex((b) => b.id === bias.id)
-        if (newIndex !== -1) {
-          return { ...bias, sort_order: newIndex }
-        }
-        return bias
-      })
-      setLocalBiases(newLocalBiases)
-    }
-
+    // Optimistic update
+    setLocalBiases(newLocalBiases)
     setIsReordering(true)
 
     try {
-      // Get ordered IDs for the destination group
-      const orderedIds = newDestGroupBiases.map((b) => b.id)
-
-      const requestBody = isGroupMove
-        ? { biasId: movedItem.id, targetGroupId: destGroupId, orderedIds }
-        : { orderedIds }
+      // Get ordered IDs for ALL biases in the affected group
+      const orderedIds = reorderedGroupBiases.map((b) => b.id)
 
       const response = await fetch('/api/biases/reorder', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ orderedIds }),
       })
 
       if (!response.ok) {
@@ -266,7 +246,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     } finally {
       setIsReordering(false)
     }
-  }, [groupedBiases, localBiases, biases, groups, onBiasReordered])
+  }, [groupedBiases, localBiases, biases, onBiasReordered])
 
   // Debounced group search
   const searchGroups = useCallback(async (query: string) => {
