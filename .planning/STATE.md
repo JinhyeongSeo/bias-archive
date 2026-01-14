@@ -5,25 +5,25 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 11 — 다국어 모드를 위한 DB 스키마 확장
+**Current focus:** Phase 12 — 언어 모드 토글 및 표시 전환
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 11 of 13 (Bias Schema Extension)
+Phase: 12 of 13 (Language Toggle UI)
 Plan: 1 of 1 in current phase
 Status: Phase complete
-Last activity: 2026-01-14 — Completed 11-01-PLAN.md
+Last activity: 2026-01-14 — Completed 12-01-PLAN.md
 
-Progress: ███████████░░ 85% (11/13 phases complete)
+Progress: ████████████░ 92% (12/13 phases complete)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 26
+- Total plans completed: 27
 - Average duration: ~8 min
-- Total execution time: ~220 min
+- Total execution time: ~223 min
 
 **By Phase:**
 
@@ -40,11 +40,12 @@ Progress: ███████████░░ 85% (11/13 phases complete)
 | 9. kgirls.net Parser | 2 | ~10 min | 5 min |
 | 10. Idol Group Auto-Fill | 2 | ~25 min | 13 min |
 | 11. Bias Schema Extension | 1 | 4 min | 4 min |
+| 12. Language Toggle UI | 1 | 3 min | 3 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 09-01 (5m), 09-02 (5m), 10-01 (10m), 10-02 (15m), 11-01 (4m)
-- Trend: Phase 11은 스키마 확장 위주로 빠르게 완료
+- Last 5 plans: 09-02 (5m), 10-01 (10m), 10-02 (15m), 11-01 (4m), 12-01 (3m)
+- Trend: UI 기능 위주 phase는 빠르게 완료
 
 ## Accumulated Context
 
@@ -72,6 +73,8 @@ Progress: ███████████░░ 85% (11/13 phases complete)
 - 그룹 일괄 추가 시 한글 이름(name_original) 저장 (태그 매칭 용이)
 - biases 테이블에 name_en/name_ko nullable 컬럼 추가 (다국어 지원)
 - 기존 name 필드 유지 (표시용, 하위 호환성)
+- NameLanguageContext로 이름 표시 언어 관리 (UI locale과 독립적)
+- auto 모드는 UI locale에 따라 name_en/name_ko 선택
 
 ### Roadmap Evolution
 
@@ -94,5 +97,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-14
-Stopped at: Completed Phase 11 (Bias Schema Extension)
+Stopped at: Completed Phase 12 (Language Toggle UI)
 Resume file: None

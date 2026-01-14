@@ -30,7 +30,7 @@ None
 - [x] **Phase 9: kgirls.net Parser** - kgirls.net 커뮤니티(issue, mgall)에서 이미지/GIF/MP4 추출 ✓
 - [x] **Phase 10: Idol Group Member Auto-Fill** - 그룹 이름 입력 시 멤버들의 영어/한글 이름 자동 추가 ✓
 - [x] **Phase 11: Bias Schema Extension** - biases 테이블에 name_en/name_ko 필드 추가 ✓
-- [ ] **Phase 12: Language Toggle UI** - 언어 모드 토글 및 표시 전환
+- [x] **Phase 12: Language Toggle UI** - 언어 모드 토글 및 표시 전환 ✓
 - [ ] **Phase 13: Enhanced Tag Matching** - 영어/한글 양방향 태그 인식
 
 ## Phase Details
@@ -189,15 +189,15 @@ Plans:
 Plans:
 - [x] 11-01: DB 스키마 확장, API 업데이트, UI 다국어 이름 입력 ✓
 
-#### Phase 12: Language Toggle UI
+#### Phase 12: Language Toggle UI ✓
 
 **Goal**: 앱 전역 언어 모드 토글, 최애 목록/태그 표시를 현재 언어로 전환
 **Depends on**: Phase 11
 **Research**: Unlikely (next-themes 패턴 활용 가능)
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 12-01: TBD (run /gsd:plan-phase 12 to break down)
+- [x] 12-01: NameLanguageContext, NameLanguageToggle, BiasManager 언어별 표시 ✓
 
 #### Phase 13: Enhanced Tag Matching
 
@@ -227,5 +227,5 @@ Phases execute in numeric order: 1 → 2 → ... → 10 → 11 → 12 → 13
 | 9. kgirls.net Parser | v1.0 | 2/2 | Complete | 2026-01-14 |
 | 10. Idol Group Auto-Fill | v1.0 | 2/2 | Complete | 2026-01-14 |
 | 11. Bias Schema Extension | v1.1 | 1/1 | Complete | 2026-01-14 |
-| 12. Language Toggle UI | v1.1 | 0/? | Not started | - |
+| 12. Language Toggle UI | v1.1 | 1/1 | Complete | 2026-01-14 |
 | 13. Enhanced Tag Matching | v1.1 | 0/? | Not started | - |
