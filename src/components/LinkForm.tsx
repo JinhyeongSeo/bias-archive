@@ -139,7 +139,7 @@ export function LinkForm({ onSave }: LinkFormProps) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="YouTube, Twitter, 또는 웹사이트 URL을 입력하세요"
-            className="flex-1 px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            className="flex-1 px-4 py-3 rounded-lg border border-border bg-card dark:bg-zinc-800 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
             disabled={loading || saving}
           />
           <motion.button
@@ -172,7 +172,7 @@ export function LinkForm({ onSave }: LinkFormProps) {
       <AnimatePresence>
         {preview && (
           <motion.div
-            className="mt-6 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50"
+            className="mt-6 p-4 rounded-lg border border-border bg-surface dark:bg-zinc-800/50"
             variants={slideUp}
             initial="initial"
             animate="animate"
@@ -181,7 +181,7 @@ export function LinkForm({ onSave }: LinkFormProps) {
           >
             <div className="flex gap-4">
               {preview.thumbnailUrl && !imageError && (
-                <div className="flex-shrink-0 relative w-32 h-24 rounded-md overflow-hidden bg-zinc-200 dark:bg-zinc-700">
+                <div className="flex-shrink-0 relative w-32 h-24 rounded-md overflow-hidden bg-muted dark:bg-zinc-700">
                   {isVideoUrl(preview.thumbnailUrl) ? (
                     <video
                       src={getProxiedVideoUrl(preview.thumbnailUrl)}
@@ -208,16 +208,16 @@ export function LinkForm({ onSave }: LinkFormProps) {
                     {platformLabels[preview.platform]}
                   </span>
                 </div>
-                <h3 className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                <h3 className="font-medium text-foreground truncate">
                   {preview.title || '제목 없음'}
                 </h3>
                 {preview.authorName && (
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {preview.authorName}
                   </p>
                 )}
                 {preview.description && (
-                  <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-2 line-clamp-2">
+                  <p className="text-sm text-surface-foreground dark:text-zinc-300 mt-2 line-clamp-2">
                     {preview.description}
                   </p>
                 )}
@@ -227,7 +227,7 @@ export function LinkForm({ onSave }: LinkFormProps) {
               <motion.button
                 onClick={handleClear}
                 disabled={saving}
-                className="px-4 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 text-sm transition-colors"
+                className="px-4 py-2 rounded-md border border-border text-surface-foreground dark:text-zinc-300 hover:bg-muted dark:hover:bg-zinc-700 disabled:opacity-50 text-sm transition-colors"
                 whileTap={{ scale: 0.97 }}
                 transition={quickSpring}
               >

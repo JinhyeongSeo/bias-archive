@@ -260,7 +260,7 @@ export function Sidebar({
     <>
       {/* Search Input */}
       <section className="mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-2">
           {t('sidebar.search')}
         </h2>
         <input
@@ -292,7 +292,7 @@ export function Sidebar({
 
       {/* Platform Filter */}
       <section className="mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-2">
           {t('sidebar.platform')}
         </h2>
         <div className="flex flex-wrap gap-1">
@@ -303,7 +303,7 @@ export function Sidebar({
               className={`px-2 py-1 text-xs rounded transition-colors ${
                 selectedPlatform === platform.id
                   ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  : 'bg-muted dark:bg-zinc-800 text-surface-foreground dark:text-zinc-300 hover:bg-accent dark:hover:bg-zinc-700'
               }`}
               whileTap={{ scale: 0.95 }}
               transition={quickSpring}
@@ -316,11 +316,11 @@ export function Sidebar({
 
       {/* Bias Manager */}
       <section className="mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-2">
           {t('sidebar.biasList')}
         </h2>
         {isBiasesLoading || isGroupsLoading ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">
+          <p className="text-sm text-muted-foreground">
             {t('sidebar.loading')}
           </p>
         ) : (
@@ -336,7 +336,7 @@ export function Sidebar({
       {/* Tags / Album Mode */}
       <section className="flex-1">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+          <h2 className="text-sm font-semibold text-muted-foreground">
             {t('sidebar.tags')}
           </h2>
           {selectedTagId && (
@@ -366,11 +366,11 @@ export function Sidebar({
         )}
 
         {isTagsLoading || isGroupsLoading ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">
+          <p className="text-sm text-muted-foreground">
             {t('sidebar.loading')}
           </p>
         ) : tags.length === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">
+          <p className="text-sm text-muted-foreground">
             {t('sidebar.noTags')}
           </p>
         ) : hasGroupedTags ? (
@@ -385,7 +385,7 @@ export function Sidebar({
                     className={`px-1 py-0.5 text-xs font-medium transition-colors rounded ${
                       selectedTagId === groupTag.id
                         ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                     whileTap={{ scale: 0.95 }}
                     transition={quickSpring}
@@ -393,7 +393,7 @@ export function Sidebar({
                     {getGroupDisplayName(group)}
                   </motion.button>
                 ) : (
-                  <div className="px-1 py-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  <div className="px-1 py-0.5 text-xs font-medium text-muted-foreground">
                     {group ? getGroupDisplayName(group) : t('sidebar.ungrouped') || '그룹 없음'}
                   </div>
                 )}
@@ -406,7 +406,7 @@ export function Sidebar({
                       className={`px-2 py-0.5 text-xs rounded transition-colors ${
                         selectedTagId === tag.id
                           ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium'
-                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                          : 'bg-muted dark:bg-zinc-800 text-surface-foreground dark:text-zinc-300 hover:bg-accent dark:hover:bg-zinc-700'
                       }`}
                       whileTap={{ scale: 0.95 }}
                       transition={quickSpring}
@@ -428,7 +428,7 @@ export function Sidebar({
                   className={`w-full text-left px-2 py-1 text-sm rounded transition-colors ${
                     selectedTagId === tag.id
                       ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium'
-                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                      : 'text-surface-foreground dark:text-zinc-300 hover:bg-muted dark:hover:bg-zinc-800'
                   }`}
                   whileTap={{ scale: 0.95 }}
                   transition={quickSpring}

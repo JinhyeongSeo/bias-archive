@@ -6,12 +6,12 @@ export function Footer() {
   const t = useTranslations('footer')
 
   return (
-    <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+    <footer className="border-t border-border bg-card dark:bg-zinc-950">
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Contact Links */}
           <div className="flex items-center gap-4">
-            <span className="text-sm text-zinc-500 dark:text-zinc-400">
+            <span className="text-sm text-muted-foreground">
               {t('contact')}:
             </span>
             <div className="flex items-center gap-3">
@@ -20,7 +20,7 @@ export function Footer() {
                 href="https://github.com/JinhyeongSeo/bias-archive"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
                 aria-label={t('github')}
               >
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -33,7 +33,7 @@ export function Footer() {
                 href="#"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
                 aria-label={t('twitter')}
               >
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -44,7 +44,7 @@ export function Footer() {
               {/* Email */}
               <a
                 href="mailto:jh4clover@gmail.com"
-                className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
                 aria-label={t('email')}
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -55,7 +55,7 @@ export function Footer() {
           </div>
 
           {/* Copyright */}
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             {t('copyright')}
           </p>
         </div>

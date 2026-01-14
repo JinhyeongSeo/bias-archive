@@ -121,14 +121,14 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
   if (layout === 'list') {
     return (
       <motion.div
-        className="group relative flex rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+        className="group relative flex rounded-lg border border-border bg-card dark:bg-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
         whileHover={{ y: -2, scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         transition={quickSpring}
       >
         {/* Thumbnail */}
         <div
-          className={`relative w-40 sm:w-48 flex-shrink-0 bg-zinc-100 dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}
+          className={`relative w-40 sm:w-48 flex-shrink-0 bg-muted dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}
           onClick={handleThumbnailClick}
         >
           {link.thumbnail_url ? (
@@ -149,7 +149,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
               />
             )
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-zinc-400 dark:text-zinc-500">
+            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
               <svg
                 className="w-10 h-10"
                 fill="none"
@@ -187,12 +187,12 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
 
         {/* Content */}
         <div className="flex-1 p-3 min-w-0">
-          <h3 className="font-medium text-zinc-900 dark:text-zinc-100 line-clamp-2 text-sm leading-snug">
+          <h3 className="font-medium text-foreground line-clamp-2 text-sm leading-snug">
             {link.title || '제목 없음'}
           </h3>
-          <div className="flex items-center gap-2 mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
             {link.author_name && (
-              <span className="text-zinc-600 dark:text-zinc-300">{link.author_name}</span>
+              <span className="text-surface-foreground dark:text-zinc-300">{link.author_name}</span>
             )}
             <span>{formatDate(link.created_at)}</span>
           </div>
@@ -228,7 +228,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
           {supportsViewer && (
             <motion.button
               onClick={() => setViewerOpen(true)}
-              className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-green-500 dark:hover:text-green-400 shadow-sm transition-colors"
+              className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-green-500 dark:hover:text-green-400 shadow-sm transition-colors"
               title="뷰어로 재생"
               whileTap={{ scale: 0.9 }}
             >
@@ -243,7 +243,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400 shadow-sm transition-colors"
+            className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400 shadow-sm transition-colors"
             title="원본 링크 열기"
             whileTap={{ scale: 0.9 }}
           >
@@ -268,7 +268,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
             className={`p-1.5 rounded-md shadow-sm transition-colors ${
               editingTags
                 ? 'bg-blue-500 text-white'
-                : 'bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400'
+                : 'bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400'
             }`}
             title="태그 편집"
             whileTap={{ scale: 0.9 }}
@@ -294,7 +294,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
               <motion.button
                 onClick={handleCancelDelete}
                 disabled={deleting}
-                className="p-1.5 rounded-md bg-zinc-200 dark:bg-zinc-600 text-zinc-600 dark:text-zinc-300 shadow-sm transition-colors"
+                className="p-1.5 rounded-md bg-zinc-200 dark:bg-zinc-600 text-surface-foreground dark:text-zinc-300 shadow-sm transition-colors"
                 title="취소"
                 whileTap={{ scale: 0.9 }}
               >
@@ -337,7 +337,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
           ) : (
             <motion.button
               onClick={handleDelete}
-              className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-red-500 dark:hover:text-red-400 shadow-sm transition-colors"
+              className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-red-500 dark:hover:text-red-400 shadow-sm transition-colors"
               title="삭제"
               whileTap={{ scale: 0.9 }}
             >
@@ -371,14 +371,14 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
   // Grid layout - vertical card (default)
   return (
     <motion.div
-      className="group relative rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+      className="group relative rounded-lg border border-border bg-card dark:bg-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
       whileHover={{ y: -2, scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
       transition={quickSpring}
     >
       {/* Thumbnail */}
       <div
-        className={`relative aspect-video bg-zinc-100 dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}
+        className={`relative aspect-video bg-muted dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}
         onClick={handleThumbnailClick}
       >
         {link.thumbnail_url ? (
@@ -399,7 +399,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
             />
           )
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-zinc-400 dark:text-zinc-500">
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
             <svg
               className="w-12 h-12"
               fill="none"
@@ -437,15 +437,15 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
 
       {/* Content */}
       <div className="p-3">
-        <h3 className="font-medium text-zinc-900 dark:text-zinc-100 line-clamp-2 text-sm leading-snug">
+        <h3 className="font-medium text-foreground line-clamp-2 text-sm leading-snug">
           {link.title || '제목 없음'}
         </h3>
         {link.author_name && (
-          <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1">
+          <p className="text-xs text-surface-foreground dark:text-zinc-300 mt-1">
             {link.author_name}
           </p>
         )}
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           {formatDate(link.created_at)}
         </p>
 
@@ -480,7 +480,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
         {supportsViewer && (
           <motion.button
             onClick={() => setViewerOpen(true)}
-            className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-green-500 dark:hover:text-green-400 shadow-sm transition-colors"
+            className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-green-500 dark:hover:text-green-400 shadow-sm transition-colors"
             title="뷰어로 재생"
             whileTap={{ scale: 0.9 }}
           >
@@ -495,7 +495,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400 shadow-sm transition-colors"
+          className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400 shadow-sm transition-colors"
           title="원본 링크 열기"
           whileTap={{ scale: 0.9 }}
         >
@@ -520,7 +520,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
           className={`p-1.5 rounded-md shadow-sm transition-colors ${
             editingTags
               ? 'bg-blue-500 text-white'
-              : 'bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400'
+              : 'bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400'
           }`}
           title="태그 편집"
           whileTap={{ scale: 0.9 }}
@@ -546,7 +546,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
             <motion.button
               onClick={handleCancelDelete}
               disabled={deleting}
-              className="p-1.5 rounded-md bg-zinc-200 dark:bg-zinc-600 text-zinc-600 dark:text-zinc-300 shadow-sm transition-colors"
+              className="p-1.5 rounded-md bg-zinc-200 dark:bg-zinc-600 text-surface-foreground dark:text-zinc-300 shadow-sm transition-colors"
               title="취소"
               whileTap={{ scale: 0.9 }}
             >
@@ -589,7 +589,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
         ) : (
           <motion.button
             onClick={handleDelete}
-            className="p-1.5 rounded-md bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:text-red-500 dark:hover:text-red-400 shadow-sm transition-colors"
+            className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-red-500 dark:hover:text-red-400 shadow-sm transition-colors"
             title="삭제"
             whileTap={{ scale: 0.9 }}
           >

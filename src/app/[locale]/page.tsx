@@ -95,7 +95,7 @@ function HomeContent() {
 
       <main className="flex-1 flex flex-col items-center pt-12 px-4 sm:px-8">
         <div className="w-full max-w-2xl">
-          <h2 className="text-xl font-semibold text-zinc-800 dark:text-zinc-200 mb-6 text-center">
+          <h2 className="text-xl font-semibold text-foreground mb-6 text-center">
             {t('link.add')}
           </h2>
           <LinkForm onSave={handleSave} />
@@ -108,7 +108,7 @@ function HomeContent() {
 
         <div className="w-full max-w-6xl">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-zinc-800 dark:text-zinc-200">
+            <h2 className="text-xl font-semibold text-foreground">
               {t('link.savedLinks')}
             </h2>
             <LayoutToggle layout={layout} onChange={handleLayoutChange} />
