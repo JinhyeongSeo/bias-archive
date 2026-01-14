@@ -2,12 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { useAuth } from '@/hooks/useAuth'
 
 export function UserMenu() {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
   const locale = useLocale()
   const t = useTranslations('auth')
   const { user, loading, signOut } = useAuth()
@@ -27,6 +29,8 @@ export function UserMenu() {
   const handleSignOut = async () => {
     await signOut()
     setIsOpen(false)
+    // Refresh the page to clear cached data
+    router.refresh()
   }
 
   // Loading state: show skeleton
