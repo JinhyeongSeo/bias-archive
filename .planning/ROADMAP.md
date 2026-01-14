@@ -41,7 +41,7 @@ None
 - [x] **Phase 18: Footer Contact** - 연락처 정보가 담긴 Footer 컴포넌트 추가 ✓
 - [x] **Phase 19: Bias UI Improvements** - 버튼 레이아웃 수정 및 멤버 자동완성 ✓
 - [x] **Phase 20: Authentication** - 사용자 로그인/회원가입 기능 ✓
-- [ ] **Phase 21: Design Overhaul** - 토스 스타일 애니메이션 및 트렌디한 디자인 전면 개편
+- [x] **Phase 21: Design Overhaul** - 토스 스타일 애니메이션 및 트렌디한 디자인 전면 개편 ✓
 
 ## Phase Details
 
@@ -375,10 +375,10 @@ Plans:
 
 Plans:
 - [x] 21-01: Animation Foundation (framer-motion, primitives, CSS 변수) ✓
-- [ ] 21-02: Button & Card Animation
-- [ ] 21-03: Modal & List Animation
-- [ ] 21-04: Skeleton Loading
-- [ ] 21-05: Final Polish & Cleanup (모바일 최적화, 이름 언어 auto 고정, 라이트 모드 수정 포함)
+- [x] 21-02: Button & Card Animation (LinkCard hover, press, stagger) ✓
+- [x] 21-03: Modal Animation (ViewerModal scale+fade) ✓
+- [x] 21-04: Sidebar Animation (tag buttons, skeleton loading) ✓
+- [x] 21-05: Final Polish (모바일 최적화, 이름 언어 auto 고정, 라이트 모드 수정) ✓
 
 ## Progress
 
@@ -407,3 +407,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 18. Footer Contact | - | 1/1 | Complete | 2026-01-14 |
 | 19. Bias UI Improvements | - | 1/1 | Complete | 2026-01-14 |
 | 20. Authentication | - | 3/3 | Complete | 2026-01-14 |
+| 21. Design Overhaul | - | 5/5 | Complete | 2026-01-14 |
