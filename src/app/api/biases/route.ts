@@ -21,12 +21,12 @@ export async function GET() {
 /**
  * POST /api/biases
  * Create a new bias
- * Body: { name, groupName? }
+ * Body: { name, groupName?, nameEn?, nameKo? }
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, groupName } = body
+    const { name, groupName, nameEn, nameKo } = body
 
     // Validate required field
     if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -36,7 +36,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const bias = await createBias(name.trim(), groupName?.trim() || null)
+    const bias = await createBias(
+      name.trim(),
+      groupName?.trim() || null,
+      nameEn?.trim() || null,
+      nameKo?.trim() || null
+    )
     return NextResponse.json(bias, { status: 201 })
   } catch (error) {
     console.error('Error creating bias:', error)

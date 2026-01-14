@@ -5,6 +5,8 @@ import type { BiasInsert } from '@/types/database'
 interface BatchMember {
   name: string
   groupName: string
+  nameEn?: string
+  nameKo?: string
 }
 
 interface BatchRequest {
@@ -61,6 +63,8 @@ export async function POST(request: NextRequest) {
     const insertData: BiasInsert[] = newMembers.map((member) => ({
       name: member.name,
       group_name: member.groupName || null,
+      name_en: member.nameEn || null,
+      name_ko: member.nameKo || null,
     }))
 
     // Batch insert

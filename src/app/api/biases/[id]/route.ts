@@ -34,13 +34,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 /**
  * PUT /api/biases/[id]
  * Update a bias
- * Body: { name, groupName? }
+ * Body: { name, groupName?, nameEn?, nameKo? }
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, groupName } = body
+    const { name, groupName, nameEn, nameKo } = body
 
     // Validate required field
     if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -50,7 +50,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const bias = await updateBias(id, name.trim(), groupName?.trim() || null)
+    const bias = await updateBias(
+      id,
+      name.trim(),
+      groupName?.trim() || null,
+      nameEn?.trim() || null,
+      nameKo?.trim() || null
+    )
     return NextResponse.json(bias)
   } catch (error) {
     console.error('Error updating bias:', error)

@@ -44,10 +44,17 @@ export async function getBias(id: string): Promise<Bias | null> {
 /**
  * Create a new bias
  */
-export async function createBias(name: string, groupName?: string | null): Promise<Bias> {
+export async function createBias(
+  name: string,
+  groupName?: string | null,
+  nameEn?: string | null,
+  nameKo?: string | null
+): Promise<Bias> {
   const insertData: BiasInsert = {
     name,
     group_name: groupName || null,
+    name_en: nameEn || null,
+    name_ko: nameKo || null,
   }
 
   const { data, error } = await supabase
@@ -66,10 +73,18 @@ export async function createBias(name: string, groupName?: string | null): Promi
 /**
  * Update an existing bias
  */
-export async function updateBias(id: string, name: string, groupName?: string | null): Promise<Bias> {
+export async function updateBias(
+  id: string,
+  name: string,
+  groupName?: string | null,
+  nameEn?: string | null,
+  nameKo?: string | null
+): Promise<Bias> {
   const updateData: BiasUpdate = {
     name,
     group_name: groupName ?? null,
+    name_en: nameEn ?? null,
+    name_ko: nameKo ?? null,
   }
 
   const { data, error } = await supabase
