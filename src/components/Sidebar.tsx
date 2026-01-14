@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
+import { motion } from 'framer-motion'
 import type { Bias, Tag, Group } from '@/types/database'
 import { BiasManager } from './BiasManager'
 import { ExportModal } from './ExportModal'
 import { useRefresh } from '@/contexts/RefreshContext'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
+import { quickSpring } from '@/lib/animations'
 
 interface GroupedTags {
   group: Group | null
@@ -243,15 +245,17 @@ export function Sidebar({
 
       {/* External Search Button */}
       <section className="mb-6">
-        <button
+        <motion.button
           onClick={onOpenExternalSearch}
           className="w-full px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+          whileTap={{ scale: 0.97 }}
+          transition={quickSpring}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <span>{t('sidebar.externalSearch')}</span>
-        </button>
+        </motion.button>
       </section>
 
       {/* Platform Filter */}
@@ -261,7 +265,7 @@ export function Sidebar({
         </h2>
         <div className="flex flex-wrap gap-1">
           {PLATFORMS.map((platform) => (
-            <button
+            <motion.button
               key={platform.id ?? 'all'}
               onClick={() => onSelectPlatform?.(platform.id)}
               className={`px-2 py-1 text-xs rounded transition-colors ${
@@ -269,9 +273,11 @@ export function Sidebar({
                   ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
                   : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
               }`}
+              whileTap={{ scale: 0.95 }}
+              transition={quickSpring}
             >
               {platform.label}
-            </button>
+            </motion.button>
           ))}
         </div>
       </section>
@@ -302,12 +308,14 @@ export function Sidebar({
             {t('sidebar.tags')}
           </h2>
           {selectedTagId && (
-            <button
+            <motion.button
               onClick={() => onSelectTag?.(null)}
               className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              whileTap={{ scale: 0.95 }}
+              transition={quickSpring}
             >
               {t('sidebar.viewAll')}
-            </button>
+            </motion.button>
           )}
         </div>
 
@@ -340,16 +348,18 @@ export function Sidebar({
               <div key={group?.id || 'ungrouped'}>
                 {/* Group header - clickable if group tag exists */}
                 {group && groupTag ? (
-                  <button
+                  <motion.button
                     onClick={() => handleTagClick(groupTag.id)}
                     className={`px-1 py-0.5 text-xs font-medium transition-colors rounded ${
                       selectedTagId === groupTag.id
                         ? 'text-blue-600 dark:text-blue-400'
                         : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
                     }`}
+                    whileTap={{ scale: 0.95 }}
+                    transition={quickSpring}
                   >
                     {getGroupDisplayName(group)}
-                  </button>
+                  </motion.button>
                 ) : (
                   <div className="px-1 py-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
                     {group ? getGroupDisplayName(group) : t('sidebar.ungrouped') || '그룹 없음'}
@@ -358,7 +368,7 @@ export function Sidebar({
                 {/* Tags in this group */}
                 <div className="flex flex-wrap gap-1 px-1">
                   {groupTags.map((tag) => (
-                    <button
+                    <motion.button
                       key={tag.id}
                       onClick={() => handleTagClick(tag.id)}
                       className={`px-2 py-0.5 text-xs rounded transition-colors ${
@@ -366,9 +376,11 @@ export function Sidebar({
                           ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium'
                           : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                       }`}
+                      whileTap={{ scale: 0.95 }}
+                      transition={quickSpring}
                     >
                       {getTagDisplayName(tag.name)}
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </div>
@@ -379,16 +391,18 @@ export function Sidebar({
           <ul className="space-y-1">
             {tags.map((tag) => (
               <li key={tag.id}>
-                <button
+                <motion.button
                   onClick={() => handleTagClick(tag.id)}
                   className={`w-full text-left px-2 py-1 text-sm rounded transition-colors ${
                     selectedTagId === tag.id
                       ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium'
                       : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                   }`}
+                  whileTap={{ scale: 0.95 }}
+                  transition={quickSpring}
                 >
                   {getTagDisplayName(tag.name)}
-                </button>
+                </motion.button>
               </li>
             ))}
           </ul>
@@ -397,15 +411,17 @@ export function Sidebar({
 
       {/* Data Management */}
       <section className="mt-auto pt-4 border-t border-zinc-200 dark:border-zinc-700">
-        <button
+        <motion.button
           onClick={() => setIsExportModalOpen(true)}
           className="w-full px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+          whileTap={{ scale: 0.97 }}
+          transition={quickSpring}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
           </svg>
           <span>{t('sidebar.dataManagement')}</span>
-        </button>
+        </motion.button>
       </section>
 
       {/* Export Modal */}
