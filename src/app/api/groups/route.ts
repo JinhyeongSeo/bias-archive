@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getGroups, createGroup } from '@/lib/groups'
 import { createClient } from '@/lib/supabase-server'
+import type { GroupInsert } from '@/types/database'
 
 /**
  * GET /api/groups
@@ -8,8 +8,15 @@ import { createClient } from '@/lib/supabase-server'
  */
 export async function GET() {
   try {
-    const groups = await getGroups()
-    return NextResponse.json(groups)
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('groups')
+      .select('*')
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('name', { ascending: true })
+
+    if (error) throw error
+    return NextResponse.json(data ?? [])
   } catch (error) {
     console.error('Error getting groups:', error)
     return NextResponse.json(
@@ -25,7 +32,6 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -45,7 +51,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const group = await createGroup(name, nameEn, nameKo, user.id)
+    const groupInsert: GroupInsert = {
+      name,
+      name_en: nameEn || null,
+      name_ko: nameKo || null,
+      user_id: user.id,
+    }
+
+    const { data: group, error } = await supabase
+      .from('groups')
+      .insert([groupInsert])
+      .select()
+      .single()
+
+    if (error) throw error
     return NextResponse.json(group, { status: 201 })
   } catch (error) {
     console.error('Error creating group:', error)

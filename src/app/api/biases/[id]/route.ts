@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getBias, updateBias, deleteBias } from '@/lib/biases'
 import { createClient } from '@/lib/supabase-server'
 
 type RouteParams = {
@@ -12,14 +11,23 @@ type RouteParams = {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const supabase = await createClient()
     const { id } = await params
-    const bias = await getBias(id)
 
-    if (!bias) {
-      return NextResponse.json(
-        { error: '최애를 찾을 수 없습니다' },
-        { status: 404 }
-      )
+    const { data: bias, error } = await supabase
+      .from('biases')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json(
+          { error: '최애를 찾을 수 없습니다' },
+          { status: 404 }
+        )
+      }
+      throw error
     }
 
     return NextResponse.json(bias)
@@ -39,7 +47,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    // Check authentication
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -53,7 +60,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const body = await request.json()
     const { name, groupName, nameEn, nameKo } = body
 
-    // Validate required field
     if (!name || typeof name !== 'string' || name.trim() === '') {
       return NextResponse.json(
         { error: '이름은 필수입니다' },
@@ -61,13 +67,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const bias = await updateBias(
-      id,
-      name.trim(),
-      groupName?.trim() || null,
-      nameEn?.trim() || null,
-      nameKo?.trim() || null
-    )
+    const { data: bias, error } = await supabase
+      .from('biases')
+      .update({
+        name: name.trim(),
+        group_name: groupName?.trim() ?? null,
+        name_en: nameEn?.trim() ?? null,
+        name_ko: nameKo?.trim() ?? null,
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
     return NextResponse.json(bias)
   } catch (error) {
     console.error('Error updating bias:', error)
@@ -84,7 +96,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    // Check authentication
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -95,7 +106,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id } = await params
-    await deleteBias(id)
+    const { error } = await supabase
+      .from('biases')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting bias:', error)

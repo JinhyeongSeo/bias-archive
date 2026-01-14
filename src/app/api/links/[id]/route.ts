@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getLinkById, deleteLink } from '@/lib/links'
 import { createClient } from '@/lib/supabase-server'
 
 interface RouteParams {
@@ -12,6 +11,7 @@ interface RouteParams {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const supabase = await createClient()
     const { id } = await params
 
     if (!id) {
@@ -21,13 +21,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const link = await getLinkById(id)
+    const { data: link, error } = await supabase
+      .from('links')
+      .select('*')
+      .eq('id', id)
+      .single()
 
-    if (!link) {
-      return NextResponse.json(
-        { error: '링크를 찾을 수 없습니다' },
-        { status: 404 }
-      )
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json(
+          { error: '링크를 찾을 수 없습니다' },
+          { status: 404 }
+        )
+      }
+      throw error
     }
 
     return NextResponse.json(link)
@@ -46,7 +53,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    // Check authentication
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -66,15 +72,25 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if link exists
-    const link = await getLinkById(id)
-    if (!link) {
+    const { data: link, error: fetchError } = await supabase
+      .from('links')
+      .select('id')
+      .eq('id', id)
+      .single()
+
+    if (fetchError || !link) {
       return NextResponse.json(
         { error: '링크를 찾을 수 없습니다' },
         { status: 404 }
       )
     }
 
-    await deleteLink(id)
+    const { error } = await supabase
+      .from('links')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
 
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (error) {

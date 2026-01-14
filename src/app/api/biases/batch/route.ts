@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { getOrCreateGroup } from '@/lib/groups'
 import { createClient } from '@/lib/supabase-server'
-import type { BiasInsert } from '@/types/database'
+import type { BiasInsert, GroupInsert } from '@/types/database'
 
 interface GroupInfo {
   name: string
@@ -31,9 +29,8 @@ interface BatchRequest {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const serverClient = await createClient()
-    const { data: { user } } = await serverClient.auth.getUser()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json(
         { error: '로그인이 필요합니다' },
@@ -54,13 +51,34 @@ export async function POST(request: NextRequest) {
     // Get or create the group record if group info is provided
     let groupId: string | null = null
     if (group?.name) {
-      const groupRecord = await getOrCreateGroup(
-        group.name,
-        group.nameEn,
-        group.nameKo,
-        user.id
+      // Try to find existing group by name
+      const { data: existingGroups } = await supabase.from('groups').select('*')
+      const nameLower = group.name.toLowerCase()
+      const existingGroup = (existingGroups ?? []).find(
+        (g) =>
+          g.name.toLowerCase() === nameLower ||
+          g.name_en?.toLowerCase() === nameLower ||
+          g.name_ko?.toLowerCase() === nameLower
       )
-      groupId = groupRecord.id
+
+      if (existingGroup) {
+        groupId = existingGroup.id
+      } else {
+        // Create new group
+        const groupInsert: GroupInsert = {
+          name: group.name,
+          name_en: group.nameEn || null,
+          name_ko: group.nameKo || null,
+          user_id: user.id,
+        }
+        const { data: newGroup, error: groupError } = await supabase
+          .from('groups')
+          .insert([groupInsert])
+          .select()
+          .single()
+        if (groupError) throw groupError
+        groupId = newGroup.id
+      }
     }
 
     // Get existing biases to check for duplicates
@@ -68,9 +86,7 @@ export async function POST(request: NextRequest) {
       .from('biases')
       .select('name')
 
-    if (fetchError) {
-      throw fetchError
-    }
+    if (fetchError) throw fetchError
 
     // Create a set of existing names for quick lookup
     const existingNames = new Set(
@@ -107,9 +123,7 @@ export async function POST(request: NextRequest) {
       .from('biases')
       .insert(insertData)
 
-    if (insertError) {
-      throw insertError
-    }
+    if (insertError) throw insertError
 
     return NextResponse.json({
       added: newMembers.length,

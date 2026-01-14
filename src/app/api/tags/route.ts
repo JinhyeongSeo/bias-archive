@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getTags, createTag, getTagsInUse } from '@/lib/tags'
 import { createClient } from '@/lib/supabase-server'
 
 /**
@@ -10,11 +9,39 @@ import { createClient } from '@/lib/supabase-server'
  */
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createClient()
     const { searchParams } = new URL(request.url)
     const showAll = searchParams.get('all') === 'true'
 
-    const tags = showAll ? await getTags() : await getTagsInUse()
-    return NextResponse.json(tags)
+    if (showAll) {
+      // Return all tags
+      const { data, error } = await supabase
+        .from('tags')
+        .select('*')
+        .order('name', { ascending: true })
+      if (error) throw error
+      return NextResponse.json(data ?? [])
+    } else {
+      // Return only tags that are in use
+      const { data: linkTags, error } = await supabase
+        .from('link_tags')
+        .select('tag_id, tags(*)')
+
+      if (error) throw error
+
+      // Get unique tags
+      const uniqueTags = new Map()
+      for (const lt of linkTags ?? []) {
+        if (lt.tags && !uniqueTags.has(lt.tag_id)) {
+          uniqueTags.set(lt.tag_id, lt.tags)
+        }
+      }
+
+      const tags = Array.from(uniqueTags.values()).sort((a, b) =>
+        a.name.localeCompare(b.name)
+      )
+      return NextResponse.json(tags)
+    }
   } catch (error) {
     console.error('Error fetching tags:', error)
     return NextResponse.json(
@@ -31,7 +58,6 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -44,7 +70,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name } = body
 
-    // Validate required field
     if (!name || typeof name !== 'string') {
       return NextResponse.json(
         { error: '태그 이름은 필수입니다' },
@@ -52,7 +77,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Trim and validate name
     const trimmedName = name.trim()
     if (trimmedName.length === 0) {
       return NextResponse.json(
@@ -61,7 +85,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const tag = await createTag(trimmedName, user.id)
+    const { data: tag, error } = await supabase
+      .from('tags')
+      .insert([{ name: trimmedName, user_id: user.id }])
+      .select()
+      .single()
+
+    if (error) throw error
     return NextResponse.json(tag, { status: 201 })
   } catch (error) {
     console.error('Error creating tag:', error)
