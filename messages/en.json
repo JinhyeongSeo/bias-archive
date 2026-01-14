@@ -15,7 +15,8 @@
   "sidebar": {
     "search": "Search",
     "searchPlaceholder": "Search title, description, author...",
-    "externalSearch": "External Search (YouTube, Twitter)",
+    "unifiedSearch": "Unified Search",
+    "externalSearch": "Platform Search",
     "platform": "Platform",
     "platformAll": "All",
     "biasList": "Bias List",

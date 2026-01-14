@@ -7,9 +7,11 @@ import { LinkForm } from '@/components/LinkForm'
 import { LinkList } from '@/components/LinkList'
 import { Sidebar } from '@/components/Sidebar'
 import { ExternalSearch } from '@/components/ExternalSearch'
+import { UnifiedSearch } from '@/components/UnifiedSearch'
 import { LayoutToggle } from '@/components/LayoutToggle'
 import { Timeline } from '@/components/Timeline'
 import { useMobileMenu } from '@/contexts/MobileMenuContext'
+import type { Bias, Group } from '@/types/database'
 
 type LayoutType = 'grid' | 'list'
 
@@ -26,8 +28,35 @@ function HomeContent() {
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
   const [savedUrls, setSavedUrls] = useState<string[]>([])
   const [isExternalSearchOpen, setIsExternalSearchOpen] = useState(false)
+  const [isUnifiedSearchOpen, setIsUnifiedSearchOpen] = useState(false)
   const [layout, setLayout] = useState<LayoutType>('grid')
   const { isOpen: isMobileMenuOpen, close: closeMobileMenu } = useMobileMenu()
+
+  // Biases and groups for UnifiedSearch
+  const [biases, setBiases] = useState<Bias[]>([])
+  const [groups, setGroups] = useState<Group[]>([])
+
+  // Fetch biases and groups
+  const fetchBiasesAndGroups = useCallback(async () => {
+    try {
+      const [biasesRes, groupsRes] = await Promise.all([
+        fetch('/api/biases'),
+        fetch('/api/groups'),
+      ])
+      if (biasesRes.ok) {
+        setBiases(await biasesRes.json())
+      }
+      if (groupsRes.ok) {
+        setGroups(await groupsRes.json())
+      }
+    } catch (error) {
+      console.error('Error fetching biases/groups:', error)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchBiasesAndGroups()
+  }, [fetchBiasesAndGroups, refreshTrigger])
 
   // Load tag from URL parameter on mount
   useEffect(() => {
@@ -89,6 +118,7 @@ function HomeContent() {
         selectedPlatform={selectedPlatform}
         onSelectPlatform={setSelectedPlatform}
         onOpenExternalSearch={() => setIsExternalSearchOpen(true)}
+        onOpenUnifiedSearch={() => setIsUnifiedSearchOpen(true)}
         isOpen={isMobileMenuOpen}
         onClose={closeMobileMenu}
       />
@@ -130,6 +160,16 @@ function HomeContent() {
         onClose={() => setIsExternalSearchOpen(false)}
         savedUrls={savedUrls}
         onSave={handleSave}
+      />
+
+      {/* Unified Search Modal */}
+      <UnifiedSearch
+        isOpen={isUnifiedSearchOpen}
+        onClose={() => setIsUnifiedSearchOpen(false)}
+        savedUrls={savedUrls}
+        onSave={handleSave}
+        biases={biases}
+        groups={groups}
       />
     </div>
   )

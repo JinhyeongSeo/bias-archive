@@ -29,6 +29,7 @@ interface SidebarProps {
   selectedPlatform?: string | null
   onSelectPlatform?: (platform: string | null) => void
   onOpenExternalSearch?: () => void
+  onOpenUnifiedSearch?: () => void
   // Mobile drawer
   isOpen?: boolean
   onClose?: () => void
@@ -43,6 +44,7 @@ export function Sidebar({
   selectedPlatform,
   onSelectPlatform,
   onOpenExternalSearch,
+  onOpenUnifiedSearch,
   isOpen = false,
   onClose,
 }: SidebarProps) {
@@ -322,7 +324,25 @@ export function Sidebar({
         />
       </section>
 
-      {/* External Search Button */}
+      {/* Unified Search Button (Primary) */}
+      <section className="mb-3">
+        <motion.button
+          onClick={() => {
+            onOpenUnifiedSearch?.()
+            onClose?.()
+          }}
+          className="w-full px-3 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-dark rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+          whileTap={{ scale: 0.97 }}
+          transition={quickSpring}
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span>{t('sidebar.unifiedSearch')}</span>
+        </motion.button>
+      </section>
+
+      {/* External Search Button (Secondary) */}
       <section className="mb-6">
         <motion.button
           onClick={() => {
@@ -334,7 +354,7 @@ export function Sidebar({
           transition={quickSpring}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
           <span>{t('sidebar.externalSearch')}</span>
         </motion.button>

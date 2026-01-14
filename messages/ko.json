@@ -15,7 +15,8 @@
   "sidebar": {
     "search": "검색",
     "searchPlaceholder": "제목, 설명, 작성자 검색...",
-    "externalSearch": "외부 검색 (YouTube, Twitter)",
+    "unifiedSearch": "통합 검색",
+    "externalSearch": "플랫폼별 검색",
     "platform": "플랫폼",
     "platformAll": "전체",
     "biasList": "최애 목록",
