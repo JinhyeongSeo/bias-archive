@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import type { Bias, BiasWithGroup, Group } from '@/types/database'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
 import { useLocale } from 'next-intl'
@@ -28,11 +29,12 @@ interface BiasManagerProps {
   groups: Group[]
   onBiasAdded: () => void
   onBiasDeleted: () => void
+  onBiasReordered?: () => void
 }
 
 const COLLAPSED_GROUPS_KEY = 'bias-manager-collapsed-groups'
 
-export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted }: BiasManagerProps) {
+export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBiasReordered }: BiasManagerProps) {
   const { getDisplayName, nameLanguage } = useNameLanguage()
   const locale = useLocale()
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -58,6 +60,15 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted }: Bias
   const [isBatchAdding, setIsBatchAdding] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
 
+  // Local bias order for optimistic updates during drag
+  const [localBiases, setLocalBiases] = useState<Bias[]>(biases)
+  const [isReordering, setIsReordering] = useState(false)
+
+  // Sync localBiases when biases prop changes (from server)
+  useEffect(() => {
+    setLocalBiases(biases)
+  }, [biases])
+
   const dropdownRef = useRef<HTMLDivElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -80,8 +91,8 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted }: Bias
       groupMap.set(group.id, group)
     }
 
-    // Create BiasWithGroup objects
-    const biasesWithGroups: BiasWithGroup[] = biases.map((bias) => ({
+    // Create BiasWithGroup objects (use localBiases for optimistic updates)
+    const biasesWithGroups: BiasWithGroup[] = localBiases.map((bias) => ({
       ...bias,
       group: bias.group_id ? groupMap.get(bias.group_id) ?? null : null,
     }))
@@ -126,7 +137,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted }: Bias
     }
 
     return result
-  }, [biases, groups])
+  }, [localBiases, groups])
 
   // Save collapsed groups to localStorage
   const toggleGroupCollapse = useCallback((groupId: string) => {
@@ -159,6 +170,83 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted }: Bias
       return group.name_ko || group.name
     }
   }, [nameLanguage, locale])
+
+  // Handle drag end for reordering biases within a group
+  const handleDragEnd = useCallback(async (result: DropResult) => {
+    const { source, destination, draggableId } = result
+
+    // Dropped outside a valid droppable
+    if (!destination) return
+
+    // Dropped in a different group - not allowed in this phase
+    if (source.droppableId !== destination.droppableId) return
+
+    // Dropped in the same position
+    if (source.index === destination.index) return
+
+    // Find the group's biases
+    const groupId = source.droppableId === 'ungrouped' ? null : source.droppableId
+    const groupBiases = groupedBiases.find(
+      (g) => (g.group?.id || 'ungrouped') === source.droppableId
+    )?.biases
+
+    if (!groupBiases) return
+
+    // Reorder within the group
+    const reorderedGroupBiases = Array.from(groupBiases)
+    const [movedItem] = reorderedGroupBiases.splice(source.index, 1)
+    reorderedGroupBiases.splice(destination.index, 0, movedItem)
+
+    // Build new full bias list maintaining other groups' order
+    const newLocalBiases = localBiases.map((bias) => {
+      // Find if this bias is in the reordered group
+      const newIndex = reorderedGroupBiases.findIndex((b) => b.id === bias.id)
+      if (newIndex !== -1) {
+        return { ...bias, sort_order: newIndex }
+      }
+      return bias
+    })
+
+    // Sort by the new order within groups
+    newLocalBiases.sort((a, b) => {
+      // Same group? Sort by new sort_order
+      if (a.group_id === b.group_id) {
+        return (a.sort_order ?? 0) - (b.sort_order ?? 0)
+      }
+      // Different groups - maintain original relative order
+      return 0
+    })
+
+    // Optimistic update
+    setLocalBiases(newLocalBiases)
+    setIsReordering(true)
+
+    try {
+      // Get ordered IDs for ALL biases in the affected group
+      const orderedIds = reorderedGroupBiases.map((b) => b.id)
+
+      const response = await fetch('/api/biases/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds }),
+      })
+
+      if (!response.ok) {
+        // Rollback on failure
+        setLocalBiases(biases)
+        console.error('Failed to save reorder')
+      } else {
+        // Notify parent to refresh data
+        onBiasReordered?.()
+      }
+    } catch (error) {
+      // Rollback on error
+      setLocalBiases(biases)
+      console.error('Error saving reorder:', error)
+    } finally {
+      setIsReordering(false)
+    }
+  }, [groupedBiases, localBiases, biases, onBiasReordered])
 
   // Debounced group search
   const searchGroups = useCallback(async (query: string) => {
@@ -388,70 +476,110 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted }: Bias
 
   return (
     <div className="space-y-2">
-      {/* Grouped bias list */}
+      {/* Grouped bias list with drag and drop */}
       {groupedBiases.length > 0 && (
-        <div className="space-y-1">
-          {groupedBiases.map(({ group, biases: groupBiases }) => {
-            const groupId = group?.id || 'ungrouped'
-            const isCollapsed = collapsedGroups.has(groupId)
-            const groupDisplayName = group ? getGroupDisplayName(group) : '그룹 없음'
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="space-y-1">
+            {groupedBiases.map(({ group, biases: groupBiases }) => {
+              const groupId = group?.id || 'ungrouped'
+              const isCollapsed = collapsedGroups.has(groupId)
+              const groupDisplayName = group ? getGroupDisplayName(group) : '그룹 없음'
 
-            return (
-              <div key={groupId}>
-                {/* Group header */}
-                <button
-                  type="button"
-                  onClick={() => toggleGroupCollapse(groupId)}
-                  className="w-full flex items-center gap-1 px-2 py-1 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-                >
-                  <svg
-                    className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+              return (
+                <div key={groupId}>
+                  {/* Group header */}
+                  <button
+                    type="button"
+                    onClick={() => toggleGroupCollapse(groupId)}
+                    className="w-full flex items-center gap-1 px-2 py-1 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                  <span>{groupDisplayName}</span>
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">
-                    ({groupBiases.length})
-                  </span>
-                </button>
+                    <svg
+                      className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span>{groupDisplayName}</span>
+                    <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">
+                      ({groupBiases.length})
+                    </span>
+                  </button>
 
-                {/* Group members */}
-                {!isCollapsed && (
-                  <ul className="ml-4 space-y-0.5">
-                    {groupBiases.map((bias) => (
-                      <li
-                        key={bias.id}
-                        className="flex items-center justify-between group px-2 py-1 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md"
-                      >
-                        <span className="truncate">{getDisplayName(bias)}</span>
-                        <button
-                          onClick={() => handleDelete(bias.id, getDisplayName(bias))}
-                          disabled={deletingId === bias.id}
-                          className="opacity-0 group-hover:opacity-100 ml-2 p-0.5 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50"
-                          title="삭제"
+                  {/* Group members - Droppable area */}
+                  {!isCollapsed && (
+                    <Droppable droppableId={groupId}>
+                      {(provided, snapshot) => (
+                        <ul
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          className={`ml-4 space-y-0.5 min-h-[2rem] rounded-md transition-colors ${
+                            snapshot.isDraggingOver ? 'bg-pink-50 dark:bg-pink-900/20' : ''
+                          }`}
                         >
-                          {deletingId === bias.id ? (
-                            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          )}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )
-          })}
-        </div>
+                          {groupBiases.map((bias, index) => (
+                            <Draggable key={bias.id} draggableId={bias.id} index={index}>
+                              {(provided, snapshot) => (
+                                <li
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className={`flex items-center justify-between group px-2 py-1 text-sm text-zinc-700 dark:text-zinc-300 rounded-md transition-all ${
+                                    snapshot.isDragging
+                                      ? 'bg-white dark:bg-zinc-800 shadow-lg ring-2 ring-pink-500/50'
+                                      : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                  }`}
+                                >
+                                  {/* Drag handle */}
+                                  <div
+                                    {...provided.dragHandleProps}
+                                    className="flex items-center gap-1 flex-1 min-w-0 cursor-grab active:cursor-grabbing"
+                                  >
+                                    <svg
+                                      className="w-4 h-4 text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                      viewBox="0 0 24 24"
+                                      fill="currentColor"
+                                    >
+                                      <circle cx="9" cy="6" r="1.5" />
+                                      <circle cx="15" cy="6" r="1.5" />
+                                      <circle cx="9" cy="12" r="1.5" />
+                                      <circle cx="15" cy="12" r="1.5" />
+                                      <circle cx="9" cy="18" r="1.5" />
+                                      <circle cx="15" cy="18" r="1.5" />
+                                    </svg>
+                                    <span className="truncate">{getDisplayName(bias)}</span>
+                                  </div>
+                                  <button
+                                    onClick={() => handleDelete(bias.id, getDisplayName(bias))}
+                                    disabled={deletingId === bias.id}
+                                    className="opacity-0 group-hover:opacity-100 ml-2 p-0.5 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50 flex-shrink-0"
+                                    title="삭제"
+                                  >
+                                    {deletingId === bias.id ? (
+                                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                      </svg>
+                                    ) : (
+                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                </li>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </ul>
+                      )}
+                    </Droppable>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </DragDropContext>
       )}
 
       {/* Empty state */}
