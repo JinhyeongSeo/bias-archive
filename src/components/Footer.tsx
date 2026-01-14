@@ -17,7 +17,7 @@ export function Footer() {
             <div className="flex items-center gap-3">
               {/* GitHub */}
               <a
-                href="#"
+                href="https://github.com/JinhyeongSeo/bias-archive"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
@@ -43,7 +43,7 @@ export function Footer() {
 
               {/* Email */}
               <a
-                href="mailto:contact@example.com"
+                href="mailto:jh4clover@gmail.com"
                 className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
                 aria-label={t('email')}
               >
