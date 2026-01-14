@@ -2,22 +2,58 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #18181b;
+
+  /* Card and surface colors */
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --surface: #fafafa;
+  --surface-foreground: #27272a;
+
+  /* Border colors */
+  --border: #e4e4e7;
+  --border-subtle: #f4f4f5;
+
+  /* Muted colors */
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
 
   /* Toss-style colors */
   --toss-blue: #3182f6;
   --toss-blue-light: #e8f3ff;
   --toss-blue-dark: #1b64da;
+
+  /* Accent colors */
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #09090b;
+  --foreground: #fafafa;
+
+  /* Card and surface colors */
+  --card: #18181b;
+  --card-foreground: #fafafa;
+  --surface: #0a0a0a;
+  --surface-foreground: #e4e4e7;
+
+  /* Border colors */
+  --border: #27272a;
+  --border-subtle: #18181b;
+
+  /* Muted colors */
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
 
   /* Toss-style colors (dark mode) */
   --toss-blue: #4593fc;
   --toss-blue-light: #1e3a5f;
   --toss-blue-dark: #6ba8ff;
+
+  /* Accent colors */
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
 }
 
 @theme inline {
@@ -25,6 +61,24 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Card and surface colors for Tailwind */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+
+  /* Border colors for Tailwind */
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+
+  /* Muted colors for Tailwind */
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  /* Accent colors for Tailwind */
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
 
   /* Toss-style colors for Tailwind */
   --color-toss-blue: var(--toss-blue);
