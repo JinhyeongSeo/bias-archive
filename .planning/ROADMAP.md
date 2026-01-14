@@ -38,6 +38,7 @@ None
 - [x] **Phase 15: Group-Based Bias Organization** - 그룹 테이블 추가, 최애를 그룹별로 분류/표시 ✓
 - [x] **Phase 16: Drag & Drop Reorder** - 태그/최애 순서를 드래그로 변경 ✓
 - [x] **Phase 17: External Media Proxy** - 핫링크 보호 미디어 외부 프록시 전환 ✓
+- [x] **Phase 18: Footer Contact** - 연락처 정보가 담긴 Footer 컴포넌트 추가 ✓
 
 ## Phase Details
 
@@ -296,6 +297,23 @@ Plans:
 - [x] 17-01: wsrv.nl 이미지 프록시 적용 ✓
 - [x] 17-02: Cloudflare Worker 비디오 프록시 배포 ✓
 
+### Phase 18: Footer Contact
+
+**Goal**: 연락처 정보(이메일, SNS 등)가 담긴 Footer 컴포넌트 추가
+**Depends on**: Phase 17
+**Research**: Unlikely (UI 컴포넌트)
+**Plans**: TBD
+
+**기능 설명:**
+
+- 페이지 하단에 고정 Footer 표시
+- 연락처 정보: 이메일, GitHub, Twitter/X 등
+- 반응형 디자인 (모바일/데스크톱)
+- 다크모드 지원
+
+Plans:
+- [x] 18-01: Footer 컴포넌트 및 연락처 정보 ✓
+
 ## Progress
 
 **Execution Order:**
@@ -320,3 +338,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 15. Group-Based Bias Organization | v1.2 | 2/2 | Complete | 2026-01-14 |
 | 16. Drag & Drop Reorder | v1.3 | 2/2 | Complete | 2026-01-14 |
 | 17. External Media Proxy | v1.3 | 2/2 | Complete | 2026-01-14 |
+| 18. Footer Contact | - | 1/1 | Complete | 2026-01-14 |
