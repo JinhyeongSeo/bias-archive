@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getBiases, createBias } from '@/lib/biases'
-import { getOrCreateGroup } from '@/lib/groups'
 import { createClient } from '@/lib/supabase-server'
+import type { BiasInsert, GroupInsert } from '@/types/database'
 
 /**
  * GET /api/biases
@@ -9,8 +8,15 @@ import { createClient } from '@/lib/supabase-server'
  */
 export async function GET() {
   try {
-    const biases = await getBiases()
-    return NextResponse.json(biases)
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('biases')
+      .select('*')
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return NextResponse.json(data ?? [])
   } catch (error) {
     console.error('Error fetching biases:', error)
     return NextResponse.json(
@@ -63,23 +69,57 @@ export async function POST(request: NextRequest) {
     // Get or create group if group info is provided
     let groupId: string | null = null
     if (group?.name) {
-      const groupRecord = await getOrCreateGroup(
-        group.name,
-        group.nameEn,
-        group.nameKo,
-        user.id
+      // Try to find existing group by name
+      const { data: existingGroups } = await supabase
+        .from('groups')
+        .select('*')
+
+      const nameLower = group.name.toLowerCase()
+      const existingGroup = (existingGroups ?? []).find(
+        (g) =>
+          g.name.toLowerCase() === nameLower ||
+          g.name_en?.toLowerCase() === nameLower ||
+          g.name_ko?.toLowerCase() === nameLower
       )
-      groupId = groupRecord.id
+
+      if (existingGroup) {
+        groupId = existingGroup.id
+      } else {
+        // Create new group with authenticated client
+        const groupInsert: GroupInsert = {
+          name: group.name,
+          name_en: group.nameEn || null,
+          name_ko: group.nameKo || null,
+          user_id: user.id,
+        }
+        const { data: newGroup, error: groupError } = await supabase
+          .from('groups')
+          .insert([groupInsert])
+          .select()
+          .single()
+
+        if (groupError) throw groupError
+        groupId = newGroup.id
+      }
     }
 
-    const bias = await createBias(
-      name.trim(),
-      groupName?.trim() || null,
-      nameEn?.trim() || null,
-      nameKo?.trim() || null,
-      groupId,
-      user.id
-    )
+    // Create bias with authenticated client
+    const biasInsert: BiasInsert = {
+      name: name.trim(),
+      group_name: groupName?.trim() || null,
+      name_en: nameEn?.trim() || null,
+      name_ko: nameKo?.trim() || null,
+      group_id: groupId,
+      user_id: user.id,
+    }
+
+    const { data: bias, error: biasError } = await supabase
+      .from('biases')
+      .insert([biasInsert])
+      .select()
+      .single()
+
+    if (biasError) throw biasError
     return NextResponse.json(bias, { status: 201 })
   } catch (error) {
     console.error('Error creating bias:', error)
