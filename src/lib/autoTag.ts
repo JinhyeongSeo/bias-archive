@@ -57,6 +57,8 @@ function isNameInText(text: string, name: string): boolean {
  * const biases = [{name: 'RORA', name_en: 'RORA', name_ko: '로라', group_name: 'BABYMONSTER'}]
  * extractAutoTags('RORA fancam video', biases) // ['RORA']
  * extractAutoTags('로라 직캠', biases) // ['RORA'] - Korean name also matches
+ * extractAutoTags('BABYMONSTER stage', biases) // ['BABYMONSTER'] - Group name as tag
+ * extractAutoTags('BABYMONSTER RORA fancam', biases) // ['RORA', 'BABYMONSTER'] - Both member and group
  */
 export function extractAutoTags(text: string, biases: Bias[]): string[] {
   if (!text || !biases || biases.length === 0) {
@@ -86,9 +88,9 @@ export function extractAutoTags(text: string, biases: Bias[]): string[] {
     }
 
     // Check for group name match
-    // If group name matches, add all member names from that group
+    // If group name matches, add the group name itself as a tag (not individual members)
     if (bias.group_name && isNameInText(normalizedText, bias.group_name)) {
-      matchedTags.add(bias.name)
+      matchedTags.add(bias.group_name)
     }
   }
 
