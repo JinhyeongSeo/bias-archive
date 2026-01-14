@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
+import { slideUp, basicSpring, pressScale, quickSpring } from '@/lib/animations'
 
 interface AuthFormProps {
   mode: 'login' | 'signup'
@@ -64,7 +66,13 @@ export function AuthForm({ mode }: AuthFormProps) {
   const isLogin = mode === 'login'
 
   return (
-    <div className="w-full max-w-md mx-auto p-6">
+    <motion.div
+      className="w-full max-w-md mx-auto p-6"
+      variants={slideUp}
+      initial="initial"
+      animate="animate"
+      transition={basicSpring}
+    >
       <h1 className="text-2xl font-bold text-center mb-8">
         {isLogin ? t('login') : t('signup')}
       </h1>
@@ -128,38 +136,55 @@ export function AuthForm({ mode }: AuthFormProps) {
           </div>
         )}
 
-        {error && (
-          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
-            {error}
-          </div>
-        )}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={quickSpring}
+            >
+              {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {success && (
-          <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm">
-            {success}
-          </div>
-        )}
+        <AnimatePresence>
+          {success && (
+            <motion.div
+              className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={quickSpring}
+            >
+              {success}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <button
+        <motion.button
           type="submit"
           disabled={loading}
           className="w-full py-2 px-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+          {...pressScale}
         >
           {loading
             ? (isLogin ? t('loggingIn') : t('signingUp'))
             : (isLogin ? t('loginButton') : t('signupButton'))}
-        </button>
+        </motion.button>
       </form>
 
       <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
         {isLogin ? t('noAccount') : t('hasAccount')}{' '}
         <Link
           href={isLogin ? `/${locale}/signup` : `/${locale}/login`}
-          className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+          className="text-blue-500 hover:opacity-70 dark:text-blue-400 font-medium transition-opacity"
         >
           {isLogin ? t('signup') : t('login')}
         </Link>
       </p>
-    </div>
+    </motion.div>
   )
 }
