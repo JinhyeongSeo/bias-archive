@@ -43,13 +43,20 @@ function isNameInText(text: string, name: string): boolean {
 /**
  * Extract auto tags from text content based on registered biases
  *
+ * Supports bidirectional name matching (영어/한글 양방향 매칭):
+ * - Matches against bias.name (display name)
+ * - Matches against bias.name_en (English name, if set)
+ * - Matches against bias.name_ko (Korean name, if set)
+ * - Any match returns bias.name as the tag (consistent display)
+ *
  * @param text - Combined text from title + description + author_name
  * @param biases - List of registered biases to match against
  * @returns Array of matched bias names (deduplicated)
  *
  * @example
- * const biases = [{name: 'RORA', group_name: 'BABYMONSTER'}]
+ * const biases = [{name: 'RORA', name_en: 'RORA', name_ko: '로라', group_name: 'BABYMONSTER'}]
  * extractAutoTags('RORA fancam video', biases) // ['RORA']
+ * extractAutoTags('로라 직캠', biases) // ['RORA'] - Korean name also matches
  */
 export function extractAutoTags(text: string, biases: Bias[]): string[] {
   if (!text || !biases || biases.length === 0) {
@@ -60,9 +67,22 @@ export function extractAutoTags(text: string, biases: Bias[]): string[] {
   const matchedTags = new Set<string>()
 
   for (const bias of biases) {
-    // Check for member name match
+    // Check for member name match (display name)
     if (bias.name && isNameInText(normalizedText, bias.name)) {
       matchedTags.add(bias.name)
+      continue // Already matched, skip other checks for this bias
+    }
+
+    // Check for English name match (양방향 매칭)
+    if (bias.name_en && isNameInText(normalizedText, bias.name_en)) {
+      matchedTags.add(bias.name)
+      continue
+    }
+
+    // Check for Korean name match (양방향 매칭)
+    if (bias.name_ko && isNameInText(normalizedText, bias.name_ko)) {
+      matchedTags.add(bias.name)
+      continue
     }
 
     // Check for group name match
