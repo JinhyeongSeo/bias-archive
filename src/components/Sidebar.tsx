@@ -382,10 +382,10 @@ export function Sidebar({
                 {group && groupTag ? (
                   <motion.button
                     onClick={() => handleTagClick(groupTag.id)}
-                    className={`px-1 py-0.5 text-xs font-medium transition-smooth rounded ${
+                    className={`px-1 py-0.5 text-xs font-medium transition-smooth ${
                       selectedTagId === groupTag.id
                         ? 'text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
+                        : 'text-muted-foreground hover:text-primary hover:underline'
                     }`}
                     whileTap={{ scale: 0.95 }}
                     transition={quickSpring}
