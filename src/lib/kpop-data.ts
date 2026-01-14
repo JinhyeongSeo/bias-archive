@@ -66,3 +66,59 @@ export function getGroupMembers(groupId: string): KpopMember[] {
     })
     .filter((member): member is KpopMember => member !== null)
 }
+
+// Types for member search with group info
+export interface KpopMemberWithGroup {
+  id: string
+  name: string
+  name_original: string
+  group: {
+    id: string
+    name: string
+    name_original: string
+  } | null
+}
+
+/**
+ * Search for K-pop idols by name (English or Korean)
+ * Returns top 10 matches with their group info
+ */
+export function searchMembers(query: string): KpopMemberWithGroup[] {
+  const normalizedQuery = query.toLowerCase().trim()
+  if (!normalizedQuery) {
+    return []
+  }
+
+  // Create a map from idol_id to group for quick lookup
+  const idolToGroup = new Map<string, typeof kpopData.groups[0]>()
+  for (const group of kpopData.groups) {
+    for (const member of group.members) {
+      idolToGroup.set(member.idol_id, group)
+    }
+  }
+
+  const matches = kpopData.idols
+    .filter((idol) => {
+      const nameMatch = idol.name.toLowerCase().includes(normalizedQuery)
+      const originalMatch = idol.name_original.toLowerCase().includes(normalizedQuery)
+      return nameMatch || originalMatch
+    })
+    .map((idol) => {
+      const group = idolToGroup.get(idol.id)
+      return {
+        id: idol.id,
+        name: idol.name,
+        name_original: idol.name_original,
+        group: group
+          ? {
+              id: group.id,
+              name: group.name,
+              name_original: group.name_original,
+            }
+          : null,
+      }
+    })
+    .slice(0, 10)
+
+  return matches
+}
