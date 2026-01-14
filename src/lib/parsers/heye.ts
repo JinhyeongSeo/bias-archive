@@ -85,13 +85,17 @@ export async function parseHeye(url: string): Promise<VideoMetadata> {
 
     // Pattern 1: heye.kr native images - https://img1.heye.kr/image/idol/YYYY/MM/timestamp.ext
     // Only get heye.kr hosted content (imgur, daum cdn are ads)
-    const heyePattern = /https?:\/\/img1\.heye\.kr\/image\/idol\/\d{4}\/\d{2}\/\d+\.(jpeg|jpg|png|gif)/gi
-    for (const match of html.matchAll(heyePattern)) {
+    const heyeImagePattern = /https?:\/\/img1\.heye\.kr\/image\/idol\/\d{4}\/\d{2}\/\d+\.(jpeg|jpg|png|gif)/gi
+    for (const match of html.matchAll(heyeImagePattern)) {
       addMedia(match[0])
     }
 
-    // Note: heye.kr videos are hotlink-protected and cannot be played externally
-    // So we skip video extraction - only images are supported
+    // Pattern 2: heye.kr videos - https://img1.heye.kr/video/idol/YYYY/MM/timestamp.mp4
+    // These are proxied through Cloudflare Worker to bypass hotlink protection
+    const heyeVideoPattern = /https?:\/\/img1\.heye\.kr\/video\/idol\/\d{4}\/\d{2}\/\d+\.mp4/gi
+    for (const match of html.matchAll(heyeVideoPattern)) {
+      addMedia(match[0], 'video')
+    }
 
     // First image is thumbnail
     const thumbnailUrl = media.length > 0 ? media[0].url : null

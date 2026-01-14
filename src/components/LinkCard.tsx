@@ -359,7 +359,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
         {link.thumbnail_url ? (
           isVideoUrl(link.thumbnail_url) ? (
             <video
-              src={link.thumbnail_url}
+              src={getProxiedVideoUrl(link.thumbnail_url)}
               className="absolute inset-0 w-full h-full object-cover"
               muted
               playsInline

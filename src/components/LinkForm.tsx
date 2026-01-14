@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import type { LinkMetadata, Platform } from '@/lib/metadata'
+import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl } from '@/lib/proxy'
 
 interface MetadataPreview extends LinkMetadata {
   url: string
@@ -153,13 +154,24 @@ export function LinkForm({ onSave }: LinkFormProps) {
           <div className="flex gap-4">
             {preview.thumbnailUrl && !imageError && (
               <div className="flex-shrink-0 relative w-32 h-24 rounded-md overflow-hidden bg-zinc-200 dark:bg-zinc-700">
-                <Image
-                  src={preview.thumbnailUrl}
-                  alt={preview.title || 'Thumbnail'}
-                  fill
-                  className="object-cover"
-                  onError={() => setImageError(true)}
-                />
+                {isVideoUrl(preview.thumbnailUrl) ? (
+                  <video
+                    src={getProxiedVideoUrl(preview.thumbnailUrl)}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <Image
+                    src={getProxiedImageUrl(preview.thumbnailUrl)}
+                    alt={preview.title || 'Thumbnail'}
+                    fill
+                    className="object-cover"
+                    onError={() => setImageError(true)}
+                  />
+                )}
               </div>
             )}
             <div className="flex-1 min-w-0">
