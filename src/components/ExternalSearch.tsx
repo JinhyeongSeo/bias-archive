@@ -74,6 +74,10 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
   const [youtubeOrder, setYoutubeOrder] = useState<YouTubeOrder>('relevance')
   const [youtubePeriod, setYoutubePeriod] = useState<YouTubePeriod>('')
 
+  // Multi-select state
+  const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set())
+  const [isBatchSaving, setIsBatchSaving] = useState(false)
+
   // heye.kr pagination state
   const [heyePage, setHeyePage] = useState(1)
   const [heyeTotalPages, setHeyeTotalPages] = useState(0)
@@ -112,6 +116,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       setKgirlsPage(1)
       setKgirlsTotalPages(0)
       setKgirlsBoard('mgall')
+      setSelectedUrls(new Set())
     }
     return () => {
       document.body.style.overflow = ''
@@ -128,8 +133,39 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       setHeyeTotalPages(0)
       setKgirlsPage(1)
       setKgirlsTotalPages(0)
+      setSelectedUrls(new Set())
     }
   }
+
+  // Toggle selection
+  const toggleSelection = (url: string) => {
+    setSelectedUrls(prev => {
+      const next = new Set(prev)
+      if (next.has(url)) {
+        next.delete(url)
+      } else {
+        next.add(url)
+      }
+      return next
+    })
+  }
+
+  // Select all unsaved results
+  const selectAll = () => {
+    const unsavedUrls = results
+      .filter(r => !r.isSaved)
+      .map(r => r.url)
+    setSelectedUrls(new Set(unsavedUrls))
+  }
+
+  // Clear selection
+  const clearSelection = () => {
+    setSelectedUrls(new Set())
+  }
+
+  // Get selectable (unsaved) count
+  const selectableCount = results.filter(r => !r.isSaved).length
+  const selectedCount = selectedUrls.size
 
   const checkIfSaved = useCallback((url: string): boolean => {
     const normalizedUrl = url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
@@ -419,6 +455,100 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     }
   }
 
+  // Batch save selected items
+  const handleBatchSave = async () => {
+    if (selectedUrls.size === 0 || isBatchSaving) return
+
+    setIsBatchSaving(true)
+    const urlsToSave = Array.from(selectedUrls)
+    let savedCount = 0
+    let errorCount = 0
+
+    // Mark all selected as saving
+    setResults(prev => prev.map(r =>
+      selectedUrls.has(r.url) ? { ...r, isSaving: true } : r
+    ))
+
+    for (const url of urlsToSave) {
+      const result = results.find(r => r.url === url)
+      if (!result || result.isSaved) continue
+
+      try {
+        const metaResponse = await fetch('/api/metadata', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        })
+
+        let metadata: {
+          title: string
+          thumbnailUrl: string | null
+          platform: Platform
+          authorName: string
+          media?: { type: string; url: string }[]
+        } = {
+          title: result.title,
+          thumbnailUrl: result.thumbnailUrl,
+          platform: result.platform,
+          authorName: result.author,
+        }
+
+        if (metaResponse.ok) {
+          const fullMetadata = await metaResponse.json()
+          metadata = {
+            title: fullMetadata.title || result.title,
+            thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
+            platform: fullMetadata.platform || result.platform,
+            authorName: fullMetadata.authorName || result.author,
+            media: fullMetadata.media,
+          }
+        }
+
+        const saveResponse = await fetch('/api/links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url,
+            title: metadata.title,
+            thumbnailUrl: metadata.thumbnailUrl,
+            platform: metadata.platform,
+            authorName: metadata.authorName,
+            searchQuery: query,
+            media: metadata.media,
+          }),
+        })
+
+        if (saveResponse.ok || saveResponse.status === 409) {
+          setResults(prev => prev.map(r =>
+            r.url === url ? { ...r, isSaved: true, isSaving: false } : r
+          ))
+          savedCount++
+        } else {
+          setResults(prev => prev.map(r =>
+            r.url === url ? { ...r, isSaving: false } : r
+          ))
+          errorCount++
+        }
+      } catch {
+        setResults(prev => prev.map(r =>
+          r.url === url ? { ...r, isSaving: false } : r
+        ))
+        errorCount++
+      }
+    }
+
+    setSelectedUrls(new Set())
+    setIsBatchSaving(false)
+
+    if (savedCount > 0) {
+      onSave?.()
+    }
+
+    if (errorCount > 0) {
+      alert(`${savedCount}개 저장 완료, ${errorCount}개 실패`)
+    }
+  }
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return ''
     try {
@@ -669,26 +799,75 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                   initial="initial"
                   animate="animate"
                 >
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    {results.length}개의 결과
-                    {platform === 'heye' && heyeTotalPages > 1 && (
-                      <span className="ml-2">
-                        (페이지 {heyePage}/{heyeTotalPages})
-                      </span>
+                  {/* Results header with selection controls */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                      {results.length}개의 결과
+                      {platform === 'heye' && heyeTotalPages > 1 && (
+                        <span className="ml-2">
+                          (페이지 {heyePage}/{heyeTotalPages})
+                        </span>
+                      )}
+                      {platform === 'kgirls' && kgirlsTotalPages > 1 && (
+                        <span className="ml-2">
+                          (페이지 {kgirlsPage}/{kgirlsTotalPages})
+                        </span>
+                      )}
+                    </p>
+
+                    {/* Selection controls */}
+                    {selectableCount > 0 && (
+                      <div className="flex items-center gap-2">
+                        {selectedCount > 0 && (
+                          <span className="text-sm text-primary font-medium">
+                            {selectedCount}개 선택
+                          </span>
+                        )}
+                        <motion.button
+                          onClick={selectedCount === selectableCount ? clearSelection : selectAll}
+                          className="px-3 py-1 text-xs font-medium rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                          {...pressScale}
+                        >
+                          {selectedCount === selectableCount ? '선택 해제' : '전체 선택'}
+                        </motion.button>
+                        {selectedCount > 0 && (
+                          <motion.button
+                            onClick={handleBatchSave}
+                            disabled={isBatchSaving}
+                            className="px-4 py-1 text-xs font-medium rounded-lg bg-primary text-white hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                            {...pressScale}
+                          >
+                            {isBatchSaving ? '저장 중...' : `${selectedCount}개 저장`}
+                          </motion.button>
+                        )}
+                      </div>
                     )}
-                    {platform === 'kgirls' && kgirlsTotalPages > 1 && (
-                      <span className="ml-2">
-                        (페이지 {kgirlsPage}/{kgirlsTotalPages})
-                      </span>
-                    )}
-                  </p>
+                  </div>
+
                   {results.map((result, index) => (
                     <motion.div
                       key={result.url}
-                      className="flex gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700"
+                      className={`flex gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border transition-colors cursor-pointer ${
+                        selectedUrls.has(result.url)
+                          ? 'border-primary ring-2 ring-primary/20'
+                          : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                      }`}
                       variants={listItem}
                       transition={quickSpring}
+                      onClick={() => !result.isSaved && toggleSelection(result.url)}
                     >
+                      {/* Checkbox */}
+                      <div className="flex-shrink-0 flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedUrls.has(result.url)}
+                          onChange={() => toggleSelection(result.url)}
+                          disabled={result.isSaved}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-5 h-5 rounded border-zinc-300 dark:border-zinc-600 text-primary focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        />
+                      </div>
+
                       {/* Thumbnail - larger size */}
                       {result.thumbnailUrl ? (
                         <img
@@ -726,22 +905,17 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                         </div>
                       </div>
 
-                      {/* Save Button - larger */}
+                      {/* Status indicator */}
                       <div className="flex-shrink-0 flex items-center">
                         {result.isSaved ? (
                           <span className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 rounded-lg">
                             저장됨
                           </span>
-                        ) : (
-                          <motion.button
-                            onClick={() => handleSave(index)}
-                            disabled={result.isSaving}
-                            className="px-4 py-1.5 text-xs font-medium text-white bg-primary rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-smooth"
-                            {...pressScale}
-                          >
-                            {result.isSaving ? '저장 중...' : '저장'}
-                          </motion.button>
-                        )}
+                        ) : result.isSaving ? (
+                          <span className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            저장 중...
+                          </span>
+                        ) : null}
                       </div>
                     </motion.div>
                   ))}
