@@ -35,7 +35,7 @@ None
 - [x] **Phase 13: Enhanced Tag Matching** - 영어/한글 양방향 태그 인식 ✓
 - [x] **Phase 14: Tag Multilingual Display** - 언어 모드에 따른 태그 표시 전환 ✓
 - [x] **Phase 15: Group-Based Bias Organization** - 그룹 테이블 추가, 최애를 그룹별로 분류/표시 ✓
-- [ ] **Phase 16: Drag & Drop Reorder** - 태그/최애 순서를 드래그로 변경
+- [x] **Phase 16: Drag & Drop Reorder** - 태그/최애 순서를 드래그로 변경 ✓
 
 ## Phase Details
 
@@ -263,7 +263,8 @@ Plans:
 - 모바일 터치 드래그 지원
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 16 to break down)
+- [x] 16-01: Schema & API (sort_order 컬럼, reorder API) ✓
+- [x] 16-02: Drag & Drop UI (BiasManager 드래그 앤 드롭) ✓
 
 ### Phase 17: heye.kr iframe Embed
 
@@ -303,5 +304,5 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 13. Enhanced Tag Matching | v1.1 | 1/1 | Complete | 2026-01-14 |
 | 14. Tag Multilingual Display | v1.1 | 1/1 | Complete | 2026-01-14 |
 | 15. Group-Based Bias Organization | v1.2 | 2/2 | Complete | 2026-01-14 |
-| 16. Drag & Drop Reorder | v1.3 | 0/? | Not Started | - |
+| 16. Drag & Drop Reorder | v1.3 | 2/2 | Complete | 2026-01-14 |
 | 17. heye.kr iframe Embed | v1.3 | 0/? | Not Started | - |
