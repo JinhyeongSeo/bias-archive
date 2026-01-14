@@ -7,11 +7,13 @@ import { searchTwitter } from '@/lib/search'
  * Returns indexed tweets (past popular tweets, not real-time)
  * Query params:
  *   - q: search query (required)
+ *   - page: page number for pagination (optional, default: 1)
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('q')
+    const page = parseInt(searchParams.get('page') || '1', 10)
 
     if (!query || query.trim() === '') {
       return NextResponse.json(
@@ -28,8 +30,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const results = await searchTwitter(query)
-    return NextResponse.json(results)
+    const response = await searchTwitter(query, page)
+    return NextResponse.json(response)
   } catch (error) {
     console.error('[Twitter Search] Error:', error)
 

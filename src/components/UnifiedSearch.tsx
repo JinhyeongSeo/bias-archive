@@ -60,7 +60,9 @@ interface PlatformResults {
   results: EnrichedResult[]
   hasMore: boolean
   isLoading: boolean
+  isLoadingMore: boolean
   error: string | null
+  currentPage: number
 }
 
 interface UnifiedSearchProps {
@@ -172,10 +174,10 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
   }
 
   // Search functions for each platform
-  const searchYouTube = async (searchQuery: string): Promise<EnrichedResult[]> => {
+  const searchYouTube = async (searchQuery: string, page: number = 1): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
     const params = new URLSearchParams({
       q: searchQuery,
-      max: String(RESULTS_PER_PLATFORM),
+      max: String(RESULTS_PER_PLATFORM * page), // YouTube API doesn't have proper pagination, so we fetch more
     })
     const response = await fetch(`/api/youtube/search?${params}`)
     const data = await response.json()
@@ -184,7 +186,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       throw new Error(data.error || 'YouTube 검색 실패')
     }
 
-    return (data as YouTubeResult[]).map(item => ({
+    const allResults = (data as YouTubeResult[]).map(item => ({
       url: `https://www.youtube.com/watch?v=${item.videoId}`,
       title: item.title,
       thumbnailUrl: item.thumbnailUrl,
@@ -194,10 +196,22 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       isSaved: checkIfSaved(`https://www.youtube.com/watch?v=${item.videoId}`),
       isSaving: false,
     }))
+
+    // Return only new results for this page
+    const startIndex = (page - 1) * RESULTS_PER_PLATFORM
+    const pageResults = allResults.slice(startIndex, startIndex + RESULTS_PER_PLATFORM)
+
+    return {
+      results: pageResults,
+      hasMore: allResults.length > page * RESULTS_PER_PLATFORM,
+    }
   }
 
-  const searchTwitter = async (searchQuery: string): Promise<EnrichedResult[]> => {
-    const response = await fetch(`/api/search/twitter?q=${encodeURIComponent(searchQuery)}`)
+  const searchTwitter = async (searchQuery: string, page: number = 1): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
+    // Add # prefix for hashtag search on Twitter
+    const hashtagQuery = searchQuery.startsWith('#') ? searchQuery : `#${searchQuery}`
+
+    const response = await fetch(`/api/search/twitter?q=${encodeURIComponent(hashtagQuery)}&page=${page}`)
     const data = await response.json()
 
     if (!response.ok) {
@@ -205,7 +219,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     }
 
     const results: EnrichedResult[] = []
-    const twitterResults = (data as TwitterResult[]).slice(0, RESULTS_PER_PLATFORM)
+    const twitterResults = (data.results as TwitterResult[]).slice(0, RESULTS_PER_PLATFORM)
 
     for (const item of twitterResults) {
       const isSaved = checkIfSaved(item.link)
@@ -251,18 +265,18 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       }
     }
 
-    return results
+    return { results, hasMore: data.hasMore ?? false }
   }
 
-  const searchHeye = async (searchQuery: string): Promise<EnrichedResult[]> => {
-    const response = await fetch(`/api/search/heye?q=${encodeURIComponent(searchQuery)}&page=1`)
+  const searchHeye = async (searchQuery: string, page: number = 1): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
+    const response = await fetch(`/api/search/heye?q=${encodeURIComponent(searchQuery)}&page=${page}`)
     const data = await response.json()
 
     if (!response.ok) {
       throw new Error(data.error || 'heye.kr 검색 실패')
     }
 
-    return (data.results as HeyeResult[]).slice(0, RESULTS_PER_PLATFORM).map(item => ({
+    const results = (data.results as HeyeResult[]).slice(0, RESULTS_PER_PLATFORM).map(item => ({
       url: item.url,
       title: item.title,
       thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
@@ -271,17 +285,22 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       isSaved: checkIfSaved(item.url),
       isSaving: false,
     }))
+
+    return {
+      results,
+      hasMore: data.totalPages ? page < data.totalPages : results.length >= RESULTS_PER_PLATFORM,
+    }
   }
 
-  const searchKgirls = async (searchQuery: string): Promise<EnrichedResult[]> => {
-    const response = await fetch(`/api/search/kgirls?q=${encodeURIComponent(searchQuery)}&page=1&board=mgall`)
+  const searchKgirls = async (searchQuery: string, page: number = 1): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
+    const response = await fetch(`/api/search/kgirls?q=${encodeURIComponent(searchQuery)}&page=${page}&board=mgall`)
     const data = await response.json()
 
     if (!response.ok) {
       throw new Error(data.error || 'kgirls.net 검색 실패')
     }
 
-    return (data.results as KgirlsResult[]).slice(0, RESULTS_PER_PLATFORM).map(item => ({
+    const results = (data.results as KgirlsResult[]).slice(0, RESULTS_PER_PLATFORM).map(item => ({
       url: item.url,
       title: item.title,
       thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
@@ -290,6 +309,11 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       isSaved: checkIfSaved(item.url),
       isSaving: false,
     }))
+
+    return {
+      results,
+      hasMore: data.totalPages ? page < data.totalPages : results.length >= RESULTS_PER_PLATFORM,
+    }
   }
 
   // Unified search - search all enabled platforms in parallel
@@ -307,7 +331,9 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
         results: [],
         hasMore: false,
         isLoading: true,
+        isLoadingMore: false,
         error: null,
+        currentPage: 1,
       })
     }
     setPlatformResults(initialResults)
@@ -317,16 +343,18 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
     if (enabledPlatforms.has('youtube')) {
       searchPromises.push(
-        searchYouTube(query)
-          .then(results => {
+        searchYouTube(query, 1)
+          .then(({ results, hasMore }) => {
             setPlatformResults(prev => {
               const next = new Map(prev)
               next.set('youtube', {
                 platform: 'youtube',
                 results,
-                hasMore: results.length >= RESULTS_PER_PLATFORM,
+                hasMore,
                 isLoading: false,
+                isLoadingMore: false,
                 error: null,
+                currentPage: 1,
               })
               return next
             })
@@ -339,7 +367,9 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 results: [],
                 hasMore: false,
                 isLoading: false,
+                isLoadingMore: false,
                 error: error.message,
+                currentPage: 1,
               })
               return next
             })
@@ -349,16 +379,18 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
     if (enabledPlatforms.has('twitter')) {
       searchPromises.push(
-        searchTwitter(query)
-          .then(results => {
+        searchTwitter(query, 1)
+          .then(({ results, hasMore }) => {
             setPlatformResults(prev => {
               const next = new Map(prev)
               next.set('twitter', {
                 platform: 'twitter',
                 results,
-                hasMore: results.length >= RESULTS_PER_PLATFORM,
+                hasMore,
                 isLoading: false,
+                isLoadingMore: false,
                 error: null,
+                currentPage: 1,
               })
               return next
             })
@@ -371,7 +403,9 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 results: [],
                 hasMore: false,
                 isLoading: false,
+                isLoadingMore: false,
                 error: error.message,
+                currentPage: 1,
               })
               return next
             })
@@ -381,16 +415,18 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
     if (enabledPlatforms.has('heye')) {
       searchPromises.push(
-        searchHeye(query)
-          .then(results => {
+        searchHeye(query, 1)
+          .then(({ results, hasMore }) => {
             setPlatformResults(prev => {
               const next = new Map(prev)
               next.set('heye', {
                 platform: 'heye',
                 results,
-                hasMore: results.length >= RESULTS_PER_PLATFORM,
+                hasMore,
                 isLoading: false,
+                isLoadingMore: false,
                 error: null,
+                currentPage: 1,
               })
               return next
             })
@@ -403,7 +439,9 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 results: [],
                 hasMore: false,
                 isLoading: false,
+                isLoadingMore: false,
                 error: error.message,
+                currentPage: 1,
               })
               return next
             })
@@ -413,16 +451,18 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
     if (enabledPlatforms.has('kgirls')) {
       searchPromises.push(
-        searchKgirls(query)
-          .then(results => {
+        searchKgirls(query, 1)
+          .then(({ results, hasMore }) => {
             setPlatformResults(prev => {
               const next = new Map(prev)
               next.set('kgirls', {
                 platform: 'kgirls',
                 results,
-                hasMore: results.length >= RESULTS_PER_PLATFORM,
+                hasMore,
                 isLoading: false,
+                isLoadingMore: false,
                 error: null,
+                currentPage: 1,
               })
               return next
             })
@@ -435,7 +475,9 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 results: [],
                 hasMore: false,
                 isLoading: false,
+                isLoadingMore: false,
                 error: error.message,
+                currentPage: 1,
               })
               return next
             })
@@ -445,6 +487,77 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
     await Promise.allSettled(searchPromises)
     setIsSearching(false)
+  }
+
+  // Load more results for a specific platform
+  const handleLoadMore = async (platform: Platform) => {
+    const currentData = platformResults.get(platform)
+    if (!currentData || currentData.isLoadingMore || !currentData.hasMore) return
+
+    const nextPage = currentData.currentPage + 1
+
+    // Set loading more state
+    setPlatformResults(prev => {
+      const next = new Map(prev)
+      const data = next.get(platform)
+      if (data) {
+        next.set(platform, { ...data, isLoadingMore: true })
+      }
+      return next
+    })
+
+    try {
+      let searchResult: { results: EnrichedResult[], hasMore: boolean }
+
+      switch (platform) {
+        case 'youtube':
+          searchResult = await searchYouTube(query, nextPage)
+          break
+        case 'twitter':
+          searchResult = await searchTwitter(query, nextPage)
+          break
+        case 'heye':
+          searchResult = await searchHeye(query, nextPage)
+          break
+        case 'kgirls':
+          searchResult = await searchKgirls(query, nextPage)
+          break
+        default:
+          return
+      }
+
+      setPlatformResults(prev => {
+        const next = new Map(prev)
+        const data = next.get(platform)
+        if (data) {
+          // Filter out duplicates by URL
+          const existingUrls = new Set(data.results.map(r => r.url))
+          const newResults = searchResult.results.filter(r => !existingUrls.has(r.url))
+
+          next.set(platform, {
+            ...data,
+            results: [...data.results, ...newResults],
+            hasMore: searchResult.hasMore,
+            isLoadingMore: false,
+            currentPage: nextPage,
+          })
+        }
+        return next
+      })
+    } catch (error) {
+      setPlatformResults(prev => {
+        const next = new Map(prev)
+        const data = next.get(platform)
+        if (data) {
+          next.set(platform, {
+            ...data,
+            isLoadingMore: false,
+            error: error instanceof Error ? error.message : '더 보기 실패',
+          })
+        }
+        return next
+      })
+    }
   }
 
   // Get all results combined
@@ -985,6 +1098,32 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                             <p className="text-xs text-zinc-400 text-center py-4">
                               검색 결과 없음
                             </p>
+                          )}
+
+                          {/* Load More Button */}
+                          {platformData.hasMore && !platformData.isLoading && (
+                            <button
+                              onClick={() => handleLoadMore(platformConfig.id)}
+                              disabled={platformData.isLoadingMore}
+                              className="w-full py-2 text-xs font-medium text-primary hover:text-primary-dark hover:bg-primary/5 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                            >
+                              {platformData.isLoadingMore ? (
+                                <>
+                                  <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                  </svg>
+                                  <span>불러오는 중...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                  <span>더 보기</span>
+                                </>
+                              )}
+                            </button>
                           )}
                         </div>
                       )

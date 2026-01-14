@@ -223,7 +223,10 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
 
     const enrichedResults: EnrichedResult[] = []
 
-    for (const item of data as TwitterResult[]) {
+    // API now returns { results, hasMore, totalResults }
+    const twitterResults = data.results as TwitterResult[]
+
+    for (const item of twitterResults) {
       const isSaved = checkIfSaved(item.link)
 
       try {
