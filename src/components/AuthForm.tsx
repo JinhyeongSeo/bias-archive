@@ -13,6 +13,7 @@ interface AuthFormProps {
 export function AuthForm({ mode }: AuthFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -38,6 +39,12 @@ export function AuthForm({ mode }: AuthFormProps) {
           router.push(`/${locale}`)
         }
       } else {
+        // 비밀번호 확인 검증
+        if (password !== confirmPassword) {
+          setError(t('passwordMismatch'))
+          setLoading(false)
+          return
+        }
         const { error, needsEmailConfirmation } = await signUp(email, password)
         if (error) {
           setError(t('signupError'))
@@ -99,6 +106,27 @@ export function AuthForm({ mode }: AuthFormProps) {
             placeholder="••••••••"
           />
         </div>
+
+        {!isLogin && (
+          <div>
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
+            >
+              {t('confirmPassword')}
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+              placeholder="••••••••"
+            />
+          </div>
+        )}
 
         {error && (
           <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">

@@ -173,6 +173,8 @@
     "signupButton": "Sign Up",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
+    "confirmPassword": "Confirm Password",
+    "passwordMismatch": "Passwords do not match.",
     "loginError": "Login failed. Please check your email and password.",
     "signupError": "Sign up failed. Please try again.",
     "signupSuccess": "Sign up complete! Please check your email.",
