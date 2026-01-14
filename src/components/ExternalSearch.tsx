@@ -567,7 +567,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       case 'youtube':
         return 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
       case 'twitter':
-        return 'bg-[--color-twitter]/10 text-[--color-twitter]'
+        return 'bg-twitter/10 text-twitter'
       case 'heye':
         return 'bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400'
       case 'kgirls':
@@ -611,7 +611,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-2xl mx-4 max-h-[85vh] bg-white dark:bg-zinc-900 rounded-xl shadow-2xl flex flex-col"
+            className="relative w-full max-w-2xl mx-4 max-h-[85vh] bg-background rounded-xl shadow-2xl flex flex-col"
             variants={modalContent}
             initial="initial"
             animate="animate"
@@ -655,7 +655,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                   onClick={() => handlePlatformChange('twitter')}
                   className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                     platform === 'twitter'
-                      ? 'bg-[--color-twitter]/10 text-[--color-twitter] ring-2 ring-[--color-twitter]/20'
+                      ? 'bg-twitter/10 text-twitter ring-2 ring-twitter/20'
                       : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                   }`}
                   {...pressScale}
@@ -686,62 +686,45 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                 </motion.button>
               </div>
 
-          {/* Platform Notice */}
-              {platform === 'twitter' && (
-                <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-4 py-2 rounded-lg">
-                  과거 인기 트윗 검색 (최신은 URL 직접 입력)
-                </p>
-              )}
-              {platform === 'heye' && (
-                <p className="text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-4 py-2 rounded-lg">
-                  heye.kr 커뮤니티 게시판 검색
-                </p>
-              )}
-              {platform === 'kgirls' && (
-                <div className="flex items-center gap-3 bg-pink-50 dark:bg-pink-900/20 px-4 py-2 rounded-lg">
-                  <p className="text-sm text-pink-600 dark:text-pink-400">
-                    kgirls.net
+          {/* Platform Notice - fixed height container, hidden for youtube */}
+              {platform !== 'youtube' && (
+              <div className="h-9">
+                {platform === 'twitter' && (
+                  <p className="h-full flex items-center text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-4 rounded-lg">
+                    과거 인기 트윗 검색 (최신은 URL 직접 입력)
                   </p>
-                  <select
-                    value={kgirlsBoard}
-                    onChange={(e) => {
-                      setKgirlsBoard(e.target.value as 'mgall' | 'issue')
-                      setResults([])
-                      setKgirlsPage(1)
-                      setKgirlsTotalPages(0)
-                    }}
-                    className="px-3 py-1 text-sm border border-pink-200 dark:border-pink-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                  >
-                    <option value="mgall">마이너갤</option>
-                    <option value="issue">볼거리</option>
-                  </select>
-                </div>
-              )}
-
-              {/* Search Input */}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="검색어 입력..."
-                  autoFocus
-                  className="flex-1 px-4 py-2.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-                <motion.button
-                  onClick={handleSearch}
-                  disabled={isLoading || !query.trim()}
-                  className="px-6 py-2.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-smooth"
-                  {...pressScale}
-                >
-                  {isLoading ? '검색 중...' : '검색'}
-                </motion.button>
+                )}
+                {platform === 'heye' && (
+                  <p className="h-full flex items-center text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-4 rounded-lg">
+                    heye.kr 커뮤니티 게시판 검색
+                  </p>
+                )}
+                {platform === 'kgirls' && (
+                  <div className="h-full flex items-center gap-3 bg-pink-50 dark:bg-pink-900/20 px-4 rounded-lg">
+                    <p className="text-sm text-pink-600 dark:text-pink-400">
+                      kgirls.net
+                    </p>
+                    <select
+                      value={kgirlsBoard}
+                      onChange={(e) => {
+                        setKgirlsBoard(e.target.value as 'mgall' | 'issue')
+                        setResults([])
+                        setKgirlsPage(1)
+                        setKgirlsTotalPages(0)
+                      }}
+                      className="px-3 py-1 text-sm border border-pink-200 dark:border-pink-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    >
+                      <option value="mgall">마이너갤</option>
+                      <option value="issue">볼거리</option>
+                    </select>
+                  </div>
+                )}
               </div>
+              )}
 
               {/* YouTube Filters */}
               {platform === 'youtube' && (
-                <div className="flex gap-3">
+                <div className="h-9 flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <label className="text-xs text-zinc-500 dark:text-zinc-400">정렬</label>
                     <select
@@ -770,6 +753,27 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                   </div>
                 </div>
               )}
+
+              {/* Search Input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  placeholder="검색어 입력..."
+                  autoFocus
+                  className="flex-1 px-4 py-2.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                <motion.button
+                  onClick={handleSearch}
+                  disabled={isLoading || !query.trim()}
+                  className="px-6 py-2.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-smooth"
+                  {...pressScale}
+                >
+                  {isLoading ? '검색 중...' : '검색'}
+                </motion.button>
+              </div>
 
               {/* Error Message */}
               <AnimatePresence>

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Tailwind v4: Use class-based dark mode for next-themes compatibility */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ========================================
    🎨 K-POP INSPIRED COLOR SYSTEM
    Tailwind v4 - Using @theme inline for CSS variable references
