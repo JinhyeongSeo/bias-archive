@@ -12,6 +12,7 @@ None
 
 - ✅ **v1.0 MVP** - Phases 1-10 (shipped 2026-01-14)
 - ✅ **v1.1 Multilingual Mode** - Phases 11-14 (shipped 2026-01-14)
+- ✅ **v1.2 Group Organization** - Phase 15 (shipped 2026-01-14)
 
 ## Phases
 
@@ -33,6 +34,8 @@ None
 - [x] **Phase 12: Language Toggle UI** - 언어 모드 토글 및 표시 전환 ✓
 - [x] **Phase 13: Enhanced Tag Matching** - 영어/한글 양방향 태그 인식 ✓
 - [x] **Phase 14: Tag Multilingual Display** - 언어 모드에 따른 태그 표시 전환 ✓
+- [x] **Phase 15: Group-Based Bias Organization** - 그룹 테이블 추가, 최애를 그룹별로 분류/표시 ✓
+- [ ] **Phase 16: Drag & Drop Reorder** - 태그/최애 순서를 드래그로 변경
 
 ## Phase Details
 
@@ -226,10 +229,46 @@ Plans:
 Plans:
 - [x] 14-01: getTagDisplayName 헬퍼 및 컴포넌트 적용 ✓
 
+### Phase 15: Group-Based Bias Organization ✓
+
+**Goal**: groups 테이블 추가, 최애를 그룹별로 분류하여 표시, 그룹 일괄 추가 시 그룹 정보도 저장
+**Depends on**: Phase 14
+**Research**: Unlikely (내부 스키마 확장)
+**Plans**: 2
+
+**기능 설명:**
+
+- `groups` 테이블 생성: id, name, name_en, name_ko
+- `biases` 테이블에 group_id FK 추가
+- BiasManager에서 그룹별로 접어서/펼쳐서 표시
+- 그룹 일괄 추가 시 그룹 레코드도 함께 생성
+- 태그 필터에서 그룹별 분류 지원
+
+Plans:
+- [x] 15-01: Groups Schema & API (groups 테이블, group_id FK, CRUD API) ✓
+- [x] 15-02: Group-Based UI (BiasManager 그룹별 분류, Sidebar 태그 그룹화) ✓
+
+### Phase 16: Drag & Drop Reorder
+
+**Goal**: 태그와 최애의 순서를 드래그 앤 드롭으로 변경할 수 있는 기능
+**Depends on**: Phase 15
+**Research**: Likely (드래그 앤 드롭 라이브러리 선택)
+**Plans**: TBD
+
+**기능 설명:**
+
+- 최애 목록에서 순서 드래그로 변경
+- 태그 필터에서 태그 순서 드래그로 변경
+- 순서 정보 DB에 저장 (sort_order 컬럼)
+- 모바일 터치 드래그 지원
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 16 to break down)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → ... → 10 → 11 → 12 → 13 → 14
+Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -247,3 +286,5 @@ Phases execute in numeric order: 1 → 2 → ... → 10 → 11 → 12 → 13 →
 | 12. Language Toggle UI | v1.1 | 1/1 | Complete | 2026-01-14 |
 | 13. Enhanced Tag Matching | v1.1 | 1/1 | Complete | 2026-01-14 |
 | 14. Tag Multilingual Display | v1.1 | 1/1 | Complete | 2026-01-14 |
+| 15. Group-Based Bias Organization | v1.2 | 2/2 | Complete | 2026-01-14 |
+| 16. Drag & Drop Reorder | v1.3 | 0/? | Not Started | - |
