@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages, getLocale } from 'next-intl/server';
+import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import "../globals.css";
@@ -20,8 +20,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: '#000000',
+};
+
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = await getLocale();
   const messages = await getMessages();
   const app = messages.app as { title: string; description: string };
 
@@ -29,7 +32,6 @@ export async function generateMetadata(): Promise<Metadata> {
     title: app.title,
     description: app.description,
     manifest: '/manifest.json',
-    themeColor: '#000000',
     appleWebApp: {
       capable: true,
       statusBarStyle: 'default',

@@ -701,10 +701,10 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                                       <li
                                         ref={provided.innerRef}
                                         {...provided.draggableProps}
-                                        className={`flex items-center justify-between group px-2 py-1 text-sm text-zinc-700 dark:text-zinc-300 rounded-md transition-all ${
+                                        className={`flex items-center justify-between group px-2 py-1 text-sm text-foreground rounded-md transition-all ${
                                           snapshot.isDragging
-                                            ? 'bg-white dark:bg-zinc-800 shadow-lg ring-2 ring-pink-500/50'
-                                            : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                            ? 'bg-card shadow-lg ring-2 ring-primary/50'
+                                            : 'hover:bg-accent'
                                         }`}
                                       >
                                         <div
@@ -827,10 +827,10 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                                         <li
                                           ref={provided.innerRef}
                                           {...provided.draggableProps}
-                                          className={`flex items-center justify-between group px-2 py-1 text-sm text-zinc-700 dark:text-zinc-300 rounded-md transition-all ${
+                                          className={`flex items-center justify-between group px-2 py-1 text-sm text-foreground rounded-md transition-all ${
                                             snapshot.isDragging
-                                              ? 'bg-white dark:bg-zinc-800 shadow-lg ring-2 ring-pink-500/50'
-                                              : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                              ? 'bg-card shadow-lg ring-2 ring-primary/50'
+                                              : 'hover:bg-accent'
                                           }`}
                                         >
                                           {/* Drag handle */}
