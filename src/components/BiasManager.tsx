@@ -19,6 +19,17 @@ interface KpopMember {
   name_original: string
 }
 
+interface KpopMemberWithGroup {
+  id: string
+  name: string
+  name_original: string
+  group: {
+    id: string
+    name: string
+    name_original: string
+  } | null
+}
+
 interface GroupedBiases {
   group: Group | null
   biases: BiasWithGroup[]
@@ -60,6 +71,11 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   const [isBatchAdding, setIsBatchAdding] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
 
+  // Individual member autocomplete state
+  const [memberSearchResults, setMemberSearchResults] = useState<KpopMemberWithGroup[]>([])
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false)
+  const [isSearchingMembers, setIsSearchingMembers] = useState(false)
+
   // Local bias order for optimistic updates during drag
   const [localBiases, setLocalBiases] = useState<Bias[]>(biases)
   const [localGroups, setLocalGroups] = useState<Group[]>(groups)
@@ -76,7 +92,9 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   }, [groups])
 
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const memberDropdownRef = useRef<HTMLDivElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const memberSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Load collapsed groups from localStorage
   useEffect(() => {
@@ -335,11 +353,71 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false)
       }
+      if (memberDropdownRef.current && !memberDropdownRef.current.contains(event.target as Node)) {
+        setShowMemberDropdown(false)
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Debounced member search for individual add form
+  const searchMembersFunc = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setMemberSearchResults([])
+      setShowMemberDropdown(false)
+      return
+    }
+
+    setIsSearchingMembers(true)
+    try {
+      const response = await fetch(`/api/kpop/members?q=${encodeURIComponent(query.trim())}`)
+      if (response.ok) {
+        const data = await response.json()
+        setMemberSearchResults(data.members || [])
+        setShowMemberDropdown(true)
+      }
+    } catch (error) {
+      console.error('Error searching members:', error)
+    } finally {
+      setIsSearchingMembers(false)
+    }
+  }, [])
+
+  // Handle name input change with debounced member search
+  useEffect(() => {
+    if (memberSearchTimeoutRef.current) {
+      clearTimeout(memberSearchTimeoutRef.current)
+    }
+
+    if (name.trim() && isFormOpen) {
+      memberSearchTimeoutRef.current = setTimeout(() => {
+        searchMembersFunc(name)
+      }, 300)
+    } else {
+      setMemberSearchResults([])
+      setShowMemberDropdown(false)
+    }
+
+    return () => {
+      if (memberSearchTimeoutRef.current) {
+        clearTimeout(memberSearchTimeoutRef.current)
+      }
+    }
+  }, [name, isFormOpen, searchMembersFunc])
+
+  // Handle member selection from autocomplete
+  function handleMemberSelect(member: KpopMemberWithGroup) {
+    setName(member.name_original) // Korean name as display name
+    setNameEn(member.name) // English name
+    setNameKo(member.name_original) // Korean name
+    if (member.group) {
+      setGroupName(member.group.name_original) // Korean group name
+    }
+    setShowMemberDropdown(false)
+    setMemberSearchResults([])
+  }
 
   // Fetch members when group is selected
   async function handleGroupSelect(group: KpopGroup) {
@@ -911,14 +989,51 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       {/* Add form */}
       {isFormOpen && !isGroupMode && (
         <form onSubmit={handleSubmit} className="space-y-2 pt-2">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="이름 - 표시용 (필수)"
-            className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
-            autoFocus
-          />
+          {/* Name input with member autocomplete */}
+          <div className="relative" ref={memberDropdownRef}>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="이름 - 표시용 (필수)"
+              className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              autoFocus
+            />
+            {isSearchingMembers && (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <svg className="w-4 h-4 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              </div>
+            )}
+            {/* Member autocomplete dropdown */}
+            {showMemberDropdown && memberSearchResults.length > 0 && (
+              <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                {memberSearchResults.map((member) => (
+                  <li key={member.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleMemberSelect(member)}
+                      className="w-full px-2 py-1.5 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                    >
+                      <span className="font-medium">{member.name}</span>
+                      {member.name_original !== member.name && (
+                        <span className="text-zinc-500 dark:text-zinc-400 ml-1">
+                          ({member.name_original})
+                        </span>
+                      )}
+                      {member.group && (
+                        <span className="text-zinc-400 dark:text-zinc-500 ml-1 text-xs">
+                          - {member.group.name_original}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <input
             type="text"
             value={groupName}
@@ -956,6 +1071,8 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                 setGroupName('')
                 setNameEn('')
                 setNameKo('')
+                setMemberSearchResults([])
+                setShowMemberDropdown(false)
               }}
               className="px-2 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
             >
