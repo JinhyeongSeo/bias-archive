@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import type { Bias } from '@/types/database'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import type { Bias, BiasWithGroup, Group } from '@/types/database'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
+import { useLocale } from 'next-intl'
 
 interface KpopGroup {
   id: string
@@ -17,14 +18,22 @@ interface KpopMember {
   name_original: string
 }
 
+interface GroupedBiases {
+  group: Group | null
+  biases: BiasWithGroup[]
+}
+
 interface BiasManagerProps {
   biases: Bias[]
   onBiasAdded: () => void
   onBiasDeleted: () => void
 }
 
+const COLLAPSED_GROUPS_KEY = 'bias-manager-collapsed-groups'
+
 export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerProps) {
-  const { getDisplayName } = useNameLanguage()
+  const { getDisplayName, nameLanguage } = useNameLanguage()
+  const locale = useLocale()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [name, setName] = useState('')
   const [groupName, setGroupName] = useState('')
@@ -32,6 +41,10 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
   const [nameKo, setNameKo] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  // Collapsed groups state
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  const [groups, setGroups] = useState<Group[]>([])
 
   // Group mode state
   const [isGroupMode, setIsGroupMode] = useState(false)
@@ -47,6 +60,121 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Load collapsed groups from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(COLLAPSED_GROUPS_KEY)
+      if (stored) {
+        setCollapsedGroups(new Set(JSON.parse(stored)))
+      }
+    } catch (error) {
+      console.error('Error loading collapsed groups:', error)
+    }
+  }, [])
+
+  // Fetch groups for grouping biases
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const response = await fetch('/api/groups')
+        if (response.ok) {
+          const data = await response.json()
+          setGroups(data)
+        }
+      } catch (error) {
+        console.error('Error fetching groups:', error)
+      }
+    }
+    fetchGroups()
+  }, [biases]) // Refetch when biases change
+
+  // Group biases by their group_id
+  const groupedBiases = useMemo((): GroupedBiases[] => {
+    const groupMap = new Map<string, Group>()
+    for (const group of groups) {
+      groupMap.set(group.id, group)
+    }
+
+    // Create BiasWithGroup objects
+    const biasesWithGroups: BiasWithGroup[] = biases.map((bias) => ({
+      ...bias,
+      group: bias.group_id ? groupMap.get(bias.group_id) ?? null : null,
+    }))
+
+    // Group by group_id
+    const grouped = new Map<string | null, BiasWithGroup[]>()
+
+    for (const bias of biasesWithGroups) {
+      const groupId = bias.group_id
+      if (!grouped.has(groupId)) {
+        grouped.set(groupId, [])
+      }
+      grouped.get(groupId)!.push(bias)
+    }
+
+    // Convert to array with group info
+    const result: GroupedBiases[] = []
+
+    // First add groups (sorted by name)
+    const sortedGroupIds = Array.from(grouped.keys())
+      .filter((id) => id !== null)
+      .sort((a, b) => {
+        const groupA = groupMap.get(a!)
+        const groupB = groupMap.get(b!)
+        return (groupA?.name || '').localeCompare(groupB?.name || '')
+      })
+
+    for (const groupId of sortedGroupIds) {
+      const group = groupMap.get(groupId!)
+      result.push({
+        group: group || null,
+        biases: grouped.get(groupId)!,
+      })
+    }
+
+    // Add ungrouped biases at the end
+    if (grouped.has(null)) {
+      result.push({
+        group: null,
+        biases: grouped.get(null)!,
+      })
+    }
+
+    return result
+  }, [biases, groups])
+
+  // Save collapsed groups to localStorage
+  const toggleGroupCollapse = useCallback((groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId)
+      } else {
+        newSet.add(groupId)
+      }
+      // Save to localStorage
+      try {
+        localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify(Array.from(newSet)))
+      } catch (error) {
+        console.error('Error saving collapsed groups:', error)
+      }
+      return newSet
+    })
+  }, [])
+
+  // Get display name for group based on language mode
+  const getGroupDisplayName = useCallback((group: Group): string => {
+    const effectiveLanguage: 'en' | 'ko' = nameLanguage === 'auto'
+      ? (locale === 'ko' ? 'ko' : 'en')
+      : nameLanguage
+
+    if (effectiveLanguage === 'en') {
+      return group.name_en || group.name
+    } else {
+      return group.name_ko || group.name
+    }
+  }, [nameLanguage, locale])
 
   // Debounced group search
   const searchGroups = useCallback(async (query: string) => {
@@ -274,45 +402,72 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
     }
   }
 
-  function formatBiasName(bias: Bias): string {
-    const displayName = getDisplayName(bias)
-    if (bias.group_name) {
-      return `${displayName} (${bias.group_name})`
-    }
-    return displayName
-  }
-
   return (
     <div className="space-y-2">
-      {/* Bias list with delete buttons */}
-      {biases.length > 0 && (
-        <ul className="space-y-1">
-          {biases.map((bias) => (
-            <li
-              key={bias.id}
-              className="flex items-center justify-between group px-2 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md"
-            >
-              <span className="truncate">{formatBiasName(bias)}</span>
-              <button
-                onClick={() => handleDelete(bias.id, formatBiasName(bias))}
-                disabled={deletingId === bias.id}
-                className="opacity-0 group-hover:opacity-100 ml-2 p-0.5 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50"
-                title="삭제"
-              >
-                {deletingId === bias.id ? (
-                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+      {/* Grouped bias list */}
+      {groupedBiases.length > 0 && (
+        <div className="space-y-1">
+          {groupedBiases.map(({ group, biases: groupBiases }) => {
+            const groupId = group?.id || 'ungrouped'
+            const isCollapsed = collapsedGroups.has(groupId)
+            const groupDisplayName = group ? getGroupDisplayName(group) : '그룹 없음'
+
+            return (
+              <div key={groupId}>
+                {/* Group header */}
+                <button
+                  type="button"
+                  onClick={() => toggleGroupCollapse(groupId)}
+                  className="w-full flex items-center gap-1 px-2 py-1 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                >
+                  <svg
+                    className={`w-3 h-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <span>{groupDisplayName}</span>
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">
+                    ({groupBiases.length})
+                  </span>
+                </button>
+
+                {/* Group members */}
+                {!isCollapsed && (
+                  <ul className="ml-4 space-y-0.5">
+                    {groupBiases.map((bias) => (
+                      <li
+                        key={bias.id}
+                        className="flex items-center justify-between group px-2 py-1 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md"
+                      >
+                        <span className="truncate">{getDisplayName(bias)}</span>
+                        <button
+                          onClick={() => handleDelete(bias.id, getDisplayName(bias))}
+                          disabled={deletingId === bias.id}
+                          className="opacity-0 group-hover:opacity-100 ml-2 p-0.5 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50"
+                          title="삭제"
+                        >
+                          {deletingId === bias.id ? (
+                            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-              </button>
-            </li>
-          ))}
-        </ul>
+              </div>
+            )
+          })}
+        </div>
       )}
 
       {/* Empty state */}
