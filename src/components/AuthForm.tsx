@@ -91,7 +91,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
             placeholder="email@example.com"
           />
         </div>
@@ -110,7 +110,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
             placeholder="••••••••"
           />
         </div>
@@ -130,7 +130,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
               placeholder="••••••••"
             />
           </div>
@@ -167,7 +167,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         <motion.button
           type="submit"
           disabled={loading}
-          className="w-full py-2 px-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+          className="w-full py-2 px-4 bg-primary hover:bg-primary-dark disabled:bg-primary/40 text-white font-medium rounded-lg transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
           {...pressScale}
         >
           {loading
@@ -180,7 +180,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         {isLogin ? t('noAccount') : t('hasAccount')}{' '}
         <Link
           href={isLogin ? `/${locale}/signup` : `/${locale}/login`}
-          className="text-blue-500 hover:opacity-70 dark:text-blue-400 font-medium transition-opacity"
+          className="text-primary hover:text-primary-dark font-medium transition-smooth"
         >
           {isLogin ? t('signup') : t('login')}
         </Link>

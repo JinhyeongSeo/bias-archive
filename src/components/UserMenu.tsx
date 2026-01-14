@@ -36,7 +36,7 @@ export function UserMenu() {
   // Loading state: show skeleton
   if (loading) {
     return (
-      <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+      <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
     )
   }
 
@@ -45,7 +45,7 @@ export function UserMenu() {
     return (
       <Link
         href={`/${locale}/login`}
-        className="px-3 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+        className="px-3 py-1.5 text-sm font-medium text-foreground hover:text-primary transition-smooth"
       >
         {t('login')}
       </Link>
@@ -59,23 +59,23 @@ export function UserMenu() {
     <div ref={menuRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-medium hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+        className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium hover:bg-primary-dark transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2"
         aria-label="User menu"
       >
         {userInitial}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-lg z-50">
-          <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-700">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+        <div className="absolute right-0 mt-2 w-48 rounded-lg bg-card border border-border shadow-lg z-50">
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-sm font-medium text-foreground truncate">
               {user.email}
             </p>
           </div>
           <div className="py-1">
             <button
               onClick={handleSignOut}
-              className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+              className="w-full px-4 py-2 text-left text-sm text-surface-foreground hover:bg-accent transition-smooth"
             >
               {t('logout')}
             </button>

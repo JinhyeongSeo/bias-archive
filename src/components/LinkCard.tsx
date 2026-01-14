@@ -243,7 +243,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400 shadow-sm transition-colors"
+            className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-primary shadow-sm transition-smooth"
             title="원본 링크 열기"
             whileTap={{ scale: 0.9 }}
           >
@@ -264,12 +264,12 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
 
           {/* Edit tags button */}
           <motion.button
-            onClick={() => setEditingTags(!editingTags)}
-            className={`p-1.5 rounded-md shadow-sm transition-colors ${
-              editingTags
-                ? 'bg-blue-500 text-white'
-                : 'bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400'
-            }`}
+              onClick={() => setEditingTags(!editingTags)}
+              className={`p-1.5 rounded-md shadow-sm transition-smooth ${
+                editingTags
+                  ? 'bg-primary text-white'
+                  : 'bg-card/90 text-surface-foreground hover:text-primary'
+              }`}
             title="태그 편집"
             whileTap={{ scale: 0.9 }}
           >
@@ -495,7 +495,7 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400 shadow-sm transition-colors"
+          className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-primary shadow-sm transition-smooth"
           title="원본 링크 열기"
           whileTap={{ scale: 0.9 }}
         >
@@ -516,12 +516,12 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid' }: Link
 
         {/* Edit tags button */}
         <motion.button
-          onClick={() => setEditingTags(!editingTags)}
-          className={`p-1.5 rounded-md shadow-sm transition-colors ${
-            editingTags
-              ? 'bg-blue-500 text-white'
-              : 'bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400'
-          }`}
+            onClick={() => setEditingTags(!editingTags)}
+            className={`p-1.5 rounded-md shadow-sm transition-smooth ${
+              editingTags
+                ? 'bg-primary text-white'
+                : 'bg-card/90 text-surface-foreground hover:text-primary'
+            }`}
           title="태그 편집"
           whileTap={{ scale: 0.9 }}
         >

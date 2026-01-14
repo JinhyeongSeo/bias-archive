@@ -232,9 +232,9 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
         <div className="flex border-b border-zinc-200 dark:border-zinc-700">
           <button
             onClick={() => setActiveTab('export')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-smooth ${
               activeTab === 'export'
-                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                ? 'text-primary border-b-2 border-primary'
                 : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
             }`}
           >
@@ -242,9 +242,9 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
           </button>
           <button
             onClick={() => setActiveTab('import')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-smooth ${
               activeTab === 'import'
-                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                ? 'text-primary border-b-2 border-primary'
                 : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
             }`}
           >
@@ -274,7 +274,7 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
               <motion.button
                 onClick={handleExport}
                 disabled={isExporting}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary hover:bg-primary-dark disabled:bg-primary/40 text-white font-medium rounded-lg transition-smooth"
                 {...pressScale}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -291,7 +291,7 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
 
               {/* File upload */}
               <label className="block">
-                <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-pointer">
+                <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg hover:border-primary transition-smooth cursor-pointer">
                   <div className="text-center">
                     <svg className="mx-auto w-8 h-8 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -374,7 +374,7 @@ export function ExportModal({ isOpen, onClose, onImportComplete }: ExportModalPr
               <motion.button
                 onClick={handleImport}
                 disabled={!importPreview || isImporting || !!importResult}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium rounded-lg transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary hover:bg-primary-dark disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium rounded-lg transition-smooth"
                 {...pressScale}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -129,7 +129,7 @@ function TwitterEmbed({ tweetId }: { tweetId: string }) {
           href={`https://twitter.com/i/status/${tweetId}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-smooth"
         >
           Twitter에서 보기
         </a>
@@ -311,7 +311,7 @@ function FallbackEmbed({ url }: { url: string }) {
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-smooth"
       >
         원본 링크 열기
       </a>

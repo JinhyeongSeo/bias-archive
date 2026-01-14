@@ -176,7 +176,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
     <div className={`w-full max-w-2xl mx-auto ${className}`}>
       {/* FFmpeg Loading Indicator */}
       {isFFmpegLoading && (
-        <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-sm flex items-center gap-2">
+        <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm flex items-center gap-2">
           <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -191,10 +191,10 @@ export function GifMaker({ className = '' }: GifMakerProps) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onClick={() => fileInputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+        className={`relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-smooth ${
           isDragging
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-            : 'border-zinc-300 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-600 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+            ? 'border-primary bg-primary/10'
+            : 'border-zinc-300 dark:border-zinc-700 hover:border-primary hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
         }`}
       >
         <input
@@ -249,7 +249,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
                     setDuration(Math.max(0.1, videoDuration - newStart))
                   }
                 }}
-                className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-primary"
               />
             </div>
 
@@ -265,7 +265,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
                 step={0.1}
                 value={duration}
                 onChange={(e) => setDuration(parseFloat(e.target.value))}
-                className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-primary"
               />
             </div>
 
@@ -281,7 +281,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
                 step={1}
                 value={fps}
                 onChange={(e) => setFps(parseInt(e.target.value))}
-                className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-primary"
               />
             </div>
 
@@ -297,7 +297,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
                 step={16}
                 value={width}
                 onChange={(e) => setWidth(parseInt(e.target.value))}
-                className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-primary"
               />
             </div>
           </div>
@@ -307,7 +307,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
             <button
               onClick={handleConvert}
               disabled={isLoading || isFFmpegLoading}
-              className="flex-1 px-4 py-3 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 dark:disabled:bg-blue-800 text-white font-medium transition-colors flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-3 rounded-lg bg-primary hover:bg-primary-dark disabled:bg-primary/40 text-white font-medium transition-smooth flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -341,7 +341,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
             <div className="space-y-1">
               <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-blue-500 transition-all duration-200"
+                  className="h-full bg-primary transition-all duration-200"
                   style={{ width: `${Math.round(progress * 100)}%` }}
                 />
               </div>

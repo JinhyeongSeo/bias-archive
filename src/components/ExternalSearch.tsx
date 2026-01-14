@@ -437,7 +437,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       case 'youtube':
         return 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
       case 'twitter':
-        return 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+        return 'bg-[--color-twitter]/10 text-[--color-twitter]'
       case 'heye':
         return 'bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400'
       case 'kgirls':
@@ -525,7 +525,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                   onClick={() => handlePlatformChange('twitter')}
                   className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                     platform === 'twitter'
-                      ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20'
+                      ? 'bg-[--color-twitter]/10 text-[--color-twitter] ring-2 ring-[--color-twitter]/20'
                       : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                   }`}
                   {...pressScale}
@@ -597,12 +597,12 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   placeholder="검색어 입력..."
                   autoFocus
-                  className="flex-1 px-4 py-2.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-4 py-2.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 <motion.button
                   onClick={handleSearch}
                   disabled={isLoading || !query.trim()}
-                  className="px-6 py-2.5 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-6 py-2.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-smooth"
                   {...pressScale}
                 >
                   {isLoading ? '검색 중...' : '검색'}
@@ -617,7 +617,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                     <select
                       value={youtubeOrder}
                       onChange={(e) => setYoutubeOrder(e.target.value as YouTubeOrder)}
-                      className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
                     >
                       <option value="relevance">관련성순</option>
                       <option value="viewCount">조회수순</option>
@@ -629,7 +629,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                     <select
                       value={youtubePeriod}
                       onChange={(e) => setYoutubePeriod(e.target.value as YouTubePeriod)}
-                      className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
                     >
                       <option value="">전체</option>
                       <option value="today">오늘</option>
@@ -736,7 +736,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                           <motion.button
                             onClick={() => handleSave(index)}
                             disabled={result.isSaving}
-                            className="px-4 py-1.5 text-xs font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                            className="px-4 py-1.5 text-xs font-medium text-white bg-primary rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-smooth"
                             {...pressScale}
                           >
                             {result.isSaving ? '저장 중...' : '저장'}

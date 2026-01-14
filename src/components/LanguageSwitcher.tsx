@@ -29,10 +29,10 @@ export function LanguageSwitcher() {
           key={loc}
           onClick={() => handleLocaleChange(loc)}
           disabled={isPending}
-          className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+          className={`px-2 py-1 text-xs font-medium rounded-lg transition-smooth ${
             locale === loc
-              ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-              : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              ? 'bg-primary text-white shadow-sm'
+              : 'text-muted-foreground hover:bg-accent hover:text-foreground'
           } ${isPending ? 'opacity-50 cursor-wait' : ''}`}
         >
           {loc.toUpperCase()}

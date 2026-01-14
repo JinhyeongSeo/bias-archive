@@ -136,13 +136,13 @@ export function TagEditor({ linkId, currentTags, onTagsChange, onClose }: TagEdi
   }
 
   return (
-    <div className="mt-2 p-2 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg">
+    <div className="mt-2 p-2 bg-surface rounded-lg border border-border">
       {/* Current tags with remove button */}
       <div className="flex flex-wrap gap-1 mb-2">
         {currentTags.map((tag) => (
           <span
             key={tag.id}
-            className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+            className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary border border-primary/20"
           >
             {tag.name}
             <button
@@ -182,12 +182,12 @@ export function TagEditor({ linkId, currentTags, onTagsChange, onClose }: TagEdi
             onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
             placeholder="태그 입력..."
             disabled={loading}
-            className="flex-1 px-2 py-1 text-xs rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+            className="flex-1 px-2 py-1 text-xs rounded-lg border border-border bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 transition-smooth"
           />
           <button
             onClick={() => addTag(inputValue)}
             disabled={loading || !inputValue.trim()}
-            className="px-2 py-1 text-xs rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-2 py-1 text-xs rounded-lg bg-primary text-white hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-smooth shadow-sm"
             title="태그 추가"
           >
             +
@@ -196,12 +196,12 @@ export function TagEditor({ linkId, currentTags, onTagsChange, onClose }: TagEdi
 
         {/* Autocomplete suggestions */}
         {showSuggestions && filteredTags.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded shadow-lg max-h-32 overflow-y-auto">
+          <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
             {filteredTags.map((tag) => (
               <button
                 key={tag.id}
                 onMouseDown={() => handleSuggestionClick(tag)}
-                className="w-full px-2 py-1 text-xs text-left text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                className="w-full px-2 py-1 text-xs text-left text-surface-foreground hover:bg-accent transition-smooth"
               >
                 {tag.name}
               </button>
@@ -214,7 +214,7 @@ export function TagEditor({ linkId, currentTags, onTagsChange, onClose }: TagEdi
       {onClose && (
         <button
           onClick={onClose}
-          className="mt-2 w-full px-2 py-1 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+          className="mt-2 w-full px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-smooth"
         >
           닫기
         </button>
