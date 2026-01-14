@@ -41,6 +41,7 @@ None
 - [x] **Phase 18: Footer Contact** - 연락처 정보가 담긴 Footer 컴포넌트 추가 ✓
 - [x] **Phase 19: Bias UI Improvements** - 버튼 레이아웃 수정 및 멤버 자동완성 ✓
 - [x] **Phase 20: Authentication** - 사용자 로그인/회원가입 기능 ✓
+- [ ] **Phase 21: Design Overhaul** - 토스 스타일 애니메이션 및 트렌디한 디자인 전면 개편
 
 ## Phase Details
 
@@ -353,6 +354,28 @@ Plans:
 - [x] 20-01: Auth Infrastructure (user_id 컬럼, RLS 정책, @supabase/ssr 설정) ✓
 - [x] 20-02: Auth UI (AuthProvider, 로그인/회원가입 페이지, UserMenu) ✓
 - [x] 20-03: Protected Routes & API (미들웨어 세션 관리, API 인증 체크) ✓
+
+### Phase 21: Design Overhaul
+
+**Goal**: 토스 스타일 애니메이션과 트렌디한 디자인으로 UI 전면 개편
+**Depends on**: Phase 20
+**Research**: Likely (토스 디자인 시스템 분석, 애니메이션 라이브러리 선택)
+**Plans**: TBD
+
+**기능 설명:**
+
+- 토스 스타일 마이크로 인터랙션 (부드러운 전환, 스프링 애니메이션)
+- 모던한 컬러 팔레트 및 타이포그래피
+- 카드 기반 UI 레이아웃 개선
+- 스켈레톤 로딩 및 부드러운 페이지 전환
+- 모바일 퍼스트 반응형 디자인 강화
+
+Plans:
+- [x] 21-01: Animation Foundation (framer-motion, primitives, CSS 변수) ✓
+- [ ] 21-02: Button & Card Animation
+- [ ] 21-03: Modal & List Animation
+- [ ] 21-04: Skeleton Loading
+- [ ] 21-05: Final Polish & Cleanup
 
 ## Progress
 
