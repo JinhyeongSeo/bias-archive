@@ -25,13 +25,14 @@ interface GroupedBiases {
 
 interface BiasManagerProps {
   biases: Bias[]
+  groups: Group[]
   onBiasAdded: () => void
   onBiasDeleted: () => void
 }
 
 const COLLAPSED_GROUPS_KEY = 'bias-manager-collapsed-groups'
 
-export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerProps) {
+export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted }: BiasManagerProps) {
   const { getDisplayName, nameLanguage } = useNameLanguage()
   const locale = useLocale()
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -44,7 +45,6 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
 
   // Collapsed groups state
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
-  const [groups, setGroups] = useState<Group[]>([])
 
   // Group mode state
   const [isGroupMode, setIsGroupMode] = useState(false)
@@ -72,22 +72,6 @@ export function BiasManager({ biases, onBiasAdded, onBiasDeleted }: BiasManagerP
       console.error('Error loading collapsed groups:', error)
     }
   }, [])
-
-  // Fetch groups for grouping biases
-  useEffect(() => {
-    const fetchGroups = async () => {
-      try {
-        const response = await fetch('/api/groups')
-        if (response.ok) {
-          const data = await response.json()
-          setGroups(data)
-        }
-      } catch (error) {
-        console.error('Error fetching groups:', error)
-      }
-    }
-    fetchGroups()
-  }, [biases]) // Refetch when biases change
 
   // Group biases by their group_id
   const groupedBiases = useMemo((): GroupedBiases[] => {

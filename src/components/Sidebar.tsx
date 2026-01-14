@@ -44,7 +44,8 @@ export function Sidebar({
   const [biases, setBiases] = useState<Bias[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [groups, setGroups] = useState<Group[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isBiasesLoading, setIsBiasesLoading] = useState(true)
+  const [isGroupsLoading, setIsGroupsLoading] = useState(true)
   const [isTagsLoading, setIsTagsLoading] = useState(true)
   const [isExportModalOpen, setIsExportModalOpen] = useState(false)
 
@@ -67,7 +68,7 @@ export function Sidebar({
     } catch (error) {
       console.error('Error fetching biases:', error)
     } finally {
-      setIsLoading(false)
+      setIsBiasesLoading(false)
     }
   }, [])
 
@@ -94,6 +95,8 @@ export function Sidebar({
       }
     } catch (error) {
       console.error('Error fetching groups:', error)
+    } finally {
+      setIsGroupsLoading(false)
     }
   }, [])
 
@@ -278,13 +281,14 @@ export function Sidebar({
         <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2">
           {t('sidebar.biasList')}
         </h2>
-        {isLoading ? (
+        {isBiasesLoading || isGroupsLoading ? (
           <p className="text-sm text-zinc-400 dark:text-zinc-500">
             {t('sidebar.loading')}
           </p>
         ) : (
           <BiasManager
             biases={biases}
+            groups={groups}
             onBiasAdded={handleBiasChange}
             onBiasDeleted={handleBiasChange}
           />
@@ -321,7 +325,7 @@ export function Sidebar({
           </div>
         )}
 
-        {isTagsLoading ? (
+        {isTagsLoading || isGroupsLoading ? (
           <p className="text-sm text-zinc-400 dark:text-zinc-500">
             {t('sidebar.loading')}
           </p>
