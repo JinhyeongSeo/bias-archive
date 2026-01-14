@@ -7,6 +7,7 @@ import { routing } from '@/i18n/routing';
 import "../globals.css";
 import { Providers } from "@/components/Providers";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 const geistSans = Geist({
@@ -62,15 +63,16 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
         <NextIntlClientProvider messages={messages}>
           <Providers>
             <ServiceWorkerRegistration />
             <Header />
-            <main className="pt-14 min-h-[calc(100vh-3.5rem)]">
+            <main className="pt-14 flex-grow">
               {children}
             </main>
+            <Footer />
           </Providers>
         </NextIntlClientProvider>
       </body>
