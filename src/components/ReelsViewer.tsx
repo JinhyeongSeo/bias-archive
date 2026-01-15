@@ -333,8 +333,8 @@ function ReelsMediaContent({
               ))}
             </div>
 
-            {/* Counter */}
-            <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/50 text-white text-sm z-10">
+            {/* Counter - positioned below the close button area */}
+            <div className="absolute top-16 right-4 px-3 py-1 rounded-full bg-black/50 text-white text-sm z-10">
               {safeMediaIndex + 1} / {mediaItems.length}
             </div>
           </>
