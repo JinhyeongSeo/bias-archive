@@ -761,14 +761,18 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           const ytCacheEntry = await getSearchCache(query)
           const ytCache = ytCacheEntry?.platforms.youtube
           const ytCachedResults = ytCache?.results ?? []
-          const ytRemainingInCache = ytCachedResults.length - localDisplayedCount
 
-          if (ytRemainingInCache >= RESULTS_PER_PLATFORM) {
+          // 현재 화면에 표시된 URL들
+          const ytDisplayedUrls = new Set(currentData.results.map(r => r.url))
+          // 캐시에서 아직 표시되지 않은 결과만 필터링
+          const ytUnshownInCache = ytCachedResults.filter(r => !ytDisplayedUrls.has(r.url))
+
+          if (ytUnshownInCache.length >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = ytCachedResults.slice(localDisplayedCount, localDisplayedCount + RESULTS_PER_PLATFORM)
+            const toDisplay = ytUnshownInCache.slice(0, RESULTS_PER_PLATFORM)
             searchResult = {
               results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: ytCachedResults.length > localDisplayedCount + RESULTS_PER_PLATFORM || ytCache?.hasMore || false,
+              hasMore: ytUnshownInCache.length > RESULTS_PER_PLATFORM || ytCache?.hasMore || false,
               nextPageToken: ytCache?.nextPageToken,
             }
             // Update cache displayedIndex
@@ -778,11 +782,14 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             })
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = ytCachedResults.slice(localDisplayedCount)
+            const fromCache = ytUnshownInCache
             const needed = RESULTS_PER_PLATFORM - fromCache.length
             const apiResult = await searchYouTube(query, ytCache?.nextPageToken || currentData.nextPageToken)
-            const fromApi = apiResult.results.slice(0, needed)
-            const leftoverApi = apiResult.results.slice(needed)
+
+            // API 결과에서도 이미 표시된 URL 제외
+            const newApiResults = apiResult.results.filter(r => !ytDisplayedUrls.has(r.url))
+            const fromApi = newApiResults.slice(0, needed)
+            const leftoverApi = newApiResults.slice(needed)
 
             searchResult = {
               results: [
@@ -874,14 +881,18 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           const heyeCacheEntry = await getSearchCache(query)
           const heyeCache = heyeCacheEntry?.platforms.heye
           const heyeCachedResults = heyeCache?.results ?? []
-          const heyeRemainingInCache = heyeCachedResults.length - localDisplayedCount
 
-          if (heyeRemainingInCache >= RESULTS_PER_PLATFORM) {
+          // 현재 화면에 표시된 URL들
+          const heyeDisplayedUrls = new Set(currentData.results.map(r => r.url))
+          // 캐시에서 아직 표시되지 않은 결과만 필터링
+          const heyeUnshownInCache = heyeCachedResults.filter(r => !heyeDisplayedUrls.has(r.url))
+
+          if (heyeUnshownInCache.length >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = heyeCachedResults.slice(localDisplayedCount, localDisplayedCount + RESULTS_PER_PLATFORM)
+            const toDisplay = heyeUnshownInCache.slice(0, RESULTS_PER_PLATFORM)
             searchResult = {
               results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: heyeCachedResults.length > localDisplayedCount + RESULTS_PER_PLATFORM || heyeCache?.hasMore || false,
+              hasMore: heyeUnshownInCache.length > RESULTS_PER_PLATFORM || heyeCache?.hasMore || false,
             }
             // Update cache displayedIndex
             void updatePlatformCache(query, 'heye', {
@@ -890,12 +901,15 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             })
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = heyeCachedResults.slice(localDisplayedCount)
+            const fromCache = heyeUnshownInCache
             const needed = RESULTS_PER_PLATFORM - fromCache.length
             newPage = currentData.currentPage + 1
             const apiResult = await searchHeye(query, newPage, 0)
-            const fromApi = apiResult.results.slice(0, needed)
-            const leftoverApi = apiResult.results.slice(needed)
+
+            // API 결과에서도 이미 표시된 URL 제외
+            const newApiResults = apiResult.results.filter(r => !heyeDisplayedUrls.has(r.url))
+            const fromApi = newApiResults.slice(0, needed)
+            const leftoverApi = newApiResults.slice(needed)
 
             searchResult = {
               results: [
@@ -923,14 +937,18 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           const kgirlsCacheEntry = await getSearchCache(query)
           const kgirlsCache = kgirlsCacheEntry?.platforms.kgirls
           const kgirlsCachedResults = kgirlsCache?.results ?? []
-          const kgirlsRemainingInCache = kgirlsCachedResults.length - localDisplayedCount
 
-          if (kgirlsRemainingInCache >= RESULTS_PER_PLATFORM) {
+          // 현재 화면에 표시된 URL들
+          const kgirlsDisplayedUrls = new Set(currentData.results.map(r => r.url))
+          // 캐시에서 아직 표시되지 않은 결과만 필터링
+          const kgirlsUnshownInCache = kgirlsCachedResults.filter(r => !kgirlsDisplayedUrls.has(r.url))
+
+          if (kgirlsUnshownInCache.length >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = kgirlsCachedResults.slice(localDisplayedCount, localDisplayedCount + RESULTS_PER_PLATFORM)
+            const toDisplay = kgirlsUnshownInCache.slice(0, RESULTS_PER_PLATFORM)
             searchResult = {
               results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: kgirlsCachedResults.length > localDisplayedCount + RESULTS_PER_PLATFORM || kgirlsCache?.hasMore || false,
+              hasMore: kgirlsUnshownInCache.length > RESULTS_PER_PLATFORM || kgirlsCache?.hasMore || false,
             }
             // Update cache displayedIndex
             void updatePlatformCache(query, 'kgirls', {
@@ -939,12 +957,15 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             })
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = kgirlsCachedResults.slice(localDisplayedCount)
+            const fromCache = kgirlsUnshownInCache
             const needed = RESULTS_PER_PLATFORM - fromCache.length
             newPage = currentData.currentPage + 1
             const apiResult = await searchKgirls(query, newPage, 0)
-            const fromApi = apiResult.results.slice(0, needed)
-            const leftoverApi = apiResult.results.slice(needed)
+
+            // API 결과에서도 이미 표시된 URL 제외
+            const newApiResults = apiResult.results.filter(r => !kgirlsDisplayedUrls.has(r.url))
+            const fromApi = newApiResults.slice(0, needed)
+            const leftoverApi = newApiResults.slice(needed)
 
             searchResult = {
               results: [
@@ -972,14 +993,18 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           const kgirlsIssueCacheEntry = await getSearchCache(query)
           const kgirlsIssueCache = kgirlsIssueCacheEntry?.platforms['kgirls-issue']
           const kgirlsIssueCachedResults = kgirlsIssueCache?.results ?? []
-          const kgirlsIssueRemainingInCache = kgirlsIssueCachedResults.length - localDisplayedCount
 
-          if (kgirlsIssueRemainingInCache >= RESULTS_PER_PLATFORM) {
+          // 현재 화면에 표시된 URL들
+          const kgirlsIssueDisplayedUrls = new Set(currentData.results.map(r => r.url))
+          // 캐시에서 아직 표시되지 않은 결과만 필터링
+          const kgirlsIssueUnshownInCache = kgirlsIssueCachedResults.filter(r => !kgirlsIssueDisplayedUrls.has(r.url))
+
+          if (kgirlsIssueUnshownInCache.length >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = kgirlsIssueCachedResults.slice(localDisplayedCount, localDisplayedCount + RESULTS_PER_PLATFORM)
+            const toDisplay = kgirlsIssueUnshownInCache.slice(0, RESULTS_PER_PLATFORM)
             searchResult = {
               results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: kgirlsIssueCachedResults.length > localDisplayedCount + RESULTS_PER_PLATFORM || kgirlsIssueCache?.hasMore || false,
+              hasMore: kgirlsIssueUnshownInCache.length > RESULTS_PER_PLATFORM || kgirlsIssueCache?.hasMore || false,
             }
             // Update cache displayedIndex
             void updatePlatformCache(query, 'kgirls-issue', {
@@ -988,12 +1013,15 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             })
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = kgirlsIssueCachedResults.slice(localDisplayedCount)
+            const fromCache = kgirlsIssueUnshownInCache
             const needed = RESULTS_PER_PLATFORM - fromCache.length
             newPage = currentData.currentPage + 1
             const apiResult = await searchKgirlsIssue(query, newPage, 0)
-            const fromApi = apiResult.results.slice(0, needed)
-            const leftoverApi = apiResult.results.slice(needed)
+
+            // API 결과에서도 이미 표시된 URL 제외
+            const newApiResults = apiResult.results.filter(r => !kgirlsIssueDisplayedUrls.has(r.url))
+            const fromApi = newApiResults.slice(0, needed)
+            const leftoverApi = newApiResults.slice(needed)
 
             searchResult = {
               results: [
