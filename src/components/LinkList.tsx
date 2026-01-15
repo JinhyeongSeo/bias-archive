@@ -8,6 +8,7 @@ import { LinkCard } from './LinkCard'
 import { SkeletonCard } from './Skeleton'
 import { SelectionToolbar } from './SelectionToolbar'
 import { BatchTagModal } from './BatchTagModal'
+import { ReelsViewer } from './ReelsViewer'
 import { useRefresh } from '@/contexts/RefreshContext'
 import { quickSpring, easeOutExpo } from '@/lib/animations'
 
@@ -37,6 +38,10 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
   const [batchModalMode, setBatchModalMode] = useState<'add' | 'remove' | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  // Reels viewer state
+  const [reelsViewerOpen, setReelsViewerOpen] = useState(false)
+  const [reelsInitialIndex, setReelsInitialIndex] = useState(0)
 
   const fetchLinks = useCallback(async () => {
     setLoading(true)
@@ -149,6 +154,15 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
     setSelectedIds(new Set())
     setSelectionMode(false)
   }
+
+  // Handle opening the reels viewer
+  const handleOpenViewer = useCallback((linkId: string) => {
+    const index = links.findIndex(link => link.id === linkId)
+    if (index !== -1) {
+      setReelsInitialIndex(index)
+      setReelsViewerOpen(true)
+    }
+  }, [links])
 
   // Sync savedUrls with parent when links change (after delete)
   useEffect(() => {
@@ -338,6 +352,7 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
                 selectionMode={selectionMode}
                 selected={selectedIds.has(link.id)}
                 onSelect={handleSelect}
+                onOpenViewer={handleOpenViewer}
               />
             </motion.div>
           ))}
@@ -355,6 +370,15 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
 
       {/* Delete confirmation modal */}
       <DeleteConfirmModal />
+
+      {/* Reels-style viewer */}
+      <ReelsViewer
+        links={links}
+        initialIndex={reelsInitialIndex}
+        isOpen={reelsViewerOpen}
+        onClose={() => setReelsViewerOpen(false)}
+        onIndexChange={setReelsInitialIndex}
+      />
     </>
   )
 }

@@ -37,8 +37,24 @@ const ALLOWED_CONTENT_TYPES = [
   'application/octet-stream', // fallback for some servers
 ]
 
+// Browser-like User-Agent to avoid bot detection
+const BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+
 export default {
   async fetch(request) {
+    const url = new URL(request.url)
+
+    // Debug endpoint to check datacenter location
+    if (url.pathname === '/debug') {
+      return new Response(JSON.stringify({
+        colo: request.cf?.colo,
+        country: request.cf?.country,
+        region: request.cf?.region,
+      }, null, 2), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
       return handleCORS()
@@ -49,7 +65,6 @@ export default {
       return new Response('Method not allowed', { status: 405 })
     }
 
-    const url = new URL(request.url)
     const videoUrl = url.searchParams.get('url')
 
     // Validate URL parameter
@@ -71,10 +86,32 @@ export default {
     }
 
     try {
-      // Build request headers with proper Referer
+      // Build request headers - mimic a real browser request from the same site
       const headers = new Headers()
-      headers.set('Referer', `https://${targetUrl.hostname}/`)
-      headers.set('User-Agent', request.headers.get('User-Agent') || 'Mozilla/5.0')
+      const refererBase = `https://${targetUrl.hostname}`
+
+      // Critical headers for bypassing hotlink protection
+      headers.set('Referer', refererBase + '/')
+      headers.set('Origin', refererBase)
+
+      // Use fixed browser User-Agent (not client's - avoids detection)
+      headers.set('User-Agent', BROWSER_USER_AGENT)
+
+      // Additional headers to appear more browser-like
+      headers.set('Accept', 'video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5')
+      headers.set('Accept-Language', 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7')
+      headers.set('Accept-Encoding', 'identity') // Don't compress video
+      headers.set('Sec-Fetch-Dest', 'video')
+      headers.set('Sec-Fetch-Mode', 'no-cors')
+      headers.set('Sec-Fetch-Site', 'same-origin')
+      headers.set('Sec-Ch-Ua', '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"')
+      headers.set('Sec-Ch-Ua-Mobile', '?0')
+      headers.set('Sec-Ch-Ua-Platform', '"Windows"')
+
+      // Remove headers that might reveal proxy
+      headers.delete('CF-Connecting-IP')
+      headers.delete('X-Forwarded-For')
+      headers.delete('X-Real-IP')
 
       // Handle Range requests for video streaming
       const rangeHeader = request.headers.get('Range')
@@ -85,6 +122,7 @@ export default {
       // Fetch the video from origin
       const response = await fetch(targetUrl.toString(), {
         headers,
+        redirect: 'follow',
         cf: {
           // Cache in Cloudflare CDN
           cacheTtl: 86400, // 24 hours

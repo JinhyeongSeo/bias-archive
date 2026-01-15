@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Link, Tag, LinkMedia } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
 import { TagEditor } from './TagEditor'
-import { ViewerModal } from './ViewerModal'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
 import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl } from '@/lib/proxy'
 import { quickSpring } from '@/lib/animations'
@@ -27,6 +26,7 @@ interface LinkCardProps {
   selectionMode?: boolean
   selected?: boolean
   onSelect?: (id: string, selected: boolean) => void
+  onOpenViewer?: (linkId: string) => void
 }
 
 const platformLabels: Record<Platform, string> = {
@@ -66,7 +66,8 @@ export function LinkCard({
   priority = false,
   selectionMode = false,
   selected = false,
-  onSelect
+  onSelect,
+  onOpenViewer
 }: LinkCardProps) {
   const locale = useLocale()
   const t = useTranslations('link')
@@ -79,7 +80,6 @@ export function LinkCard({
   const [starred, setStarred] = useState<boolean>(link.starred || false)
   const [savingMemo, setSavingMemo] = useState(false)
   const [togglingStarred, setTogglingStarred] = useState(false)
-  const [viewerOpen, setViewerOpen] = useState(false)
   const { getTagDisplayName } = useNameLanguage()
 
   const platform = (link.platform || 'other') as Platform
@@ -195,8 +195,11 @@ export function LinkCard({
       onSelect?.(link.id, !selected)
       return
     }
-    if (supportsViewer) {
-      setViewerOpen(true)
+    if (supportsViewer && onOpenViewer) {
+      onOpenViewer(link.id)
+    } else if (supportsViewer) {
+      // Fallback: open in new tab if no viewer handler
+      window.open(link.url, '_blank', 'noopener,noreferrer')
     } else {
       window.open(link.url, '_blank', 'noopener,noreferrer')
     }
@@ -420,9 +423,9 @@ export function LinkCard({
           </motion.button>
 
           {/* Play/View button for supported platforms */}
-          {supportsViewer && (
+          {supportsViewer && onOpenViewer && (
             <motion.button
-              onClick={() => setViewerOpen(true)}
+              onClick={() => onOpenViewer(link.id)}
               className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-green-500 dark:hover:text-green-400 shadow-sm transition-colors"
               title={t('playViewer')}
               whileTap={{ scale: 0.9 }}
@@ -552,13 +555,6 @@ export function LinkCard({
             </motion.button>
           )}
         </div>
-
-        {/* Viewer Modal */}
-        <ViewerModal
-          link={{ ...link, tags }}
-          isOpen={viewerOpen}
-          onClose={() => setViewerOpen(false)}
-        />
       </motion.div>
     )
   }
@@ -778,9 +774,9 @@ export function LinkCard({
         </motion.button>
 
         {/* Play/View button for supported platforms */}
-        {supportsViewer && (
+        {supportsViewer && onOpenViewer && (
           <motion.button
-            onClick={() => setViewerOpen(true)}
+            onClick={() => onOpenViewer(link.id)}
             className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-green-500 dark:hover:text-green-400 shadow-sm transition-colors"
             title={t('playViewer')}
             whileTap={{ scale: 0.9 }}
@@ -910,13 +906,6 @@ export function LinkCard({
           </motion.button>
         )}
       </div>
-
-      {/* Viewer Modal */}
-      <ViewerModal
-        link={{ ...link, tags }}
-        isOpen={viewerOpen}
-        onClose={() => setViewerOpen(false)}
-      />
     </motion.div>
   )
 }
