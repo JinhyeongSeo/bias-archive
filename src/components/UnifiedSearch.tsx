@@ -13,6 +13,12 @@ import {
 } from '@/lib/animations'
 import type { Bias, BiasWithGroup, Group } from '@/types/database'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
+import {
+  getSearchCache,
+  updatePlatformCache,
+  clearExpiredCache,
+  type CachedPlatformResult,
+} from '@/lib/searchCache'
 
 type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls'
 
@@ -103,6 +109,24 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
   const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set())
   const [isBatchSaving, setIsBatchSaving] = useState(false)
 
+  // Cache state - 이전에 본 결과
+  const [cachedResults, setCachedResults] = useState<Map<Platform, CachedPlatformResult>>(new Map())
+  const [showCached, setShowCached] = useState<Map<Platform, boolean>>(new Map())
+
+  // Toggle cached results visibility
+  const toggleShowCached = (platform: Platform) => {
+    setShowCached(prev => {
+      const next = new Map(prev)
+      next.set(platform, !prev.get(platform))
+      return next
+    })
+  }
+
+  // 컴포넌트 마운트 시 만료된 캐시 정리
+  useEffect(() => {
+    clearExpiredCache()
+  }, [])
+
   // Group biases by group for dropdown
   const biasesWithGroups = useMemo((): BiasWithGroup[] => {
     const groupMap = new Map<string, Group>()
@@ -137,6 +161,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       setSelectedBiasId(null)
       setPlatformResults(new Map())
       setSelectedUrls(new Set())
+      setCachedResults(new Map())
+      setShowCached(new Map())
     }
     return () => {
       document.body.style.overflow = ''
@@ -420,6 +446,10 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     setIsSearching(true)
     setSelectedUrls(new Set())
 
+    // 캐시 확인
+    const cached = getSearchCache(query)
+    const newCachedResults = new Map<Platform, CachedPlatformResult>()
+
     // Initialize results for each enabled platform
     const initialResults = new Map<Platform, PlatformResults>()
     for (const platform of enabledPlatforms) {
@@ -440,14 +470,24 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     const searchPromises: Promise<void>[] = []
 
     if (enabledPlatforms.has('youtube')) {
+      // 캐시된 결과가 있으면 저장하고 다음 페이지부터 검색
+      const cachedYoutube = cached?.platforms.youtube
+      if (cachedYoutube && cachedYoutube.results.length > 0) {
+        newCachedResults.set('youtube', cachedYoutube)
+      }
+
       searchPromises.push(
-        searchYouTube(query)
+        searchYouTube(query, cachedYoutube?.nextPageToken)
           .then(({ results, hasMore, nextPageToken }) => {
+            // 캐시된 URL 제외
+            const cachedUrls = new Set(cachedYoutube?.results.map(r => r.url) || [])
+            const filteredResults = results.filter(r => !cachedUrls.has(r.url))
+
             setPlatformResults(prev => {
               const next = new Map(prev)
               next.set('youtube', {
                 platform: 'youtube',
-                results,
+                results: filteredResults,
                 hasMore,
                 isLoading: false,
                 isLoadingMore: false,
@@ -457,6 +497,16 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 nextPageToken,
               })
               return next
+            })
+
+            // 새 결과를 캐시에 추가 (기존 캐시 + 새 결과)
+            const allResults = [...(cachedYoutube?.results || []), ...filteredResults]
+            updatePlatformCache(query, 'youtube', {
+              results: allResults,
+              nextPageToken,
+              currentPage: 1,
+              currentOffset: 0,
+              hasMore,
             })
           })
           .catch(error => {
@@ -479,14 +529,22 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     }
 
     if (enabledPlatforms.has('twitter')) {
+      const cachedTwitter = cached?.platforms.twitter
+      if (cachedTwitter && cachedTwitter.results.length > 0) {
+        newCachedResults.set('twitter', cachedTwitter)
+      }
+
       searchPromises.push(
-        searchTwitter(query)
+        searchTwitter(query, cachedTwitter?.nextCursor)
           .then(({ results, hasMore, nextCursor }) => {
+            const cachedUrls = new Set(cachedTwitter?.results.map(r => r.url) || [])
+            const filteredResults = results.filter(r => !cachedUrls.has(r.url))
+
             setPlatformResults(prev => {
               const next = new Map(prev)
               next.set('twitter', {
                 platform: 'twitter',
-                results,
+                results: filteredResults,
                 hasMore,
                 isLoading: false,
                 isLoadingMore: false,
@@ -496,6 +554,15 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 nextCursor,
               })
               return next
+            })
+
+            const allResults = [...(cachedTwitter?.results || []), ...filteredResults]
+            updatePlatformCache(query, 'twitter', {
+              results: allResults,
+              nextCursor,
+              currentPage: 1,
+              currentOffset: 0,
+              hasMore,
             })
           })
           .catch(error => {
@@ -519,22 +586,42 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     }
 
     if (enabledPlatforms.has('heye')) {
+      const cachedHeye = cached?.platforms.heye
+      if (cachedHeye && cachedHeye.results.length > 0) {
+        newCachedResults.set('heye', cachedHeye)
+      }
+
+      // heye는 cursor가 없으므로 캐시 offset부터 검색
+      const startPage = cachedHeye ? cachedHeye.currentPage : 1
+      const startOffset = cachedHeye ? cachedHeye.currentOffset : 0
+
       searchPromises.push(
-        searchHeye(query, 1, 0)
+        searchHeye(query, startPage, startOffset)
           .then(({ results, hasMore }) => {
+            const cachedUrls = new Set(cachedHeye?.results.map(r => r.url) || [])
+            const filteredResults = results.filter(r => !cachedUrls.has(r.url))
+
             setPlatformResults(prev => {
               const next = new Map(prev)
               next.set('heye', {
                 platform: 'heye',
-                results,
+                results: filteredResults,
                 hasMore,
                 isLoading: false,
                 isLoadingMore: false,
                 error: null,
-                currentPage: 1,
-                currentOffset: results.length,
+                currentPage: startPage,
+                currentOffset: startOffset + filteredResults.length,
               })
               return next
+            })
+
+            const allResults = [...(cachedHeye?.results || []), ...filteredResults]
+            updatePlatformCache(query, 'heye', {
+              results: allResults,
+              currentPage: startPage,
+              currentOffset: startOffset + filteredResults.length,
+              hasMore,
             })
           })
           .catch(error => {
@@ -557,22 +644,41 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     }
 
     if (enabledPlatforms.has('kgirls')) {
+      const cachedKgirls = cached?.platforms.kgirls
+      if (cachedKgirls && cachedKgirls.results.length > 0) {
+        newCachedResults.set('kgirls', cachedKgirls)
+      }
+
+      const startPage = cachedKgirls ? cachedKgirls.currentPage : 1
+      const startOffset = cachedKgirls ? cachedKgirls.currentOffset : 0
+
       searchPromises.push(
-        searchKgirls(query, 1, 0)
+        searchKgirls(query, startPage, startOffset)
           .then(({ results, hasMore }) => {
+            const cachedUrls = new Set(cachedKgirls?.results.map(r => r.url) || [])
+            const filteredResults = results.filter(r => !cachedUrls.has(r.url))
+
             setPlatformResults(prev => {
               const next = new Map(prev)
               next.set('kgirls', {
                 platform: 'kgirls',
-                results,
+                results: filteredResults,
                 hasMore,
                 isLoading: false,
                 isLoadingMore: false,
                 error: null,
-                currentPage: 1,
-                currentOffset: results.length,
+                currentPage: startPage,
+                currentOffset: startOffset + filteredResults.length,
               })
               return next
+            })
+
+            const allResults = [...(cachedKgirls?.results || []), ...filteredResults]
+            updatePlatformCache(query, 'kgirls', {
+              results: allResults,
+              currentPage: startPage,
+              currentOffset: startOffset + filteredResults.length,
+              hasMore,
             })
           })
           .catch(error => {
@@ -594,6 +700,11 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           })
       )
     }
+
+    // 캐시된 결과 상태 설정
+    setCachedResults(newCachedResults)
+    // 캐시된 결과는 기본적으로 접힌 상태
+    setShowCached(new Map())
 
     await Promise.allSettled(searchPromises)
     setIsSearching(false)
@@ -1124,6 +1235,71 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                             <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">
                               {platformData.error}
                             </p>
+                          )}
+
+                          {/* Cached Results - 오늘 본 결과 */}
+                          {cachedResults.get(platformConfig.id) && cachedResults.get(platformConfig.id)!.results.length > 0 && (
+                            <div className="space-y-1.5">
+                              <button
+                                onClick={() => toggleShowCached(platformConfig.id)}
+                                className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                              >
+                                <svg
+                                  className={`w-3 h-3 transition-transform ${showCached.get(platformConfig.id) ? 'rotate-90' : ''}`}
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                                <span>오늘 본 결과 ({cachedResults.get(platformConfig.id)!.results.length}개)</span>
+                              </button>
+
+                              {showCached.get(platformConfig.id) && (
+                                <div className="space-y-1.5 sm:space-y-2 opacity-60">
+                                  {cachedResults.get(platformConfig.id)!.results.map((result) => (
+                                    <div
+                                      key={`cached-${result.url}`}
+                                      className="flex gap-2 sm:gap-3 p-2 sm:p-3 bg-zinc-100 dark:bg-zinc-800/30 rounded-lg border border-zinc-200 dark:border-zinc-700"
+                                    >
+                                      {/* Thumbnail */}
+                                      {result.thumbnailUrl ? (
+                                        <img
+                                          src={result.thumbnailUrl}
+                                          alt=""
+                                          className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
+                                        />
+                                      ) : (
+                                        <div className="w-16 h-12 sm:w-20 sm:h-14 bg-zinc-200 dark:bg-zinc-700 rounded flex-shrink-0 flex items-center justify-center">
+                                          <span className="text-[10px] sm:text-xs text-zinc-400">No img</span>
+                                        </div>
+                                      )}
+
+                                      {/* Info */}
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="text-[11px] sm:text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2">
+                                          {result.title}
+                                        </h4>
+                                        <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
+                                          {result.author && (
+                                            <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[80px] sm:max-w-[120px]">
+                                              {result.author}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Status */}
+                                      <div className="flex-shrink-0 flex items-center">
+                                        {result.isSaved && (
+                                          <span className="text-[10px] sm:text-xs text-green-600 dark:text-green-400">저장됨</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           )}
 
                           {/* Platform Results */}
