@@ -55,6 +55,7 @@ function HomeContent() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial data fetch on mount
     fetchBiasesAndGroups()
   }, [fetchBiasesAndGroups, refreshTrigger])
 
@@ -64,6 +65,7 @@ function HomeContent() {
     if (tagsParam) {
       // Support single tag for now (first tag if comma-separated)
       const tagId = tagsParam.split(',')[0]
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync state from URL params
       setSelectedTagId(tagId || null)
     }
   }, [searchParams])
@@ -72,6 +74,7 @@ function HomeContent() {
   useEffect(() => {
     const saved = localStorage.getItem(LAYOUT_STORAGE_KEY)
     if (saved === 'grid' || saved === 'list') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync state from localStorage
       setLayout(saved)
     }
   }, [])

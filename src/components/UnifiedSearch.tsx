@@ -750,7 +750,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     try {
       let searchResult: { results: EnrichedResult[], hasMore: boolean, nextPageToken?: string, nextCursor?: string }
       let newPage = currentData.currentPage
-      let newOffset = currentData.currentOffset
+      const newOffset = currentData.currentOffset
 
       // 로컬 상태 기준 displayedIndex (서버 캐시 타이밍 이슈 방지)
       const localDisplayedCount = currentData.results.length
@@ -1435,10 +1435,6 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     }
   }
 
-  const getPlatformConfig = (platform: Platform) => {
-    return PLATFORMS.find(p => p.id === platform) || PLATFORMS[0]
-  }
-
   // Check if any platform is still loading
   const anyLoading = Array.from(platformResults.values()).some(p => p.isLoading)
 
@@ -1654,6 +1650,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                                     >
                                       {/* Thumbnail */}
                                       {result.thumbnailUrl ? (
+                                        // eslint-disable-next-line @next/next/no-img-element -- External thumbnail URLs
                                         <img
                                           src={result.thumbnailUrl}
                                           alt=""
@@ -1737,6 +1734,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
                                   {/* Thumbnail */}
                                   {result.thumbnailUrl ? (
+                                    // eslint-disable-next-line @next/next/no-img-element -- External thumbnail URLs
                                     <img
                                       src={result.thumbnailUrl}
                                       alt=""

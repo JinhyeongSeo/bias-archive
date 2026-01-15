@@ -82,7 +82,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   // Local bias order for optimistic updates during drag
   const [localBiases, setLocalBiases] = useState<Bias[]>(biases)
   const [localGroups, setLocalGroups] = useState<Group[]>(groups)
-  const [isReordering, setIsReordering] = useState(false)
+  const [, setIsReordering] = useState(false)
 
   // Sync localBiases when biases prop changes (from server)
   useEffect(() => {

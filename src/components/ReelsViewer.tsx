@@ -57,6 +57,7 @@ function YouTubeEmbed({ videoId, title, isActive }: { videoId: string; title: st
   // Reset controlsEnabled when video becomes inactive (user navigated away)
   useEffect(() => {
     if (!isActive) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state when video becomes inactive
       setControlsEnabled(false)
     }
   }, [isActive])
@@ -148,6 +149,7 @@ function VideoWithFallback({ url, className, style, originalUrl, isActive = true
 
   // Reset state when URL changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state when URL changes
     setTryCount(0)
     setStatus('loading')
   }, [url])
@@ -409,8 +411,6 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     return result
   }, [prevLink, currentLink, nextLink])
 
-  const platform = (currentLink?.platform || 'other') as Platform
-
   // Get displayable media items for current link
   const currentMediaItems = useMemo(() =>
     currentLink?.media?.filter(
@@ -428,14 +428,16 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
 
   // Reset index when initialIndex changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync state from prop
     setCurrentIndex(initialIndex)
-    setMediaIndex(0) // Reset media index when link changes
+    setMediaIndex(0)
     dragY.set(0)
     dragX.set(0)
   }, [initialIndex, dragX, dragY])
 
   // Reset media index when current link changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset media index when link changes
     setMediaIndex(0)
   }, [currentIndex])
 
@@ -753,7 +755,7 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     window.history.pushState(state, '')
 
     // Handle the popstate event (back button)
-    const handlePopState = (e: PopStateEvent) => {
+    const handlePopState = () => {
       // Close the viewer when back button is pressed
       onClose()
     }

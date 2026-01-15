@@ -64,7 +64,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
     setProgress(0)
     setStartTime(0)
     setDuration(2)
-  }, [videoUrl, gifUrl])
+  }, [videoUrl, gifUrl, te])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -370,6 +370,7 @@ export function GifMaker({ className = '' }: GifMakerProps) {
             {t('complete')}
           </h3>
           <div className="rounded-lg overflow-hidden bg-white dark:bg-zinc-900 mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element -- Blob URL for generated GIF */}
             <img
               src={gifUrl}
               alt="Generated GIF"

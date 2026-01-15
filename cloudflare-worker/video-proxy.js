@@ -41,7 +41,7 @@ const ALLOWED_CONTENT_TYPES = [
 // Browser-like User-Agent to avoid bot detection
 const BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
-export default {
+const worker = {
   async fetch(request) {
     const url = new URL(request.url)
 
@@ -186,6 +186,8 @@ export default {
     }
   },
 }
+
+export default worker
 
 function handleCORS() {
   return new Response(null, {

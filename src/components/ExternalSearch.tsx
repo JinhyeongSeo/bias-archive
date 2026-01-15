@@ -382,7 +382,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     }
   }
 
-  const handleSave = async (index: number) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future single-item save
+  const _handleSave = async (index: number) => {
     const result = results[index]
     if (result.isSaved || result.isSaving) return
 
@@ -859,7 +860,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                     )}
                   </div>
 
-                  {results.map((result, index) => (
+                  {results.map((result) => (
                     <motion.div
                       key={result.url}
                       className={`flex gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border transition-colors cursor-pointer ${
@@ -896,6 +897,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                             preload="metadata"
                           />
                         ) : (
+                          // eslint-disable-next-line @next/next/no-img-element -- External URLs with proxy
                           <img
                             src={getProxiedImageUrl(result.thumbnailUrl)}
                             alt=""

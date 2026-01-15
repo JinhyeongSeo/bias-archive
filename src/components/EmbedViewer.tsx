@@ -103,6 +103,7 @@ function TwitterEmbed({ tweetId }: { tweetId: string }) {
     // Prevent double rendering in StrictMode
     if (renderedRef.current) {
       // Already rendered, just hide loading
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync loading state with render status
       setLoading(false)
       return
     }
@@ -269,6 +270,7 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
         // Use proxied URL for preloading - same URL that will be rendered
         img.src = getProxiedImageUrl(items[idx].media_url)
       })
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Track preloaded images for optimization
       setLoadedImages(prev => new Set([...prev, ...toPreload]))
     }
   }, [currentIndex, items, loadedImages])

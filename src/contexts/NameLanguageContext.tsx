@@ -45,11 +45,13 @@ export function NameLanguageProvider({ children }: { children: ReactNode }) {
 
   // Mark as mounted - nameLanguage is always 'auto' now
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Set mounted flag on mount
     setMounted(true)
   }, [])
 
   // setNameLanguage is kept for API compatibility but effectively no-op
   // nameLanguage is always 'auto' now
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- API compatibility
   const setNameLanguage = useCallback((_language: NameLanguage) => {
     // No-op: nameLanguage is fixed to 'auto'
   }, [])
