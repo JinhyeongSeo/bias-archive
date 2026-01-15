@@ -667,7 +667,11 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
   // Load more results for a specific platform
   const handleLoadMore = async (platform: Platform) => {
     const currentData = platformResults.get(platform)
-    if (!currentData || currentData.isLoadingMore || !currentData.hasMore) return
+    console.log('[handleLoadMore] platform:', platform, 'currentData:', currentData)
+    if (!currentData || currentData.isLoadingMore || !currentData.hasMore) {
+      console.log('[handleLoadMore] early return - currentData:', !!currentData, 'isLoadingMore:', currentData?.isLoadingMore, 'hasMore:', currentData?.hasMore)
+      return
+    }
 
     // Set loading more state
     setPlatformResults(prev => {
@@ -1649,9 +1653,23 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                           {/* Load More Button */}
                           {platformData.hasMore && !platformData.isLoading && (
                             <button
-                              onClick={() => handleLoadMore(platformConfig.id)}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                console.log('[LoadMore] clicked for platform:', platformConfig.id, 'hasMore:', platformData.hasMore)
+                                handleLoadMore(platformConfig.id)
+                              }}
+                              onTouchEnd={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                console.log('[LoadMore] touch for platform:', platformConfig.id)
+                                if (!platformData.isLoadingMore) {
+                                  handleLoadMore(platformConfig.id)
+                                }
+                              }}
                               disabled={platformData.isLoadingMore}
-                              className="w-full py-2 text-xs font-medium text-primary hover:text-primary-dark hover:bg-primary/5 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                              className="w-full py-3 sm:py-2 text-xs font-medium text-primary hover:text-primary-dark hover:bg-primary/5 active:bg-primary/10 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
                             >
                               {platformData.isLoadingMore ? (
                                 <>
