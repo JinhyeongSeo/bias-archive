@@ -437,7 +437,7 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
 
   // Reset media index when current link changes
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset media index when link changes
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset on index change
     setMediaIndex(0)
   }, [currentIndex])
 
@@ -750,30 +750,52 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
   }, [isOpen])
 
   // Handle browser back button to close the viewer (mobile-friendly)
-  useEffect(() => {
-    if (!isOpen) return
+  // Track if we pushed history state to avoid duplicate pushes
+  const historyPushed = useRef(false)
+  // Store onClose in ref to avoid effect re-runs when onClose changes
+  const onCloseRef = useRef(onClose)
 
-    // Push a new history state when the viewer opens
-    const state = { reelsViewerOpen: true }
-    window.history.pushState(state, '')
+  // Update onClose ref when it changes
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  useEffect(() => {
+    if (!isOpen) {
+      historyPushed.current = false
+      return
+    }
+
+    // Only push history state once when opening
+    if (!historyPushed.current) {
+      const state = { reelsViewerOpen: true }
+      window.history.pushState(state, '')
+      historyPushed.current = true
+    }
 
     // Handle the popstate event (back button)
     const handlePopState = () => {
       // Close the viewer when back button is pressed
-      onClose()
+      onCloseRef.current()
     }
 
     window.addEventListener('popstate', handlePopState)
 
     return () => {
       window.removeEventListener('popstate', handlePopState)
-      // If we're cleaning up while still open (e.g., unmounting), go back to remove our history entry
-      // Check if the current state is our pushed state
-      if (window.history.state?.reelsViewerOpen) {
+    }
+  }, [isOpen]) // Removed onClose from deps, using ref instead
+
+  // Separate cleanup effect for history when viewer closes
+  useEffect(() => {
+    return () => {
+      // On unmount, if we still have our history state, go back
+      if (historyPushed.current && window.history.state?.reelsViewerOpen) {
         window.history.back()
+        historyPushed.current = false
       }
     }
-  }, [isOpen, onClose])
+  }, [])
 
   // Download all media with rate limiting
   const handleDownloadAll = async () => {
