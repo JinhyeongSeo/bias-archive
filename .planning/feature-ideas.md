@@ -189,4 +189,49 @@ CREATE TABLE collection_links (
 
 ---
 
+---
+
+## 11. 썸네일 얼굴 감지 크롭 (계획됨)
+
+heye, kgirls 같은 전신 직캠 썸네일에서 얼굴이 잘 보이도록 자동 크롭하는 기능.
+
+### 현재 상태
+- `object-top` CSS로 상단 기준 크롭 적용 중
+- 얼굴이 상단에 없는 경우 여전히 문제
+
+### 구현 계획
+
+**1. 클라이언트 얼굴 감지 (face-api.js)**
+```
+라이브러리: face-api.js (~3-6MB 모델)
+처리 시점: 링크 저장 시 브라우저에서 감지
+속도: 모델 로드 1-3초 (최초 1회), 이미지당 100-300ms
+```
+
+**2. DB 스키마 변경**
+```sql
+ALTER TABLE links ADD COLUMN face_position JSONB;
+-- 예: {"x": 0.5, "y": 0.2} (0~1 비율, 이미지 내 얼굴 중심점)
+```
+
+**3. 구현 단계**
+1. face-api.js 설치 및 모델 파일 `/public/models/`에 배치
+2. `useFaceDetection` 훅 생성 - 이미지 URL → 얼굴 좌표 반환
+3. 저장 시 썸네일 얼굴 감지 → `face_position` DB 저장
+4. `LinkCard`에서 `face_position` 있으면 `object-position` 동적 적용
+5. 검색 결과 썸네일에도 동일 적용
+
+**4. 필요 파일 변경**
+- `/src/lib/faceDetection.ts` - 얼굴 감지 유틸리티
+- `/src/components/ExternalSearch.tsx` - 저장 시 감지 호출
+- `/src/components/LinkCard.tsx` - 동적 object-position 적용
+- `/src/app/api/links/route.ts` - face_position 저장
+- DB 마이그레이션 - face_position 컬럼 추가
+
+**5. 폴백**
+- 얼굴 감지 실패 시 기존 `object-top` 유지
+- heye/kgirls 외 플랫폼은 기본 center 유지
+
+---
+
 *마지막 업데이트: 2026-01-15*
