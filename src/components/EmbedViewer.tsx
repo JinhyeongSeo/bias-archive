@@ -188,7 +188,7 @@ function TwitterEmbed({ tweetId }: { tweetId: string }) {
 // Media gallery component for images, GIFs, and videos
 function MediaGallery({ media }: { media: LinkMedia[] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set([0]))
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
   // Include images, GIFs, and videos
   const items = media.filter(m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video')
 
@@ -200,18 +200,16 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
     setCurrentIndex((prev) => (prev === items.length - 1 ? 0 : prev + 1))
   }, [items.length])
 
-  // Preload adjacent images when current index changes (skip videos)
+  // Preload adjacent images (skip videos) - runs on mount and when index changes
   useEffect(() => {
-    if (items.length <= 1) return
-
     const toPreload: number[] = []
-    // Preload next 2 and previous 1 images
+    // Preload current, next 2 and previous 1 images
     for (let offset = -1; offset <= 2; offset++) {
       let idx = currentIndex + offset
       if (idx < 0) idx = items.length + idx
       if (idx >= items.length) idx = idx - items.length
-      // Only preload images, not videos
-      if (!loadedImages.has(idx) && items[idx].media_type !== 'video') {
+      // Only preload images/gifs, not videos
+      if (!loadedImages.has(idx) && items[idx] && items[idx].media_type !== 'video') {
         toPreload.push(idx)
       }
     }
@@ -219,7 +217,8 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
     if (toPreload.length > 0) {
       toPreload.forEach(idx => {
         const img = new window.Image()
-        img.src = items[idx].media_url
+        // Use proxied URL for preloading - same URL that will be rendered
+        img.src = getProxiedImageUrl(items[idx].media_url)
       })
       setLoadedImages(prev => new Set([...prev, ...toPreload]))
     }
