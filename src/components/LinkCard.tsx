@@ -84,6 +84,9 @@ export function LinkCard({
 
   const platform = (link.platform || 'other') as Platform
 
+  // heye, kgirls는 전신 직캠이 많아서 상단(얼굴) 기준으로 크롭
+  const useTopCrop = platform === 'heye' || platform === 'kgirls'
+
   const handleSaveMemo = useCallback(async () => {
     setSavingMemo(true)
     try {
@@ -238,7 +241,7 @@ export function LinkCard({
             isVideoUrl(link.thumbnail_url) ? (
               <video
                 src={getProxiedVideoUrl(link.thumbnail_url!)}
-                className="absolute inset-0 w-full h-full object-cover"
+                className={`absolute inset-0 w-full h-full object-cover ${useTopCrop ? 'object-top' : ''}`}
                 muted
                 playsInline
                 preload="metadata"
@@ -248,7 +251,7 @@ export function LinkCard({
                 src={getProxiedImageUrl(link.thumbnail_url)}
                 alt={link.title || 'Thumbnail'}
                 fill
-                className="object-cover"
+                className={`object-cover ${useTopCrop ? 'object-top' : ''}`}
               />
             )
           ) : (
@@ -592,7 +595,7 @@ export function LinkCard({
           isVideoUrl(link.thumbnail_url) ? (
             <video
               src={getProxiedVideoUrl(link.thumbnail_url)}
-              className="absolute inset-0 w-full h-full object-cover"
+              className={`absolute inset-0 w-full h-full object-cover ${useTopCrop ? 'object-top' : ''}`}
               muted
               playsInline
               preload="metadata"
@@ -603,7 +606,7 @@ export function LinkCard({
               alt={link.title || 'Thumbnail'}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="object-cover"
+              className={`object-cover ${useTopCrop ? 'object-top' : ''}`}
               priority={priority}
             />
           )
