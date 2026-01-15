@@ -204,8 +204,9 @@ function ReelsMediaContent({ link, platform, isActive = true }: { link: FullLink
                   src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
                   alt={link.title || 'YouTube thumbnail'}
                   fill
-                  className="object-cover rounded-lg"
+                  className="object-cover rounded-lg select-none pointer-events-none"
                   unoptimized
+                  draggable={false}
                 />
               </div>
             )}
@@ -238,9 +239,10 @@ function ReelsMediaContent({ link, platform, isActive = true }: { link: FullLink
               src={getProxiedImageUrl(currentMedia.media_url)}
               alt={link.title || 'Media'}
               fill
-              className="object-contain"
+              className="object-contain select-none pointer-events-none"
               priority
               unoptimized
+              draggable={false}
             />
           </div>
         )}
@@ -309,9 +311,10 @@ function ReelsMediaContent({ link, platform, isActive = true }: { link: FullLink
             src={getProxiedImageUrl(link.thumbnail_url)}
             alt={link.title || 'Thumbnail'}
             fill
-            className="object-contain"
+            className="object-contain select-none pointer-events-none"
             priority
             unoptimized
+            draggable={false}
           />
         </div>
       ) : (
