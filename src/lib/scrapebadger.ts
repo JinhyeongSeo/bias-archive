@@ -7,35 +7,35 @@
  * Response time: <100ms
  */
 
+// 실제 ScrapeBadger API 응답 형식
 export interface ScrapeBadgerTweet {
   id: string
   text: string
+  full_text: string
   created_at: string
-  author: {
-    id: string
-    username: string
-    name: string
-    profile_image_url?: string
-  }
+  lang: string
+  user_id: string
+  username: string
+  user_name: string
+  favorite_count: number
+  retweet_count: number
+  reply_count: number
+  quote_count: number
+  view_count: string
+  bookmark_count: number
   media?: {
     type: 'photo' | 'video' | 'animated_gif'
     url: string
-    preview_url?: string
+    preview_image_url?: string
+    width: number
+    height: number
+    duration_ms?: number
   }[]
-  metrics?: {
-    likes: number
-    retweets: number
-    replies: number
-    views: number
-  }
 }
 
 export interface ScrapeBadgerSearchResponse {
   data: ScrapeBadgerTweet[]
-  meta?: {
-    next_cursor?: string
-    result_count: number
-  }
+  next_cursor?: string
 }
 
 export interface TwitterSearchResult {
@@ -46,6 +46,12 @@ export interface TwitterSearchResult {
   authorName?: string
   authorUsername?: string
   createdAt?: string
+  metrics?: {
+    likes: number
+    retweets: number
+    replies: number
+    views: number
+  }
 }
 
 export interface TwitterSearchResponse {
@@ -60,24 +66,23 @@ export type SearchType = 'top' | 'latest' | 'media'
 export interface ScrapeBadgerSearchOptions {
   type?: SearchType
   cursor?: string
-  count?: number
 }
 
-const BASE_URL = 'https://api.scrapebadger.com/v1/twitter'
+const BASE_URL = 'https://scrapebadger.com/v1/twitter'
 
 /**
  * Search Twitter using ScrapeBadger API
  * Provides real-time search results (unlike Google CSE which only indexes past tweets)
  *
  * @param query - Search query string
- * @param options - Search options (type, cursor, count)
+ * @param options - Search options (type, cursor)
  * @returns Object with results array and pagination info
  */
 export async function searchTwitterWithScrapeBadger(
   query: string,
   options: ScrapeBadgerSearchOptions = {}
 ): Promise<TwitterSearchResponse> {
-  const { type = 'top', cursor, count = 20 } = options
+  const { type = 'top', cursor } = options
 
   const apiKey = process.env.SCRAPEBADGER_API_KEY
 
@@ -87,22 +92,28 @@ export async function searchTwitterWithScrapeBadger(
 
   const params = new URLSearchParams({
     query,
-    type,
-    count: String(count),
   })
+
+  // query_type: Top, Latest, Media
+  if (type === 'latest') {
+    params.set('query_type', 'Latest')
+  } else if (type === 'media') {
+    params.set('query_type', 'Media')
+  } else {
+    params.set('query_type', 'Top')
+  }
 
   if (cursor) {
     params.set('cursor', cursor)
   }
 
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 10000)
+  const timeoutId = setTimeout(() => controller.abort(), 15000)
 
   try {
-    const response = await fetch(`${BASE_URL}/search?${params}`, {
+    const response = await fetch(`${BASE_URL}/tweets/advanced_search?${params}`, {
       headers: {
-        'x-api-key': apiKey,
-        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
       },
       signal: controller.signal,
     })
@@ -116,20 +127,26 @@ export async function searchTwitterWithScrapeBadger(
 
     // Transform ScrapeBadger response to our format
     const results: TwitterSearchResult[] = (data.data || []).map((tweet) => ({
-      link: `https://twitter.com/${tweet.author.username}/status/${tweet.id}`,
-      title: `${tweet.author.name} (@${tweet.author.username})`,
-      snippet: tweet.text,
-      thumbnailUrl: tweet.media?.[0]?.preview_url || tweet.media?.[0]?.url,
-      authorName: tweet.author.name,
-      authorUsername: tweet.author.username,
+      link: `https://twitter.com/${tweet.username}/status/${tweet.id}`,
+      title: `${tweet.user_name} (@${tweet.username})`,
+      snippet: tweet.full_text || tweet.text,
+      thumbnailUrl: tweet.media?.[0]?.url,
+      authorName: tweet.user_name,
+      authorUsername: tweet.username,
       createdAt: tweet.created_at,
+      metrics: {
+        likes: tweet.favorite_count,
+        retweets: tweet.retweet_count,
+        replies: tweet.reply_count,
+        views: parseInt(tweet.view_count, 10) || 0,
+      },
     }))
 
     return {
       results,
-      hasMore: !!data.meta?.next_cursor,
-      nextCursor: data.meta?.next_cursor,
-      totalResults: data.meta?.result_count,
+      hasMore: !!data.next_cursor,
+      nextCursor: data.next_cursor,
+      totalResults: results.length,
     }
   } finally {
     clearTimeout(timeoutId)
