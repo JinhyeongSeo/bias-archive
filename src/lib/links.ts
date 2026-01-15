@@ -262,8 +262,13 @@ export async function searchLinksWithTags(
       ),
       link_media (*)
     `
-    )
-    .order("created_at", { ascending: false });
+    );
+
+  // Sort by starred first only when filtering by tags
+  if (linkIdsWithTags) {
+    query = query.order("starred", { ascending: false });
+  }
+  query = query.order("created_at", { ascending: false });
 
   // Apply bias filter
   if (biasId) {
