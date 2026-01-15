@@ -213,11 +213,12 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
   }
 
   const searchTwitter = async (searchQuery: string, page: number = 1): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
-    // Add # prefix for hashtag search on Twitter
-    const hashtagQuery = searchQuery.startsWith('#') ? searchQuery : `#${searchQuery}`
+    // Remove # prefix if present - Google CSE handles hashtags better without the # symbol
+    // The site:twitter.com filter in the API will find relevant tweets
+    const cleanQuery = searchQuery.startsWith('#') ? searchQuery.slice(1) : searchQuery
 
     const params = new URLSearchParams({
-      q: hashtagQuery,
+      q: cleanQuery,
       page: String(page),
       // Note: dateRestrict causes Google CSE to return non-tweet URLs for Twitter searches
       // so we skip it and rely on Google's default relevance ranking

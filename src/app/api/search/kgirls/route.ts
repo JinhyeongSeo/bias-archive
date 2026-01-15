@@ -63,6 +63,9 @@ export async function GET(request: NextRequest) {
     })
 
     if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('kgirls.net에서 서버 접근이 차단되었습니다')
+      }
       throw new Error(`HTTP ${response.status}`)
     }
 
