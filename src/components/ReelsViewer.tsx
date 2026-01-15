@@ -744,6 +744,32 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     }
   }, [isOpen])
 
+  // Handle browser back button to close the viewer (mobile-friendly)
+  useEffect(() => {
+    if (!isOpen) return
+
+    // Push a new history state when the viewer opens
+    const state = { reelsViewerOpen: true }
+    window.history.pushState(state, '')
+
+    // Handle the popstate event (back button)
+    const handlePopState = (e: PopStateEvent) => {
+      // Close the viewer when back button is pressed
+      onClose()
+    }
+
+    window.addEventListener('popstate', handlePopState)
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      // If we're cleaning up while still open (e.g., unmounting), go back to remove our history entry
+      // Check if the current state is our pushed state
+      if (window.history.state?.reelsViewerOpen) {
+        window.history.back()
+      }
+    }
+  }, [isOpen, onClose])
+
   // Download all media with rate limiting
   const handleDownloadAll = async () => {
     if (downloadableMedia.length === 0 || isDownloading) return
