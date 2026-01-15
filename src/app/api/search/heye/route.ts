@@ -13,7 +13,7 @@ interface HeyeSearchResult {
   author: string
 }
 
-// 개별 heye 게시글에서 첫 번째 이미지를 썸네일로 추출
+// 개별 heye 게시글에서 첫 번째 미디어(이미지 우선, 없으면 영상)를 썸네일로 추출
 async function fetchThumbnail(postUrl: string): Promise<string | null> {
   try {
     const response = await fetch(postUrl, {
@@ -30,9 +30,18 @@ async function fetchThumbnail(postUrl: string): Promise<string | null> {
 
     // heye.kr 이미지 패턴: https://img1.heye.kr/image/idol/YYYY/MM/timestamp.ext
     const imagePattern = /https?:\/\/img1\.heye\.kr\/image\/idol\/\d{4}\/\d{2}\/\d+\.(jpeg|jpg|png|gif)/i
-    const match = html.match(imagePattern)
+    const imageMatch = html.match(imagePattern)
 
-    return match ? match[0] : null
+    if (imageMatch) {
+      return imageMatch[0]
+    }
+
+    // 이미지가 없으면 영상 URL 사용 (브라우저가 첫 프레임을 썸네일로 표시)
+    // heye.kr 영상 패턴: https://img1.heye.kr/video/idol/YYYY/MM/timestamp.mp4
+    const videoPattern = /https?:\/\/img1\.heye\.kr\/video\/idol\/\d{4}\/\d{2}\/\d+\.mp4/i
+    const videoMatch = html.match(videoPattern)
+
+    return videoMatch ? videoMatch[0] : null
   } catch {
     return null
   }

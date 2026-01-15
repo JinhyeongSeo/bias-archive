@@ -885,13 +885,25 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
 
                       {/* Thumbnail - larger size, heye/kgirls use top crop for face visibility */}
                       {result.thumbnailUrl ? (
-                        <img
-                          src={result.thumbnailUrl}
-                          alt=""
-                          className={`w-32 h-20 object-cover rounded-lg flex-shrink-0 ${
-                            result.platform === 'heye' || result.platform === 'kgirls' ? 'object-top' : ''
-                          }`}
-                        />
+                        result.thumbnailUrl.toLowerCase().endsWith('.mp4') ? (
+                          <video
+                            src={result.thumbnailUrl}
+                            className={`w-32 h-20 object-cover rounded-lg flex-shrink-0 ${
+                              result.platform === 'heye' || result.platform === 'kgirls' ? 'object-top' : ''
+                            }`}
+                            muted
+                            playsInline
+                            preload="metadata"
+                          />
+                        ) : (
+                          <img
+                            src={result.thumbnailUrl}
+                            alt=""
+                            className={`w-32 h-20 object-cover rounded-lg flex-shrink-0 ${
+                              result.platform === 'heye' || result.platform === 'kgirls' ? 'object-top' : ''
+                            }`}
+                          />
+                        )
                       ) : (
                         <div className="w-32 h-20 bg-zinc-200 dark:bg-zinc-700 rounded-lg flex-shrink-0 flex items-center justify-center">
                           <span className="text-sm text-zinc-400">No image</span>
