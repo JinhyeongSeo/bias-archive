@@ -49,37 +49,21 @@ function extractYouTubeVideoId(url: string): string | null {
 }
 
 // YouTube embed component - maximizes video size to fit screen
-// Has overlay for drag gestures, tap to interact with video
+// No overlay needed - drag on edges or swipe past 50% to navigate
 function YouTubeEmbed({ videoId, title, isActive }: { videoId: string; title: string | null; isActive: boolean }) {
-  const [interacting, setInteracting] = useState(false)
-
-  // Reset interaction state when switching videos
-  useEffect(() => {
-    setInteracting(false)
-  }, [videoId])
-
   return (
     <div className="w-full h-full flex items-center justify-center p-4">
       {/* Maximize to fill available space while maintaining 16:9 aspect ratio */}
       <div className="w-full h-full max-h-[calc(100vh-180px)] flex items-center justify-center">
         <div className="relative w-full aspect-video max-h-full" style={{ maxWidth: 'calc((100vh - 180px) * 16 / 9)' }}>
           {isActive ? (
-            <>
-              <iframe
-                src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
-                title="YouTube video player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                className="w-full h-full rounded-lg"
-              />
-              {/* Transparent overlay for drag - tap to dismiss and interact with video */}
-              {!interacting && (
-                <div
-                  className="absolute inset-0 z-10 cursor-pointer"
-                  onClick={() => setInteracting(true)}
-                />
-              )}
-            </>
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+              title="YouTube video player"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="w-full h-full rounded-lg"
+            />
           ) : (
             <div className="relative w-full h-full bg-black/50 rounded-lg">
               <Image
@@ -102,7 +86,6 @@ function YouTubeEmbed({ videoId, title, isActive }: { videoId: string; title: st
 // isActive: whether this is the currently visible video
 function VideoWithFallback({ url, className, style, originalUrl, isActive = true }: { url: string; className?: string; style?: React.CSSProperties; originalUrl?: string; isActive?: boolean }) {
   const [status, setStatus] = useState<'loading' | 'playing' | 'failed'>('loading')
-  const [showSpinner, setShowSpinner] = useState(false)
   const [tryCount, setTryCount] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
   const proxiedUrl = getProxiedVideoUrl(url)
@@ -122,32 +105,20 @@ function VideoWithFallback({ url, className, style, originalUrl, isActive = true
     }
   }, [currentUrl, hasMoreFallbacks, url])
 
-
   // Reset state when URL changes
   useEffect(() => {
     setTryCount(0)
     setStatus('loading')
-    setShowSpinner(false)
-
-    // Delay showing spinner to prevent flash on fast loads
-    const timer = setTimeout(() => {
-      setShowSpinner(true)
-    }, 300)
-
-    return () => clearTimeout(timer)
   }, [url])
 
   // Control play/pause based on isActive
-  // preload videos will buffer via preload="auto" attribute, not by playing
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
     if (isActive) {
-      // Active video: play immediately
       video.play().catch(() => {})
     } else {
-      // Not active: pause (preload videos will still buffer via preload attribute)
       video.pause()
     }
   }, [isActive])
@@ -155,8 +126,6 @@ function VideoWithFallback({ url, className, style, originalUrl, isActive = true
   // When video becomes ready, update status and play if active
   const handleCanPlayInternal = useCallback(() => {
     setStatus('playing')
-    setShowSpinner(false)
-    // Only play if this is the active video
     if (isActive && videoRef.current) {
       videoRef.current.play().catch(() => {})
     }
@@ -190,15 +159,6 @@ function VideoWithFallback({ url, className, style, originalUrl, isActive = true
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
-      {/* Loading spinner - delayed to prevent flash */}
-      {status === 'loading' && showSpinner && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <svg className="w-12 h-12 animate-spin text-white/50" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
-        </div>
-      )}
       <video
         ref={videoRef}
         key={`${url}-${tryCount}`}
@@ -429,11 +389,16 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
   }, [])
 
+  // Track which link should be "active" (playing) during drag
+  // When dragged past 50%, the next/prev link becomes active even before finger is lifted
+  const [previewActiveIndex, setPreviewActiveIndex] = useState<number | null>(null)
+
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return
 
     const deltaY = e.clientY - dragStartY.current
     lastY.current = e.clientY
+    const height = containerHeight.current || window.innerHeight
 
     // Apply resistance at boundaries
     if (deltaY > 0 && !prevLink) {
@@ -443,11 +408,25 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     } else {
       dragY.set(deltaY)
     }
-  }, [dragY, nextLink, prevLink])
+
+    // When dragged past 50%, start playing the next/prev video (but don't transition yet)
+    const previewThreshold = height * 0.5
+    if (deltaY < -previewThreshold && nextLink) {
+      // Dragged up past 50% - preview next (start playing)
+      setPreviewActiveIndex(currentIndex + 1)
+    } else if (deltaY > previewThreshold && prevLink) {
+      // Dragged down past 50% - preview previous (start playing)
+      setPreviewActiveIndex(currentIndex - 1)
+    } else {
+      // Not past threshold - current is active
+      setPreviewActiveIndex(null)
+    }
+  }, [currentIndex, dragY, nextLink, prevLink])
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return
     isDragging.current = false
+    setPreviewActiveIndex(null) // Reset preview state
     ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
 
     const height = containerHeight.current || window.innerHeight
@@ -696,7 +675,10 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
               const offset = linkIndex - currentIndex
               // offset: -1=prev, 0=current, 1=next
               const yStyle = offset === -1 ? prevY : offset === 0 ? dragY : nextY
-              const isCurrentLink = offset === 0
+              // If dragged past 50%, the preview link becomes active (starts playing)
+              // Otherwise, the current link is active
+              const activeIndex = previewActiveIndex !== null ? previewActiveIndex : currentIndex
+              const isActiveLink = linkIndex === activeIndex
 
               return (
                 <motion.div
@@ -705,7 +687,7 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
                   style={{ y: yStyle }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <ReelsMediaContent link={link} platform={linkPlatform} isActive={isCurrentLink} />
+                  <ReelsMediaContent link={link} platform={linkPlatform} isActive={isActiveLink} />
                 </motion.div>
               )
             })}
