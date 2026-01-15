@@ -270,6 +270,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       if (!response.ok) {
         throw new Error(data.error || 'Twitter 검색 실패')
       }
+
+      console.log('[Twitter Search] provider:', data.provider, 'results:', data.results?.length)
     } catch (error) {
       clearTimeout(timeoutId)
       if (error instanceof Error && error.name === 'AbortError') {

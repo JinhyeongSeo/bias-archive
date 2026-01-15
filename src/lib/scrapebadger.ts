@@ -130,22 +130,38 @@ export async function searchTwitterWithScrapeBadger(
 
     const data: ScrapeBadgerSearchResponse = await response.json()
 
+    // Debug: log first tweet's media field
+    if (data.data?.[0]) {
+      console.log('[ScrapeBadger] First tweet media:', JSON.stringify(data.data[0].media))
+    }
+
     // Transform ScrapeBadger response to our format
-    const results: TwitterSearchResult[] = (data.data || []).map((tweet) => ({
-      link: `https://twitter.com/${tweet.username}/status/${tweet.id}`,
-      title: `${tweet.user_name} (@${tweet.username})`,
-      snippet: tweet.full_text || tweet.text,
-      thumbnailUrl: tweet.media?.[0]?.url,
-      authorName: tweet.user_name,
-      authorUsername: tweet.username,
-      createdAt: tweet.created_at,
-      metrics: {
-        likes: tweet.favorite_count,
-        retweets: tweet.retweet_count,
-        replies: tweet.reply_count,
-        views: parseInt(tweet.view_count, 10) || 0,
-      },
-    }))
+    const results: TwitterSearchResult[] = (data.data || []).map((tweet) => {
+      // Get thumbnail URL from media, filtering out t.co short links
+      let thumbnailUrl: string | undefined
+      const mediaUrl = tweet.media?.[0]?.url
+      if (mediaUrl && !mediaUrl.includes('t.co/')) {
+        thumbnailUrl = mediaUrl
+      } else if (tweet.media?.[0]?.preview_image_url) {
+        thumbnailUrl = tweet.media[0].preview_image_url
+      }
+
+      return {
+        link: `https://twitter.com/${tweet.username}/status/${tweet.id}`,
+        title: `${tweet.user_name} (@${tweet.username})`,
+        snippet: tweet.full_text || tweet.text,
+        thumbnailUrl,
+        authorName: tweet.user_name,
+        authorUsername: tweet.username,
+        createdAt: tweet.created_at,
+        metrics: {
+          likes: tweet.favorite_count,
+          retweets: tweet.retweet_count,
+          replies: tweet.reply_count,
+          views: parseInt(tweet.view_count, 10) || 0,
+        },
+      }
+    })
 
     return {
       results,
