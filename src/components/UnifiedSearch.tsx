@@ -20,7 +20,7 @@ import {
   type CachedPlatformResult,
 } from '@/lib/searchCache'
 
-type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls'
+type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue'
 
 interface YouTubeResult {
   videoId: string
@@ -91,6 +91,7 @@ const PLATFORMS: { id: Platform; label: string; color: string; bgColor: string; 
   { id: 'twitter', label: 'Twitter', color: 'text-twitter', bgColor: 'bg-twitter/10', ringColor: 'ring-twitter/20' },
   { id: 'heye', label: 'heye.kr', color: 'text-orange-600 dark:text-orange-400', bgColor: 'bg-orange-100 dark:bg-orange-900/50', ringColor: 'ring-orange-500/20' },
   { id: 'kgirls', label: 'kgirls', color: 'text-pink-600 dark:text-pink-400', bgColor: 'bg-pink-100 dark:bg-pink-900/50', ringColor: 'ring-pink-500/20' },
+  { id: 'kgirls-issue', label: 'kgirls issue', color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-100 dark:bg-purple-900/50', ringColor: 'ring-purple-500/20' },
 ]
 
 const RESULTS_PER_PLATFORM = 6      // 화면에 표시할 개수
@@ -101,7 +102,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
   const [query, setQuery] = useState('')
   const [selectedBiasId, setSelectedBiasId] = useState<string | null>(null)
-  const [enabledPlatforms, setEnabledPlatforms] = useState<Set<Platform>>(new Set(['youtube', 'twitter', 'heye', 'kgirls']))
+  const [enabledPlatforms, setEnabledPlatforms] = useState<Set<Platform>>(new Set(['youtube', 'twitter', 'heye', 'kgirls', 'kgirls-issue']))
 
   const [platformResults, setPlatformResults] = useState<Map<Platform, PlatformResults>>(new Map())
   const [isSearching, setIsSearching] = useState(false)
@@ -442,6 +443,52 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     }
   }
 
+  const searchKgirlsIssue = async (searchQuery: string, page: number = 1, offset: number = 0): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
+    const params = new URLSearchParams({
+      q: searchQuery,
+      page: String(page),
+      board: 'issue',
+      limit: String(API_FETCH_COUNT),
+      offset: String(offset),
+    })
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+
+    try {
+      const response = await fetch(`/api/search/kgirls?${params}`, {
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'kgirls.net issue 검색 실패')
+      }
+
+      const results = (data.results as KgirlsResult[]).map(item => ({
+        url: item.url,
+        title: item.title,
+        thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
+        author: item.author,
+        platform: 'kgirls-issue' as Platform,
+        isSaved: checkIfSaved(item.url),
+        isSaving: false,
+      }))
+
+      return {
+        results,
+        hasMore: data.hasMore ?? false,
+      }
+    } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('요청 시간이 초과되었습니다')
+      }
+      throw error
+    }
+  }
+
   // 플랫폼별 검색 처리 헬퍼 함수
   const processPlatformSearch = async (
     platform: Platform,
@@ -649,6 +696,20 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           'kgirls',
           cachedKgirls,
           () => searchKgirls(query, startPage, startOffset),
+          newCachedResults
+        )
+      )
+    }
+
+    if (enabledPlatforms.has('kgirls-issue')) {
+      const cachedKgirlsIssue = cached?.platforms['kgirls-issue']
+      const startPage = cachedKgirlsIssue?.currentPage ?? 1
+      const startOffset = cachedKgirlsIssue?.currentOffset ?? 0
+      searchPromises.push(
+        processPlatformSearch(
+          'kgirls-issue',
+          cachedKgirlsIssue,
+          () => searchKgirlsIssue(query, startPage, startOffset),
           newCachedResults
         )
       )
@@ -883,6 +944,55 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             if (leftoverApi.length > 0 || apiResult.hasMore) {
               void updatePlatformCache(query, 'kgirls', {
                 results: [...kgirlsCachedResults, ...apiResult.results],
+                displayedIndex: localDisplayedCount + fromCache.length + fromApi.length,
+                currentPage: newPage,
+                currentOffset: 0,
+                hasMore: apiResult.hasMore,
+              })
+            }
+          }
+          break
+        }
+        case 'kgirls-issue': {
+          // Check cache first
+          const kgirlsIssueCacheEntry = await getSearchCache(query)
+          const kgirlsIssueCache = kgirlsIssueCacheEntry?.platforms['kgirls-issue']
+          const kgirlsIssueCachedResults = kgirlsIssueCache?.results ?? []
+          const kgirlsIssueRemainingInCache = kgirlsIssueCachedResults.length - localDisplayedCount
+
+          if (kgirlsIssueRemainingInCache >= RESULTS_PER_PLATFORM) {
+            // Use cached results only
+            const toDisplay = kgirlsIssueCachedResults.slice(localDisplayedCount, localDisplayedCount + RESULTS_PER_PLATFORM)
+            searchResult = {
+              results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+              hasMore: kgirlsIssueCachedResults.length > localDisplayedCount + RESULTS_PER_PLATFORM || kgirlsIssueCache?.hasMore || false,
+            }
+            // Update cache displayedIndex
+            void updatePlatformCache(query, 'kgirls-issue', {
+              ...kgirlsIssueCache!,
+              displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM,
+            })
+          } else {
+            // Combine remaining cache + fetch next page
+            const fromCache = kgirlsIssueCachedResults.slice(localDisplayedCount)
+            const needed = RESULTS_PER_PLATFORM - fromCache.length
+            newPage = currentData.currentPage + 1
+            const apiResult = await searchKgirlsIssue(query, newPage, 0)
+            const fromApi = apiResult.results.slice(0, needed)
+            const leftoverApi = apiResult.results.slice(needed)
+
+            searchResult = {
+              results: [
+                ...fromCache.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+                ...fromApi,
+              ],
+              hasMore: leftoverApi.length > 0 || apiResult.hasMore,
+            }
+
+            // Update cache with new API results
+            if (leftoverApi.length > 0 || apiResult.hasMore) {
+              void updatePlatformCache(query, 'kgirls-issue', {
+                results: [...kgirlsIssueCachedResults, ...apiResult.results],
                 displayedIndex: localDisplayedCount + fromCache.length + fromApi.length,
                 currentPage: newPage,
                 currentOffset: 0,
