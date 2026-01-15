@@ -29,20 +29,21 @@ async function fetchThumbnail(postUrl: string): Promise<string | null> {
     const html = await response.text()
 
     // heye.kr 이미지 패턴: https://img1.heye.kr/image/idol/YYYY/MM/timestamp.ext
-    const imagePattern = /https?:\/\/img1\.heye\.kr\/image\/idol\/\d{4}\/\d{2}\/\d+\.(jpeg|jpg|png|gif)/i
-    const imageMatch = html.match(imagePattern)
+    const imagePattern = /https?:\/\/img1\.heye\.kr\/image\/idol\/\d{4}\/\d{2}\/\d+\.(jpeg|jpg|png|gif)/gi
+    const imageMatches = [...html.matchAll(imagePattern)]
 
-    if (imageMatch) {
-      return imageMatch[0]
+    if (imageMatches.length > 0) {
+      return imageMatches[0][0]
     }
 
     // 이미지가 없으면 영상 URL 사용 (브라우저가 첫 프레임을 썸네일로 표시)
     // heye.kr 영상 패턴: https://img1.heye.kr/video/idol/YYYY/MM/timestamp.mp4
-    const videoPattern = /https?:\/\/img1\.heye\.kr\/video\/idol\/\d{4}\/\d{2}\/\d+\.mp4/i
-    const videoMatch = html.match(videoPattern)
+    const videoPattern = /https?:\/\/img1\.heye\.kr\/video\/idol\/\d{4}\/\d{2}\/\d+\.mp4/gi
+    const videoMatches = [...html.matchAll(videoPattern)]
 
-    return videoMatch ? videoMatch[0] : null
-  } catch {
+    return videoMatches.length > 0 ? videoMatches[0][0] : null
+  } catch (error) {
+    console.error('[Heye fetchThumbnail] Error:', error)
     return null
   }
 }

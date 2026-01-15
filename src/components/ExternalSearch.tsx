@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getProxiedImageUrl } from '@/lib/proxy'
+import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl } from '@/lib/proxy'
 import {
   modalOverlay,
   modalContent,
@@ -290,8 +290,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     return (data.results as HeyeResult[]).map(item => ({
       url: item.url,
       title: item.title,
-      // Use wsrv.nl proxy for heye thumbnails to bypass hotlink protection
-      thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
+      // Keep original URL - proxy is applied at render time based on image/video type
+      thumbnailUrl: item.thumbnailUrl,
       author: item.author,
       platform: 'heye' as Platform,
       isSaved: checkIfSaved(item.url),
@@ -314,8 +314,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     return (data.results as KgirlsResult[]).map(item => ({
       url: item.url,
       title: item.title,
-      // Use wsrv.nl proxy for kgirls thumbnails to bypass hotlink protection (403 Forbidden)
-      thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
+      // Keep original URL - proxy is applied at render time based on image/video type
+      thumbnailUrl: item.thumbnailUrl,
       author: item.author,
       platform: 'kgirls' as Platform,
       isSaved: checkIfSaved(item.url),
@@ -885,9 +885,9 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
 
                       {/* Thumbnail - larger size, heye/kgirls use top crop for face visibility */}
                       {result.thumbnailUrl ? (
-                        result.thumbnailUrl.toLowerCase().endsWith('.mp4') ? (
+                        isVideoUrl(result.thumbnailUrl) ? (
                           <video
-                            src={result.thumbnailUrl}
+                            src={getProxiedVideoUrl(result.thumbnailUrl)}
                             className={`w-32 h-20 object-cover rounded-lg flex-shrink-0 ${
                               result.platform === 'heye' || result.platform === 'kgirls' ? 'object-top' : ''
                             }`}
@@ -897,7 +897,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                           />
                         ) : (
                           <img
-                            src={result.thumbnailUrl}
+                            src={getProxiedImageUrl(result.thumbnailUrl)}
                             alt=""
                             className={`w-32 h-20 object-cover rounded-lg flex-shrink-0 ${
                               result.platform === 'heye' || result.platform === 'kgirls' ? 'object-top' : ''
