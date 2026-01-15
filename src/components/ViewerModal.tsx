@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Link, Tag, LinkMedia } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
-import { EmbedViewer } from './EmbedViewer'
+import { EmbedViewer, downloadMedia, getFilenameFromUrl } from './EmbedViewer'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
 import { modalOverlay, modalContent, smoothSpring, easeOutExpo } from '@/lib/animations'
+import { getProxiedImageUrl, getProxiedVideoUrl } from '@/lib/proxy'
 
 type LinkWithTags = Link & { tags: Tag[] }
 type LinkWithMedia = Link & { media?: LinkMedia[] }
@@ -30,6 +31,39 @@ function formatDate(dateString: string): string {
 export function ViewerModal({ link, isOpen, onClose }: ViewerModalProps) {
   const platform = (link.platform || 'other') as Platform
   const { getTagDisplayName } = useNameLanguage()
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 })
+
+  // Get downloadable media items
+  const downloadableMedia = link.media?.filter(
+    m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video'
+  ) || []
+
+  // Download all media with rate limiting
+  const handleDownloadAll = async () => {
+    if (downloadableMedia.length === 0 || isDownloading) return
+
+    setIsDownloading(true)
+    setDownloadProgress({ current: 0, total: downloadableMedia.length })
+
+    for (let i = 0; i < downloadableMedia.length; i++) {
+      const item = downloadableMedia[i]
+      const url = item.media_type === 'video'
+        ? getProxiedVideoUrl(item.media_url)
+        : getProxiedImageUrl(item.media_url)
+      const filename = getFilenameFromUrl(item.media_url, i, item.media_type)
+
+      await downloadMedia(url, filename)
+      setDownloadProgress({ current: i + 1, total: downloadableMedia.length })
+
+      // Rate limiting: wait 500ms between downloads
+      if (i < downloadableMedia.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+    }
+
+    setIsDownloading(false)
+  }
 
   // Handle ESC key to close modal
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -131,24 +165,54 @@ export function ViewerModal({ link, isOpen, onClose }: ViewerModalProps) {
                 </div>
               )}
 
-              {/* Open original link button */}
-              <motion.a
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors text-[11px] sm:text-sm"
-                whileTap={{ scale: 0.95 }}
-              >
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-                원본 링크 열기
-              </motion.a>
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                {/* Download all button - only show if there are downloadable media */}
+                {downloadableMedia.length > 0 && (
+                  <motion.button
+                    onClick={handleDownloadAll}
+                    disabled={isDownloading}
+                    className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-[11px] sm:text-sm"
+                    whileTap={{ scale: isDownloading ? 1 : 0.95 }}
+                  >
+                    {isDownloading ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span>{downloadProgress.current}/{downloadProgress.total}</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>전체 다운로드 ({downloadableMedia.length})</span>
+                      </>
+                    )}
+                  </motion.button>
+                )}
+
+                {/* Open original link button */}
+                <motion.a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors text-[11px] sm:text-sm"
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                  원본 링크 열기
+                </motion.a>
+              </div>
             </div>
           </motion.div>
         </motion.div>

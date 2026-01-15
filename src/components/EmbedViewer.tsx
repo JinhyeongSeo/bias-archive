@@ -6,6 +6,38 @@ import type { Platform } from '@/lib/metadata'
 import type { LinkMedia } from '@/types/database'
 import { getProxiedImageUrl, getProxiedVideoUrl } from '@/lib/proxy'
 
+// Download a single media file
+export async function downloadMedia(url: string, filename: string): Promise<void> {
+  try {
+    const response = await fetch(url)
+    const blob = await response.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = blobUrl
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(blobUrl)
+  } catch (error) {
+    console.error('Download failed:', error)
+    // Fallback: open in new tab
+    window.open(url, '_blank')
+  }
+}
+
+// Generate filename from URL
+export function getFilenameFromUrl(url: string, index: number, mediaType: string): string {
+  try {
+    const urlObj = new URL(url)
+    const pathname = urlObj.pathname
+    const ext = pathname.split('.').pop()?.split('?')[0] || (mediaType === 'video' ? 'mp4' : 'jpg')
+    return `media_${index + 1}.${ext}`
+  } catch {
+    return `media_${index + 1}.${mediaType === 'video' ? 'mp4' : 'jpg'}`
+  }
+}
+
 interface EmbedViewerProps {
   url: string
   platform: Platform
@@ -290,6 +322,25 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
           </div>
         </>
       )}
+
+      {/* Download button for current item */}
+      <button
+        onClick={() => {
+          const item = items[currentIndex]
+          const url = item.media_type === 'video'
+            ? getProxiedVideoUrl(item.media_url)
+            : getProxiedImageUrl(item.media_url)
+          const filename = getFilenameFromUrl(item.media_url, currentIndex, item.media_type)
+          downloadMedia(url, filename)
+        }}
+        className="absolute top-2 sm:top-4 left-2 sm:left-4 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+        aria-label="다운로드"
+        title="현재 미디어 다운로드"
+      >
+        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+      </button>
     </div>
   )
 }
