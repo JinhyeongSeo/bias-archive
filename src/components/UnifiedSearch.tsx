@@ -684,32 +684,33 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       let newPage = currentData.currentPage
       let newOffset = currentData.currentOffset
 
+      // 로컬 상태 기준 displayedIndex (서버 캐시 타이밍 이슈 방지)
+      const localDisplayedCount = currentData.results.length
+
       switch (platform) {
         case 'youtube': {
-          // Use pageToken for YouTube pagination
           // Check cache first
           const ytCacheEntry = await getSearchCache(query)
           const ytCache = ytCacheEntry?.platforms.youtube
-          const ytDisplayedIndex = ytCache?.displayedIndex ?? 0
           const ytCachedResults = ytCache?.results ?? []
-          const ytRemainingInCache = ytCachedResults.length - ytDisplayedIndex
+          const ytRemainingInCache = ytCachedResults.length - localDisplayedCount
 
           if (ytRemainingInCache >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = ytCachedResults.slice(ytDisplayedIndex, ytDisplayedIndex + RESULTS_PER_PLATFORM)
+            const toDisplay = ytCachedResults.slice(localDisplayedCount, localDisplayedCount + RESULTS_PER_PLATFORM)
             searchResult = {
               results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: ytCachedResults.length > ytDisplayedIndex + RESULTS_PER_PLATFORM || ytCache?.hasMore || false,
+              hasMore: ytCachedResults.length > localDisplayedCount + RESULTS_PER_PLATFORM || ytCache?.hasMore || false,
               nextPageToken: ytCache?.nextPageToken,
             }
             // Update cache displayedIndex
             void updatePlatformCache(query, 'youtube', {
               ...ytCache!,
-              displayedIndex: ytDisplayedIndex + RESULTS_PER_PLATFORM,
+              displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM,
             })
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = ytCachedResults.slice(ytDisplayedIndex)
+            const fromCache = ytCachedResults.slice(localDisplayedCount)
             const needed = RESULTS_PER_PLATFORM - fromCache.length
             const apiResult = await searchYouTube(query, ytCache?.nextPageToken || currentData.nextPageToken)
             const fromApi = apiResult.results.slice(0, needed)
@@ -728,7 +729,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             if (leftoverApi.length > 0 || apiResult.hasMore) {
               void updatePlatformCache(query, 'youtube', {
                 results: [...ytCachedResults, ...apiResult.results],
-                displayedIndex: ytCachedResults.length + needed,
+                displayedIndex: localDisplayedCount + fromCache.length + fromApi.length,
                 currentPage: 1,
                 currentOffset: 0,
                 hasMore: apiResult.hasMore,
@@ -739,30 +740,28 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           break
         }
         case 'twitter': {
-          // Use cursor for ScrapeBadger pagination
           // Check cache first
           const twCacheEntry = await getSearchCache(query)
           const twCache = twCacheEntry?.platforms.twitter
-          const twDisplayedIndex = twCache?.displayedIndex ?? 0
           const twCachedResults = twCache?.results ?? []
-          const twRemainingInCache = twCachedResults.length - twDisplayedIndex
+          const twRemainingInCache = twCachedResults.length - localDisplayedCount
 
           if (twRemainingInCache >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = twCachedResults.slice(twDisplayedIndex, twDisplayedIndex + RESULTS_PER_PLATFORM)
+            const toDisplay = twCachedResults.slice(localDisplayedCount, localDisplayedCount + RESULTS_PER_PLATFORM)
             searchResult = {
               results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: twCachedResults.length > twDisplayedIndex + RESULTS_PER_PLATFORM || twCache?.hasMore || false,
+              hasMore: twCachedResults.length > localDisplayedCount + RESULTS_PER_PLATFORM || twCache?.hasMore || false,
               nextCursor: twCache?.nextCursor,
             }
             // Update cache displayedIndex
             void updatePlatformCache(query, 'twitter', {
               ...twCache!,
-              displayedIndex: twDisplayedIndex + RESULTS_PER_PLATFORM,
+              displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM,
             })
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = twCachedResults.slice(twDisplayedIndex)
+            const fromCache = twCachedResults.slice(localDisplayedCount)
             const needed = RESULTS_PER_PLATFORM - fromCache.length
             const apiResult = await searchTwitter(query, twCache?.nextCursor || currentData.nextCursor)
             const fromApi = apiResult.results.slice(0, needed)
@@ -781,7 +780,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             if (leftoverApi.length > 0 || apiResult.hasMore) {
               void updatePlatformCache(query, 'twitter', {
                 results: [...twCachedResults, ...apiResult.results],
-                displayedIndex: twCachedResults.length + needed,
+                displayedIndex: localDisplayedCount + fromCache.length + fromApi.length,
                 currentPage: 1,
                 currentOffset: 0,
                 hasMore: apiResult.hasMore,
@@ -795,25 +794,24 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           // Check cache first
           const heyeCacheEntry = await getSearchCache(query)
           const heyeCache = heyeCacheEntry?.platforms.heye
-          const heyeDisplayedIndex = heyeCache?.displayedIndex ?? 0
           const heyeCachedResults = heyeCache?.results ?? []
-          const heyeRemainingInCache = heyeCachedResults.length - heyeDisplayedIndex
+          const heyeRemainingInCache = heyeCachedResults.length - localDisplayedCount
 
           if (heyeRemainingInCache >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = heyeCachedResults.slice(heyeDisplayedIndex, heyeDisplayedIndex + RESULTS_PER_PLATFORM)
+            const toDisplay = heyeCachedResults.slice(localDisplayedCount, localDisplayedCount + RESULTS_PER_PLATFORM)
             searchResult = {
               results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: heyeCachedResults.length > heyeDisplayedIndex + RESULTS_PER_PLATFORM || heyeCache?.hasMore || false,
+              hasMore: heyeCachedResults.length > localDisplayedCount + RESULTS_PER_PLATFORM || heyeCache?.hasMore || false,
             }
-            // Update cache displayedIndex (비동기, await 불필요)
+            // Update cache displayedIndex
             void updatePlatformCache(query, 'heye', {
               ...heyeCache!,
-              displayedIndex: heyeDisplayedIndex + RESULTS_PER_PLATFORM,
+              displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM,
             })
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = heyeCachedResults.slice(heyeDisplayedIndex)
+            const fromCache = heyeCachedResults.slice(localDisplayedCount)
             const needed = RESULTS_PER_PLATFORM - fromCache.length
             newPage = currentData.currentPage + 1
             const apiResult = await searchHeye(query, newPage, 0)
@@ -828,11 +826,11 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
               hasMore: leftoverApi.length > 0 || apiResult.hasMore,
             }
 
-            // Update cache with new API results (leftover for next load more) - 비동기, await 불필요
+            // Update cache with new API results
             if (leftoverApi.length > 0 || apiResult.hasMore) {
               void updatePlatformCache(query, 'heye', {
                 results: [...heyeCachedResults, ...apiResult.results],
-                displayedIndex: heyeCachedResults.length + needed,
+                displayedIndex: localDisplayedCount + fromCache.length + fromApi.length,
                 currentPage: newPage,
                 currentOffset: 0,
                 hasMore: apiResult.hasMore,
@@ -845,25 +843,24 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           // Check cache first
           const kgirlsCacheEntry = await getSearchCache(query)
           const kgirlsCache = kgirlsCacheEntry?.platforms.kgirls
-          const kgirlsDisplayedIndex = kgirlsCache?.displayedIndex ?? 0
           const kgirlsCachedResults = kgirlsCache?.results ?? []
-          const kgirlsRemainingInCache = kgirlsCachedResults.length - kgirlsDisplayedIndex
+          const kgirlsRemainingInCache = kgirlsCachedResults.length - localDisplayedCount
 
           if (kgirlsRemainingInCache >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = kgirlsCachedResults.slice(kgirlsDisplayedIndex, kgirlsDisplayedIndex + RESULTS_PER_PLATFORM)
+            const toDisplay = kgirlsCachedResults.slice(localDisplayedCount, localDisplayedCount + RESULTS_PER_PLATFORM)
             searchResult = {
               results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: kgirlsCachedResults.length > kgirlsDisplayedIndex + RESULTS_PER_PLATFORM || kgirlsCache?.hasMore || false,
+              hasMore: kgirlsCachedResults.length > localDisplayedCount + RESULTS_PER_PLATFORM || kgirlsCache?.hasMore || false,
             }
-            // Update cache displayedIndex (비동기, await 불필요)
+            // Update cache displayedIndex
             void updatePlatformCache(query, 'kgirls', {
               ...kgirlsCache!,
-              displayedIndex: kgirlsDisplayedIndex + RESULTS_PER_PLATFORM,
+              displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM,
             })
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = kgirlsCachedResults.slice(kgirlsDisplayedIndex)
+            const fromCache = kgirlsCachedResults.slice(localDisplayedCount)
             const needed = RESULTS_PER_PLATFORM - fromCache.length
             newPage = currentData.currentPage + 1
             const apiResult = await searchKgirls(query, newPage, 0)
@@ -878,11 +875,11 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
               hasMore: leftoverApi.length > 0 || apiResult.hasMore,
             }
 
-            // Update cache with new API results (leftover for next load more) - 비동기, await 불필요
+            // Update cache with new API results
             if (leftoverApi.length > 0 || apiResult.hasMore) {
               void updatePlatformCache(query, 'kgirls', {
                 results: [...kgirlsCachedResults, ...apiResult.results],
-                displayedIndex: kgirlsCachedResults.length + needed,
+                displayedIndex: localDisplayedCount + fromCache.length + fromApi.length,
                 currentPage: newPage,
                 currentOffset: 0,
                 hasMore: apiResult.hasMore,
