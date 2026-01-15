@@ -75,7 +75,7 @@ export function ViewerModal({ link, isOpen, onClose }: ViewerModalProps) {
         >
           {/* Modal container */}
           <motion.div
-            className="relative w-full max-w-4xl max-h-[90vh] bg-white dark:bg-zinc-900 rounded-xl overflow-hidden shadow-2xl flex flex-col"
+            className="relative w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] bg-white dark:bg-zinc-900 rounded-xl sm:rounded-xl overflow-hidden shadow-2xl flex flex-col"
             variants={modalContent}
             initial="initial"
             animate="animate"
@@ -84,12 +84,12 @@ export function ViewerModal({ link, isOpen, onClose }: ViewerModalProps) {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-700">
-              <div className="flex-1 min-w-0 pr-4">
-                <h2 className="font-medium text-zinc-900 dark:text-zinc-100 text-lg truncate">
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-zinc-200 dark:border-zinc-700">
+              <div className="flex-1 min-w-0 pr-2 sm:pr-4">
+                <h2 className="font-medium text-zinc-900 dark:text-zinc-100 text-base sm:text-lg line-clamp-2 sm:truncate">
                   {link.title || '제목 없음'}
                 </h2>
-                <div className="flex items-center gap-2 mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
                   {link.author_name && (
                     <span className="text-zinc-600 dark:text-zinc-300">{link.author_name}</span>
                   )}
@@ -111,15 +111,15 @@ export function ViewerModal({ link, isOpen, onClose }: ViewerModalProps) {
             </div>
 
             {/* Content - Embed viewer */}
-            <div className="flex-1 overflow-auto p-4 bg-zinc-50 dark:bg-zinc-800/50">
+            <div className="flex-1 overflow-auto p-2 sm:p-4 bg-zinc-50 dark:bg-zinc-800/50">
               <EmbedViewer url={link.url} platform={platform} media={link.media} />
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-zinc-200 dark:border-zinc-700">
+            <div className="p-3 sm:p-4 border-t border-zinc-200 dark:border-zinc-700">
               {/* Tags */}
               {link.tags && link.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2 sm:mb-3">
                   {link.tags.map((tag) => (
                     <span
                       key={tag.id}
@@ -136,7 +136,7 @@ export function ViewerModal({ link, isOpen, onClose }: ViewerModalProps) {
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors text-sm"
+                className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors text-xs sm:text-sm"
                 whileTap={{ scale: 0.95 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

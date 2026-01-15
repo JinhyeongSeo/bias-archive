@@ -148,7 +148,7 @@ function TwitterEmbed({ tweetId }: { tweetId: string }) {
           <span>트윗 로딩 중...</span>
         </div>
       )}
-      <div ref={containerRef} className="w-full max-w-[550px]" />
+      <div ref={containerRef} className="w-full sm:max-w-[550px]" />
     </div>
   )
 }
@@ -218,7 +218,7 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
   return (
     <div className="relative w-full">
       {/* Main content - image or video */}
-      <div className="relative w-full flex items-center justify-center" style={{ aspectRatio: '4/5', maxHeight: '70vh' }}>
+      <div className="relative w-full flex items-center justify-center" style={{ aspectRatio: '4/5', maxHeight: 'min(85vh, 600px)' }}>
         {isVideo ? (
           <video
             key={currentItem.media_url}
@@ -248,10 +248,10 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
           {/* Previous button */}
           <button
             onClick={goToPrevious}
-            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+            className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 p-2.5 sm:p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
             aria-label="Previous"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
@@ -259,21 +259,21 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
           {/* Next button */}
           <button
             onClick={goToNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+            className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 p-2.5 sm:p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
             aria-label="Next"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
 
           {/* Dots indicator */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2">
             {items.map((item, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
-                className={`w-2 h-2 rounded-full transition-colors ${
+                className={`w-2.5 h-2.5 sm:w-2 sm:h-2 rounded-full transition-colors ${
                   index === currentIndex
                     ? 'bg-white'
                     : 'bg-white/50 hover:bg-white/75'
@@ -284,7 +284,7 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
           </div>
 
           {/* Counter */}
-          <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/50 text-white text-sm">
+          <div className="absolute top-2 sm:top-4 right-2 sm:right-4 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-black/50 text-white text-xs sm:text-sm">
             {currentIndex + 1} / {items.length}
             {isVideo && ' (영상)'}
           </div>
