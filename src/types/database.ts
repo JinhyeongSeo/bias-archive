@@ -221,6 +221,72 @@ export type Database = {
           }
         ]
       }
+      search_cache: {
+        Row: {
+          id: string
+          query: string
+          platform: 'youtube' | 'twitter' | 'heye' | 'kgirls'
+          results: unknown[]
+          next_cursor: string | null
+          next_page_token: string | null
+          current_page: number
+          current_offset: number
+          has_more: boolean
+          cached_at: string
+        }
+        Insert: {
+          id?: string
+          query: string
+          platform: 'youtube' | 'twitter' | 'heye' | 'kgirls'
+          results: unknown[]
+          next_cursor?: string | null
+          next_page_token?: string | null
+          current_page?: number
+          current_offset?: number
+          has_more?: boolean
+          cached_at?: string
+        }
+        Update: {
+          id?: string
+          query?: string
+          platform?: 'youtube' | 'twitter' | 'heye' | 'kgirls'
+          results?: unknown[]
+          next_cursor?: string | null
+          next_page_token?: string | null
+          current_page?: number
+          current_offset?: number
+          has_more?: boolean
+          cached_at?: string
+        }
+        Relationships: []
+      }
+      user_search_viewed: {
+        Row: {
+          id: string
+          user_id: string
+          query: string
+          platform: 'youtube' | 'twitter' | 'heye' | 'kgirls'
+          displayed_index: number
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          query: string
+          platform: 'youtube' | 'twitter' | 'heye' | 'kgirls'
+          displayed_index?: number
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          query?: string
+          platform?: 'youtube' | 'twitter' | 'heye' | 'kgirls'
+          displayed_index?: number
+          viewed_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -260,6 +326,14 @@ export type LinkUpdate = Database['public']['Tables']['links']['Update']
 export type TagUpdate = Database['public']['Tables']['tags']['Update']
 export type LinkTagUpdate = Database['public']['Tables']['link_tags']['Update']
 export type LinkMediaUpdate = Database['public']['Tables']['link_media']['Update']
+
+export type SearchCache = Database['public']['Tables']['search_cache']['Row']
+export type SearchCacheInsert = Database['public']['Tables']['search_cache']['Insert']
+export type SearchCacheUpdate = Database['public']['Tables']['search_cache']['Update']
+
+export type UserSearchViewed = Database['public']['Tables']['user_search_viewed']['Row']
+export type UserSearchViewedInsert = Database['public']['Tables']['user_search_viewed']['Insert']
+export type UserSearchViewedUpdate = Database['public']['Tables']['user_search_viewed']['Update']
 
 // Composite types
 export type LinkWithMedia = Link & { media: LinkMedia[] }

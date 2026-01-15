@@ -485,8 +485,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
         return next
       })
 
-      // 캐시의 displayedIndex 업데이트
-      updatePlatformCache(query, platform, {
+      // 캐시의 displayedIndex 업데이트 (비동기, await 불필요)
+      void updatePlatformCache(query, platform, {
         ...cachedData!,
         displayedIndex: newDisplayedIndex,
       })
@@ -542,9 +542,9 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
         return next
       })
 
-      // 전체 캐시 업데이트 (표시한 것 + 남은 것)
+      // 전체 캐시 업데이트 (표시한 것 + 남은 것) - 비동기, await 불필요
       const allCachedResults = [...alreadyDisplayed, ...toDisplay, ...toSaveInCache]
-      updatePlatformCache(query, platform, {
+      void updatePlatformCache(query, platform, {
         results: allCachedResults,
         displayedIndex: alreadyDisplayed.length + toDisplay.length,
         nextPageToken,
@@ -579,8 +579,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     setIsSearching(true)
     setSelectedUrls(new Set())
 
-    // 캐시 확인
-    const cached = getSearchCache(query)
+    // 캐시 확인 (서버에서 가져오기)
+    const cached = await getSearchCache(query)
     const newCachedResults = new Map<Platform, CachedPlatformResult>()
 
     // Initialize results for each enabled platform
@@ -695,7 +695,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           break
         case 'heye': {
           // Check cache first
-          const heyeCache = getSearchCache(query)?.platforms.heye
+          const heyeCacheEntry = await getSearchCache(query)
+          const heyeCache = heyeCacheEntry?.platforms.heye
           const heyeDisplayedIndex = heyeCache?.displayedIndex ?? 0
           const heyeCachedResults = heyeCache?.results ?? []
           const heyeRemainingInCache = heyeCachedResults.length - heyeDisplayedIndex
@@ -707,8 +708,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
               results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
               hasMore: heyeCachedResults.length > heyeDisplayedIndex + RESULTS_PER_PLATFORM || heyeCache?.hasMore || false,
             }
-            // Update cache displayedIndex
-            updatePlatformCache(query, 'heye', {
+            // Update cache displayedIndex (비동기, await 불필요)
+            void updatePlatformCache(query, 'heye', {
               ...heyeCache!,
               displayedIndex: heyeDisplayedIndex + RESULTS_PER_PLATFORM,
             })
@@ -729,9 +730,9 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
               hasMore: leftoverApi.length > 0 || apiResult.hasMore,
             }
 
-            // Update cache with new API results (leftover for next load more)
+            // Update cache with new API results (leftover for next load more) - 비동기, await 불필요
             if (leftoverApi.length > 0 || apiResult.hasMore) {
-              updatePlatformCache(query, 'heye', {
+              void updatePlatformCache(query, 'heye', {
                 results: [...heyeCachedResults, ...apiResult.results],
                 displayedIndex: heyeCachedResults.length + needed,
                 currentPage: newPage,
@@ -744,7 +745,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
         }
         case 'kgirls': {
           // Check cache first
-          const kgirlsCache = getSearchCache(query)?.platforms.kgirls
+          const kgirlsCacheEntry = await getSearchCache(query)
+          const kgirlsCache = kgirlsCacheEntry?.platforms.kgirls
           const kgirlsDisplayedIndex = kgirlsCache?.displayedIndex ?? 0
           const kgirlsCachedResults = kgirlsCache?.results ?? []
           const kgirlsRemainingInCache = kgirlsCachedResults.length - kgirlsDisplayedIndex
@@ -756,8 +758,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
               results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
               hasMore: kgirlsCachedResults.length > kgirlsDisplayedIndex + RESULTS_PER_PLATFORM || kgirlsCache?.hasMore || false,
             }
-            // Update cache displayedIndex
-            updatePlatformCache(query, 'kgirls', {
+            // Update cache displayedIndex (비동기, await 불필요)
+            void updatePlatformCache(query, 'kgirls', {
               ...kgirlsCache!,
               displayedIndex: kgirlsDisplayedIndex + RESULTS_PER_PLATFORM,
             })
@@ -778,9 +780,9 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
               hasMore: leftoverApi.length > 0 || apiResult.hasMore,
             }
 
-            // Update cache with new API results (leftover for next load more)
+            // Update cache with new API results (leftover for next load more) - 비동기, await 불필요
             if (leftoverApi.length > 0 || apiResult.hasMore) {
-              updatePlatformCache(query, 'kgirls', {
+              void updatePlatformCache(query, 'kgirls', {
                 results: [...kgirlsCachedResults, ...apiResult.results],
                 displayedIndex: kgirlsCachedResults.length + needed,
                 currentPage: newPage,
