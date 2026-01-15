@@ -22,6 +22,9 @@ interface LinkCardProps {
   onTagsChange?: (linkId: string, tags: Tag[]) => void
   layout?: LayoutType
   priority?: boolean
+  selectionMode?: boolean
+  selected?: boolean
+  onSelect?: (id: string, selected: boolean) => void
 }
 
 const platformLabels: Record<Platform, string> = {
@@ -51,7 +54,16 @@ function formatDate(dateString: string): string {
   })
 }
 
-export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid', priority = false }: LinkCardProps) {
+export function LinkCard({
+  link,
+  onDelete,
+  onTagsChange,
+  layout = 'grid',
+  priority = false,
+  selectionMode = false,
+  selected = false,
+  onSelect
+}: LinkCardProps) {
   const locale = useLocale()
   const [deleting, setDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -111,6 +123,10 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid', priori
 
   // Handle thumbnail click to open viewer or navigate to link
   const handleThumbnailClick = () => {
+    if (selectionMode) {
+      onSelect?.(link.id, !selected)
+      return
+    }
     if (supportsViewer) {
       setViewerOpen(true)
     } else {
@@ -118,15 +134,36 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid', priori
     }
   }
 
+  // Handle checkbox change
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation()
+    onSelect?.(link.id, e.target.checked)
+  }
+
   // List layout - horizontal card with thumbnail on left
   if (layout === 'list') {
     return (
       <motion.div
-        className="group relative flex rounded-xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-smooth card-hover"
-        whileHover={{ y: -2, scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
+        className={`group relative flex rounded-xl border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-smooth card-hover ${
+          selected ? 'border-primary ring-2 ring-primary/30' : 'border-border'
+        }`}
+        whileHover={selectionMode ? {} : { y: -2, scale: 1.01 }}
+        whileTap={selectionMode ? {} : { scale: 0.99 }}
         transition={quickSpring}
+        onClick={selectionMode ? () => onSelect?.(link.id, !selected) : undefined}
       >
+        {/* Selection checkbox */}
+        {selectionMode && (
+          <div className="absolute top-2 left-2 z-10">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={handleCheckboxChange}
+              onClick={e => e.stopPropagation()}
+              className="w-5 h-5 rounded border-2 border-primary text-primary focus:ring-primary/50 cursor-pointer"
+            />
+          </div>
+        )}
         {/* Thumbnail */}
         <div
           className={`relative w-40 sm:w-48 flex-shrink-0 bg-muted dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}
@@ -372,11 +409,26 @@ export function LinkCard({ link, onDelete, onTagsChange, layout = 'grid', priori
   // Grid layout - vertical card (default)
     return (
       <motion.div
-        className="group relative rounded-xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-smooth card-hover"
-        whileHover={{ y: -2, scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
+        className={`group relative rounded-xl border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-smooth card-hover ${
+          selected ? 'border-primary ring-2 ring-primary/30' : 'border-border'
+        }`}
+        whileHover={selectionMode ? {} : { y: -2, scale: 1.01 }}
+        whileTap={selectionMode ? {} : { scale: 0.99 }}
         transition={quickSpring}
+        onClick={selectionMode ? () => onSelect?.(link.id, !selected) : undefined}
       >
+        {/* Selection checkbox */}
+        {selectionMode && (
+          <div className="absolute top-2 left-2 z-10">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={handleCheckboxChange}
+              onClick={e => e.stopPropagation()}
+              className="w-5 h-5 rounded border-2 border-primary text-primary focus:ring-primary/50 cursor-pointer"
+            />
+          </div>
+        )}
       {/* Thumbnail */}
       <div
         className={`relative aspect-video bg-muted dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}

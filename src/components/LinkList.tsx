@@ -2,9 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLocale, useTranslations } from 'next-intl'
 import type { Link, Tag } from '@/types/database'
 import { LinkCard } from './LinkCard'
 import { SkeletonCard } from './Skeleton'
+import { SelectionToolbar } from './SelectionToolbar'
+import { BatchTagModal } from './BatchTagModal'
+import { useRefresh } from '@/contexts/RefreshContext'
 import { quickSpring, easeOutExpo } from '@/lib/animations'
 
 type LinkWithTags = Link & { tags: Tag[] }
@@ -20,9 +24,19 @@ interface LinkListProps {
 }
 
 export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinksLoad, layout = 'grid' }: LinkListProps) {
+  const locale = useLocale()
+  const t = useTranslations('batch')
+  const { refreshAll } = useRefresh()
   const [links, setLinks] = useState<LinkWithTags[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Selection mode state
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [batchModalMode, setBatchModalMode] = useState<'add' | 'remove' | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const fetchLinks = useCallback(async () => {
     setLoading(true)
@@ -66,6 +80,74 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
 
   const handleDelete = (id: string) => {
     setLinks((prev) => prev.filter((link) => link.id !== id))
+  }
+
+  // Selection handlers
+  const handleSelect = (id: string, selected: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (selected) {
+        next.add(id)
+      } else {
+        next.delete(id)
+      }
+      return next
+    })
+  }
+
+  const handleSelectAll = () => {
+    setSelectedIds(new Set(links.map(l => l.id)))
+  }
+
+  const handleDeselectAll = () => {
+    setSelectedIds(new Set())
+  }
+
+  const handleCancelSelection = () => {
+    setSelectionMode(false)
+    setSelectedIds(new Set())
+    setShowDeleteConfirm(false)
+  }
+
+  const handleBatchDelete = async () => {
+    if (!showDeleteConfirm) {
+      setShowDeleteConfirm(true)
+      return
+    }
+
+    setDeleting(true)
+    try {
+      const response = await fetch('/api/links/batch', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ linkIds: Array.from(selectedIds) })
+      })
+
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
+
+      if (response.ok) {
+        // Remove deleted links from local state
+        setLinks(prev => prev.filter(link => !selectedIds.has(link.id)))
+        setSelectedIds(new Set())
+        setSelectionMode(false)
+        refreshAll()
+      }
+    } catch (err) {
+      console.error('Batch delete error:', err)
+    } finally {
+      setDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+
+  const handleBatchTagComplete = () => {
+    // Refresh links to show updated tags
+    fetchLinks()
+    setSelectedIds(new Set())
+    setSelectionMode(false)
   }
 
   // Sync savedUrls with parent when links change (after delete)
@@ -125,6 +207,48 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
     )
   }
 
+  // Delete confirmation modal
+  const DeleteConfirmModal = () => (
+    <AnimatePresence>
+      {showDeleteConfirm && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowDeleteConfirm(false)} />
+          <motion.div
+            className="relative bg-card rounded-xl shadow-xl border border-border p-6 max-w-sm w-full"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+          >
+            <h3 className="text-lg font-semibold text-foreground mb-2">{t('confirmDeleteTitle')}</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {t('confirmDeleteDescription', { count: selectedIds.size })}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-sm rounded-lg bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 text-foreground transition-smooth"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={handleBatchDelete}
+                disabled={deleting}
+                className="px-4 py-2 text-sm rounded-lg bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 transition-smooth"
+              >
+                {deleting ? t('deleting') : t('delete')}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+
   // Stagger animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -156,25 +280,81 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
   }
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key="link-list"
-        className={
-          layout === 'grid'
-            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'
-            : 'flex flex-col gap-3'
-        }
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        exit="exit"
-      >
-        {links.map((link, index) => (
-          <motion.div key={link.id} variants={itemVariants}>
-            <LinkCard link={link} onDelete={handleDelete} layout={layout} priority={index < 6} />
-          </motion.div>
-        ))}
-      </motion.div>
-    </AnimatePresence>
+    <>
+      {/* Selection mode toggle button */}
+      {!selectionMode && links.length > 0 && (
+        <div className="flex justify-end mb-4">
+          <motion.button
+            onClick={() => setSelectionMode(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-card hover:bg-accent border border-border text-foreground transition-smooth"
+            whileTap={{ scale: 0.95 }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            {t('selectMode')}
+          </motion.button>
+        </div>
+      )}
+
+      {/* Selection toolbar */}
+      <AnimatePresence>
+        {selectionMode && (
+          <SelectionToolbar
+            selectedCount={selectedIds.size}
+            totalCount={links.length}
+            onSelectAll={handleSelectAll}
+            onDeselectAll={handleDeselectAll}
+            onAddTag={() => setBatchModalMode('add')}
+            onRemoveTag={() => setBatchModalMode('remove')}
+            onDelete={() => setShowDeleteConfirm(true)}
+            onCancel={handleCancelSelection}
+            deleting={deleting}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Link grid/list */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="link-list"
+          className={
+            layout === 'grid'
+              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'
+              : 'flex flex-col gap-3'
+          }
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+        >
+          {links.map((link, index) => (
+            <motion.div key={link.id} variants={itemVariants}>
+              <LinkCard
+                link={link}
+                onDelete={handleDelete}
+                layout={layout}
+                priority={index < 6}
+                selectionMode={selectionMode}
+                selected={selectedIds.has(link.id)}
+                onSelect={handleSelect}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Batch tag modal */}
+      <BatchTagModal
+        isOpen={batchModalMode !== null}
+        mode={batchModalMode ?? 'add'}
+        selectedLinkIds={Array.from(selectedIds)}
+        onClose={() => setBatchModalMode(null)}
+        onComplete={handleBatchTagComplete}
+      />
+
+      {/* Delete confirmation modal */}
+      <DeleteConfirmModal />
+    </>
   )
 }
