@@ -66,6 +66,7 @@ export type SearchType = 'top' | 'latest' | 'media'
 export interface ScrapeBadgerSearchOptions {
   type?: SearchType
   cursor?: string
+  count?: number
 }
 
 const BASE_URL = 'https://scrapebadger.com/v1/twitter'
@@ -82,7 +83,7 @@ export async function searchTwitterWithScrapeBadger(
   query: string,
   options: ScrapeBadgerSearchOptions = {}
 ): Promise<TwitterSearchResponse> {
-  const { type = 'top', cursor } = options
+  const { type = 'top', cursor, count } = options
 
   const apiKey = process.env.SCRAPEBADGER_API_KEY
 
@@ -105,6 +106,10 @@ export async function searchTwitterWithScrapeBadger(
 
   if (cursor) {
     params.set('cursor', cursor)
+  }
+
+  if (count && count > 0) {
+    params.set('count', String(count))
   }
 
   const controller = new AbortController()

@@ -28,6 +28,8 @@ interface TwitterResult {
   link: string
   title: string
   snippet: string
+  thumbnailUrl?: string
+  authorName?: string
 }
 
 interface HeyeResult {
@@ -65,6 +67,7 @@ interface PlatformResults {
   currentPage: number
   currentOffset: number // For heye/kgirls pagination within page
   nextPageToken?: string // For YouTube pagination
+  nextCursor?: string // For Twitter (ScrapeBadger) pagination
 }
 
 interface UnifiedSearchProps {
@@ -212,17 +215,19 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     }
   }
 
-  const searchTwitter = async (searchQuery: string, page: number = 1): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
+  const searchTwitter = async (searchQuery: string, cursor?: string): Promise<{ results: EnrichedResult[], hasMore: boolean, nextCursor?: string }> => {
     // Remove # prefix if present - Google CSE handles hashtags better without the # symbol
     // The site:twitter.com filter in the API will find relevant tweets
     const cleanQuery = searchQuery.startsWith('#') ? searchQuery.slice(1) : searchQuery
 
     const params = new URLSearchParams({
       q: cleanQuery,
-      page: String(page),
-      // Note: dateRestrict causes Google CSE to return non-tweet URLs for Twitter searches
-      // so we skip it and rely on Google's default relevance ranking
     })
+
+    // Add cursor for ScrapeBadger pagination
+    if (cursor) {
+      params.set('cursor', cursor)
+    }
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
@@ -248,52 +253,73 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
     const twitterResults = (data.results as TwitterResult[]).slice(0, RESULTS_PER_PLATFORM)
 
-    // Fetch metadata for all results in parallel with timeout
-    const metadataPromises = twitterResults.map(async (item): Promise<EnrichedResult> => {
-      const isSaved = checkIfSaved(item.link)
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+    // ScrapeBadger already returns thumbnailUrl and authorName, so we can use them directly
+    // Only fetch metadata for results without thumbnailUrl (likely from Google CSE fallback)
+    const results: EnrichedResult[] = await Promise.all(
+      twitterResults.map(async (item): Promise<EnrichedResult> => {
+        const isSaved = checkIfSaved(item.link)
 
-      try {
-        const metaResponse = await fetch('/api/metadata', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: item.link }),
-          signal: controller.signal,
-        })
-
-        clearTimeout(timeoutId)
-
-        if (metaResponse.ok) {
-          const metadata = await metaResponse.json()
+        // If we already have thumbnail from ScrapeBadger, use it directly
+        if (item.thumbnailUrl) {
           return {
             url: item.link,
-            title: metadata.title || item.title,
-            thumbnailUrl: metadata.thumbnailUrl || null,
-            author: metadata.authorName || '',
+            title: item.title,
+            thumbnailUrl: item.thumbnailUrl,
+            author: item.authorName || '',
             platform: 'twitter',
             isSaved,
             isSaving: false,
           }
         }
-      } catch {
-        clearTimeout(timeoutId)
-      }
 
-      // Fallback result if metadata fetch fails
-      return {
-        url: item.link,
-        title: item.title,
-        thumbnailUrl: null,
-        author: '',
-        platform: 'twitter',
-        isSaved,
-        isSaving: false,
-      }
-    })
+        // Fallback: fetch metadata for Google CSE results
+        const metaController = new AbortController()
+        const metaTimeoutId = setTimeout(() => metaController.abort(), 5000)
 
-    const results = await Promise.all(metadataPromises)
-    return { results, hasMore: data.hasMore ?? false }
+        try {
+          const metaResponse = await fetch('/api/metadata', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: item.link }),
+            signal: metaController.signal,
+          })
+
+          clearTimeout(metaTimeoutId)
+
+          if (metaResponse.ok) {
+            const metadata = await metaResponse.json()
+            return {
+              url: item.link,
+              title: metadata.title || item.title,
+              thumbnailUrl: metadata.thumbnailUrl || null,
+              author: metadata.authorName || '',
+              platform: 'twitter',
+              isSaved,
+              isSaving: false,
+            }
+          }
+        } catch {
+          clearTimeout(metaTimeoutId)
+        }
+
+        // Fallback result if metadata fetch fails
+        return {
+          url: item.link,
+          title: item.title,
+          thumbnailUrl: null,
+          author: '',
+          platform: 'twitter',
+          isSaved,
+          isSaving: false,
+        }
+      })
+    )
+
+    return {
+      results,
+      hasMore: data.hasMore ?? false,
+      nextCursor: data.nextCursor,
+    }
   }
 
   const searchHeye = async (searchQuery: string, page: number = 1, offset: number = 0): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
@@ -454,8 +480,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
     if (enabledPlatforms.has('twitter')) {
       searchPromises.push(
-        searchTwitter(query, 1)
-          .then(({ results, hasMore }) => {
+        searchTwitter(query)
+          .then(({ results, hasMore, nextCursor }) => {
             setPlatformResults(prev => {
               const next = new Map(prev)
               next.set('twitter', {
@@ -467,6 +493,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 error: null,
                 currentPage: 1,
                 currentOffset: 0,
+                nextCursor,
               })
               return next
             })
@@ -588,7 +615,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     })
 
     try {
-      let searchResult: { results: EnrichedResult[], hasMore: boolean, nextPageToken?: string }
+      let searchResult: { results: EnrichedResult[], hasMore: boolean, nextPageToken?: string, nextCursor?: string }
       let newPage = currentData.currentPage
       let newOffset = currentData.currentOffset
 
@@ -598,8 +625,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           searchResult = await searchYouTube(query, currentData.nextPageToken)
           break
         case 'twitter':
-          newPage = currentData.currentPage + 1
-          searchResult = await searchTwitter(query, newPage)
+          // Use cursor for ScrapeBadger pagination
+          searchResult = await searchTwitter(query, currentData.nextCursor)
           break
         case 'heye':
           // Use offset-based pagination within the same page first
@@ -631,6 +658,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             currentPage: newPage,
             currentOffset: newOffset,
             nextPageToken: searchResult.nextPageToken,
+            nextCursor: searchResult.nextCursor,
           })
         }
         return next
