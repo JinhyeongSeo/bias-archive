@@ -685,14 +685,112 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       let newOffset = currentData.currentOffset
 
       switch (platform) {
-        case 'youtube':
+        case 'youtube': {
           // Use pageToken for YouTube pagination
-          searchResult = await searchYouTube(query, currentData.nextPageToken)
+          // Check cache first
+          const ytCacheEntry = await getSearchCache(query)
+          const ytCache = ytCacheEntry?.platforms.youtube
+          const ytDisplayedIndex = ytCache?.displayedIndex ?? 0
+          const ytCachedResults = ytCache?.results ?? []
+          const ytRemainingInCache = ytCachedResults.length - ytDisplayedIndex
+
+          if (ytRemainingInCache >= RESULTS_PER_PLATFORM) {
+            // Use cached results only
+            const toDisplay = ytCachedResults.slice(ytDisplayedIndex, ytDisplayedIndex + RESULTS_PER_PLATFORM)
+            searchResult = {
+              results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+              hasMore: ytCachedResults.length > ytDisplayedIndex + RESULTS_PER_PLATFORM || ytCache?.hasMore || false,
+              nextPageToken: ytCache?.nextPageToken,
+            }
+            // Update cache displayedIndex
+            void updatePlatformCache(query, 'youtube', {
+              ...ytCache!,
+              displayedIndex: ytDisplayedIndex + RESULTS_PER_PLATFORM,
+            })
+          } else {
+            // Combine remaining cache + fetch next page
+            const fromCache = ytCachedResults.slice(ytDisplayedIndex)
+            const needed = RESULTS_PER_PLATFORM - fromCache.length
+            const apiResult = await searchYouTube(query, ytCache?.nextPageToken || currentData.nextPageToken)
+            const fromApi = apiResult.results.slice(0, needed)
+            const leftoverApi = apiResult.results.slice(needed)
+
+            searchResult = {
+              results: [
+                ...fromCache.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+                ...fromApi,
+              ],
+              hasMore: leftoverApi.length > 0 || apiResult.hasMore,
+              nextPageToken: apiResult.nextPageToken,
+            }
+
+            // Update cache with new API results
+            if (leftoverApi.length > 0 || apiResult.hasMore) {
+              void updatePlatformCache(query, 'youtube', {
+                results: [...ytCachedResults, ...apiResult.results],
+                displayedIndex: ytCachedResults.length + needed,
+                currentPage: 1,
+                currentOffset: 0,
+                hasMore: apiResult.hasMore,
+                nextPageToken: apiResult.nextPageToken,
+              })
+            }
+          }
           break
-        case 'twitter':
+        }
+        case 'twitter': {
           // Use cursor for ScrapeBadger pagination
-          searchResult = await searchTwitter(query, currentData.nextCursor)
+          // Check cache first
+          const twCacheEntry = await getSearchCache(query)
+          const twCache = twCacheEntry?.platforms.twitter
+          const twDisplayedIndex = twCache?.displayedIndex ?? 0
+          const twCachedResults = twCache?.results ?? []
+          const twRemainingInCache = twCachedResults.length - twDisplayedIndex
+
+          if (twRemainingInCache >= RESULTS_PER_PLATFORM) {
+            // Use cached results only
+            const toDisplay = twCachedResults.slice(twDisplayedIndex, twDisplayedIndex + RESULTS_PER_PLATFORM)
+            searchResult = {
+              results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+              hasMore: twCachedResults.length > twDisplayedIndex + RESULTS_PER_PLATFORM || twCache?.hasMore || false,
+              nextCursor: twCache?.nextCursor,
+            }
+            // Update cache displayedIndex
+            void updatePlatformCache(query, 'twitter', {
+              ...twCache!,
+              displayedIndex: twDisplayedIndex + RESULTS_PER_PLATFORM,
+            })
+          } else {
+            // Combine remaining cache + fetch next page
+            const fromCache = twCachedResults.slice(twDisplayedIndex)
+            const needed = RESULTS_PER_PLATFORM - fromCache.length
+            const apiResult = await searchTwitter(query, twCache?.nextCursor || currentData.nextCursor)
+            const fromApi = apiResult.results.slice(0, needed)
+            const leftoverApi = apiResult.results.slice(needed)
+
+            searchResult = {
+              results: [
+                ...fromCache.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+                ...fromApi,
+              ],
+              hasMore: leftoverApi.length > 0 || apiResult.hasMore,
+              nextCursor: apiResult.nextCursor,
+            }
+
+            // Update cache with new API results
+            if (leftoverApi.length > 0 || apiResult.hasMore) {
+              void updatePlatformCache(query, 'twitter', {
+                results: [...twCachedResults, ...apiResult.results],
+                displayedIndex: twCachedResults.length + needed,
+                currentPage: 1,
+                currentOffset: 0,
+                hasMore: apiResult.hasMore,
+                nextCursor: apiResult.nextCursor,
+              })
+            }
+          }
           break
+        }
         case 'heye': {
           // Check cache first
           const heyeCacheEntry = await getSearchCache(query)
