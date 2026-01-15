@@ -218,7 +218,7 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
   return (
     <div className="relative w-full">
       {/* Main content - image or video */}
-      <div className="relative w-full flex items-center justify-center" style={{ aspectRatio: '4/5', maxHeight: 'min(85vh, 600px)' }}>
+      <div className="relative w-full flex items-center justify-center" style={{ aspectRatio: '3/4', maxHeight: 'min(90vh, 700px)' }}>
         {isVideo ? (
           <video
             key={currentItem.media_url}
@@ -228,14 +228,14 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
             loop
             muted
             playsInline
-            className="max-w-full max-h-full rounded-lg object-contain"
+            className="max-w-full max-h-full rounded sm:rounded-lg object-contain"
           />
         ) : (
           <Image
             src={getProxiedImageUrl(currentItem.media_url)}
             alt={`Media ${currentIndex + 1} of ${items.length}`}
             fill
-            className="object-contain rounded-lg"
+            className="object-contain rounded sm:rounded-lg"
             priority
             unoptimized
           />
