@@ -64,9 +64,14 @@ npm run lint     # ESLint 실행
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 YOUTUBE_API_KEY=           # YouTube Data API
-GOOGLE_CSE_API_KEY=        # Google Custom Search (Twitter 검색용)
+SCRAPEBADGER_API_KEY=      # ScrapeBadger (Twitter 실시간 검색, 권장)
+GOOGLE_CSE_API_KEY=        # Google Custom Search (Twitter 검색 폴백용)
 GOOGLE_CSE_ID=
 ```
+
+### Twitter 검색 API 우선순위
+1. **ScrapeBadger** (설정 시 우선 사용): 실시간 검색, $0.10/1,000 트윗
+2. **Google CSE** (폴백): 인덱싱된 과거 트윗만 검색, 무료
 
 ## Path Aliases
 
