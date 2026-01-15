@@ -36,7 +36,7 @@ export function SelectionToolbar({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={quickSpring}
-      className="sticky top-0 z-20 flex flex-wrap items-center gap-2 p-3 mb-4 rounded-lg bg-primary/10 dark:bg-primary/20 border border-primary/30"
+      className="sticky top-14 z-20 flex flex-wrap items-center gap-2 p-3 mb-4 rounded-lg bg-primary/10 dark:bg-primary/20 border border-primary/30"
     >
       {/* Selected count */}
       <span className="text-sm font-medium text-primary">
