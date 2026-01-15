@@ -248,8 +248,11 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     // The site:twitter.com filter in the API will find relevant tweets
     const cleanQuery = searchQuery.startsWith('#') ? searchQuery.slice(1) : searchQuery
 
+    console.log('[searchTwitter] query:', cleanQuery, 'cursor:', cursor)
+
     const params = new URLSearchParams({
       q: cleanQuery,
+      count: String(API_FETCH_COUNT),
     })
 
     // Add cursor for ScrapeBadger pagination
@@ -809,14 +812,20 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           const twCacheEntry = await getSearchCache(query)
           const twCache = twCacheEntry?.platforms.twitter
           const twCachedResults = twCache?.results ?? []
-          const twRemainingInCache = twCachedResults.length - localDisplayedCount
 
-          if (twRemainingInCache >= RESULTS_PER_PLATFORM) {
+          // 현재 화면에 표시된 URL들
+          const displayedUrls = new Set(currentData.results.map(r => r.url))
+          // 캐시에서 아직 표시되지 않은 결과만 필터링
+          const twUnshownInCache = twCachedResults.filter(r => !displayedUrls.has(r.url))
+
+          console.log('[Twitter LoadMore] cache:', twCachedResults.length, 'displayed:', displayedUrls.size, 'unshown:', twUnshownInCache.length, 'nextCursor:', twCache?.nextCursor || currentData.nextCursor)
+
+          if (twUnshownInCache.length >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = twCachedResults.slice(localDisplayedCount, localDisplayedCount + RESULTS_PER_PLATFORM)
+            const toDisplay = twUnshownInCache.slice(0, RESULTS_PER_PLATFORM)
             searchResult = {
               results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: twCachedResults.length > localDisplayedCount + RESULTS_PER_PLATFORM || twCache?.hasMore || false,
+              hasMore: twUnshownInCache.length > RESULTS_PER_PLATFORM || twCache?.hasMore || false,
               nextCursor: twCache?.nextCursor,
             }
             // Update cache displayedIndex
@@ -826,11 +835,16 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             })
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = twCachedResults.slice(localDisplayedCount)
+            const fromCache = twUnshownInCache
             const needed = RESULTS_PER_PLATFORM - fromCache.length
-            const apiResult = await searchTwitter(query, twCache?.nextCursor || currentData.nextCursor)
-            const fromApi = apiResult.results.slice(0, needed)
-            const leftoverApi = apiResult.results.slice(needed)
+            const cursor = twCache?.nextCursor || currentData.nextCursor
+            console.log('[Twitter LoadMore] fetching with cursor:', cursor)
+            const apiResult = await searchTwitter(query, cursor)
+
+            // API 결과에서도 이미 표시된 URL 제외
+            const newApiResults = apiResult.results.filter(r => !displayedUrls.has(r.url))
+            const fromApi = newApiResults.slice(0, needed)
+            const leftoverApi = newApiResults.slice(needed)
 
             searchResult = {
               results: [
@@ -1013,6 +1027,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           // Filter out duplicates by URL
           const existingUrls = new Set(data.results.map(r => r.url))
           const newResults = searchResult.results.filter(r => !existingUrls.has(r.url))
+          console.log('[LoadMore setPlatformResults]', platform, 'searchResult.results:', searchResult.results.length, 'existingUrls:', existingUrls.size, 'newResults:', newResults.length, 'duplicates:', searchResult.results.filter(r => existingUrls.has(r.url)).map(r => r.url))
 
           next.set(platform, {
             ...data,
