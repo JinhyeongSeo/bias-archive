@@ -33,16 +33,30 @@ export interface TwitterSearchResponse {
   totalResults?: number
 }
 
+export type DateRestrict = 'd1' | 'd7' | 'w1' | 'w2' | 'm1' | 'm3' | 'm6' | 'y1' | null
+export type SortOption = 'relevance' | 'date'
+
+export interface TwitterSearchOptions {
+  page?: number
+  dateRestrict?: DateRestrict
+  sort?: SortOption
+}
+
 /**
  * Search Twitter/X using Google Custom Search Engine
  * This searches Google's indexed tweets, so results are from past popular tweets
  * (not real-time recent tweets)
  *
  * @param query - Search query string
- * @param page - Page number (1-based, each page has up to 10 results)
+ * @param options - Search options (page, dateRestrict, sort)
  * @returns Object with results array and hasMore flag
  */
-export async function searchTwitter(query: string, page: number = 1): Promise<TwitterSearchResponse> {
+export async function searchTwitter(
+  query: string,
+  options: TwitterSearchOptions = {}
+): Promise<TwitterSearchResponse> {
+  const { page = 1, dateRestrict = null, sort = 'relevance' } = options
+
   const apiKey = process.env.GOOGLE_CSE_API_KEY
   const cseId = process.env.GOOGLE_CSE_ID
 
@@ -63,6 +77,16 @@ export async function searchTwitter(query: string, page: number = 1): Promise<Tw
     q: siteQuery,
     start: String(startIndex),
   })
+
+  // Add date restriction if specified
+  if (dateRestrict) {
+    params.set('dateRestrict', dateRestrict)
+  }
+
+  // Add sort by date if specified
+  if (sort === 'date') {
+    params.set('sort', 'date')
+  }
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 10000)
