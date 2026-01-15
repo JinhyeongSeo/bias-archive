@@ -93,7 +93,8 @@ const PLATFORMS: { id: Platform; label: string; color: string; bgColor: string; 
   { id: 'kgirls', label: 'kgirls', color: 'text-pink-600 dark:text-pink-400', bgColor: 'bg-pink-100 dark:bg-pink-900/50', ringColor: 'ring-pink-500/20' },
 ]
 
-const RESULTS_PER_PLATFORM = 6
+const RESULTS_PER_PLATFORM = 6      // 화면에 표시할 개수
+const API_FETCH_COUNT = 20          // API에서 가져올 개수 (캐시용)
 
 export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, groups }: UnifiedSearchProps) {
   const { getDisplayName } = useNameLanguage()
@@ -208,7 +209,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
   const searchYouTube = async (searchQuery: string, pageToken?: string): Promise<{ results: EnrichedResult[], hasMore: boolean, nextPageToken?: string }> => {
     const params = new URLSearchParams({
       q: searchQuery,
-      max: String(RESULTS_PER_PLATFORM),
+      max: String(API_FETCH_COUNT),
       order: 'relevance',
       period: 'month', // Default to this month for more recent results
     })
@@ -277,7 +278,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       throw error
     }
 
-    const twitterResults = (data.results as TwitterResult[]).slice(0, RESULTS_PER_PLATFORM)
+    const twitterResults = data.results as TwitterResult[]
 
     // ScrapeBadger already returns thumbnailUrl and authorName, so we can use them directly
     // Only fetch metadata for results without thumbnailUrl (likely from Google CSE fallback)
@@ -352,7 +353,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     const params = new URLSearchParams({
       q: searchQuery,
       page: String(page),
-      limit: String(RESULTS_PER_PLATFORM),
+      limit: String(API_FETCH_COUNT),
       offset: String(offset),
     })
 
@@ -398,7 +399,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       q: searchQuery,
       page: String(page),
       board: 'mgall',
-      limit: String(RESULTS_PER_PLATFORM),
+      limit: String(API_FETCH_COUNT),
       offset: String(offset),
     })
 
@@ -439,6 +440,136 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     }
   }
 
+  // 플랫폼별 검색 처리 헬퍼 함수
+  const processPlatformSearch = async (
+    platform: Platform,
+    cachedData: CachedPlatformResult | undefined,
+    searchFn: () => Promise<{ results: EnrichedResult[], hasMore: boolean, nextPageToken?: string, nextCursor?: string }>,
+    newCachedResults: Map<Platform, CachedPlatformResult>
+  ) => {
+    const displayedIndex = cachedData?.displayedIndex ?? 0
+    const cachedResultsList = cachedData?.results ?? []
+    const remainingInCache = cachedResultsList.length - displayedIndex
+
+    // 캐시에 충분한 미표시 결과가 있으면 API 호출 없이 캐시에서 표시
+    if (remainingInCache >= RESULTS_PER_PLATFORM) {
+      const toDisplay = cachedResultsList.slice(displayedIndex, displayedIndex + RESULTS_PER_PLATFORM)
+      const alreadyDisplayed = cachedResultsList.slice(0, displayedIndex)
+      const newDisplayedIndex = displayedIndex + RESULTS_PER_PLATFORM
+      const hasMoreInCache = cachedResultsList.length > newDisplayedIndex || cachedData?.hasMore
+
+      // "오늘 본 결과"에 이전에 표시했던 결과 저장
+      if (alreadyDisplayed.length > 0) {
+        newCachedResults.set(platform, {
+          ...cachedData!,
+          results: alreadyDisplayed,
+        })
+      }
+
+      setPlatformResults(prev => {
+        const next = new Map(prev)
+        next.set(platform, {
+          platform,
+          results: toDisplay,
+          hasMore: hasMoreInCache ?? false,
+          isLoading: false,
+          isLoadingMore: false,
+          error: null,
+          currentPage: cachedData?.currentPage ?? 1,
+          currentOffset: cachedData?.currentOffset ?? 0,
+          nextPageToken: cachedData?.nextPageToken,
+          nextCursor: cachedData?.nextCursor,
+        })
+        return next
+      })
+
+      // 캐시의 displayedIndex 업데이트
+      updatePlatformCache(query, platform, {
+        ...cachedData!,
+        displayedIndex: newDisplayedIndex,
+      })
+
+      return
+    }
+
+    // 캐시가 부족하면 API 호출
+    try {
+      const { results: apiResults, hasMore, nextPageToken, nextCursor } = await searchFn()
+
+      // 캐시에서 가져올 부분 (미표시 부분)
+      const fromCache = cachedResultsList.slice(displayedIndex)
+      // 이미 표시한 부분 (오늘 본 결과)
+      const alreadyDisplayed = cachedResultsList.slice(0, displayedIndex)
+
+      // API 결과에서 중복 제거
+      const existingUrls = new Set(cachedResultsList.map(r => r.url))
+      const newApiResults = apiResults.filter(r => !existingUrls.has(r.url))
+
+      // 캐시 잔여 + 새 API 결과 합치기
+      const combined = [...fromCache, ...newApiResults]
+      const toDisplay = combined.slice(0, RESULTS_PER_PLATFORM)
+      const toSaveInCache = combined.slice(RESULTS_PER_PLATFORM)
+
+      // "오늘 본 결과"에 이전에 표시했던 결과 저장
+      if (alreadyDisplayed.length > 0) {
+        newCachedResults.set(platform, {
+          results: alreadyDisplayed,
+          displayedIndex: alreadyDisplayed.length,
+          currentPage: cachedData?.currentPage ?? 1,
+          currentOffset: cachedData?.currentOffset ?? 0,
+          hasMore: false,
+          nextPageToken: cachedData?.nextPageToken,
+          nextCursor: cachedData?.nextCursor,
+        })
+      }
+
+      setPlatformResults(prev => {
+        const next = new Map(prev)
+        next.set(platform, {
+          platform,
+          results: toDisplay,
+          hasMore: hasMore || toSaveInCache.length > 0,
+          isLoading: false,
+          isLoadingMore: false,
+          error: null,
+          currentPage: 1,
+          currentOffset: 0,
+          nextPageToken,
+          nextCursor,
+        })
+        return next
+      })
+
+      // 전체 캐시 업데이트 (표시한 것 + 남은 것)
+      const allCachedResults = [...alreadyDisplayed, ...toDisplay, ...toSaveInCache]
+      updatePlatformCache(query, platform, {
+        results: allCachedResults,
+        displayedIndex: alreadyDisplayed.length + toDisplay.length,
+        nextPageToken,
+        nextCursor,
+        currentPage: 1,
+        currentOffset: 0,
+        hasMore,
+      })
+    } catch (error) {
+      console.error(`[UnifiedSearch] ${platform} error:`, error)
+      setPlatformResults(prev => {
+        const next = new Map(prev)
+        next.set(platform, {
+          platform,
+          results: [],
+          hasMore: false,
+          isLoading: false,
+          isLoadingMore: false,
+          error: error instanceof Error ? error.message : `${platform} 검색 실패`,
+          currentPage: 1,
+          currentOffset: 0,
+        })
+        return next
+      })
+    }
+  }
+
   // Unified search - search all enabled platforms in parallel
   const handleSearch = async () => {
     if (!query.trim()) return
@@ -470,243 +601,64 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     const searchPromises: Promise<void>[] = []
 
     if (enabledPlatforms.has('youtube')) {
-      // 캐시된 결과가 있으면 저장하고 다음 페이지부터 검색
       const cachedYoutube = cached?.platforms.youtube
-      if (cachedYoutube && cachedYoutube.results.length > 0) {
-        newCachedResults.set('youtube', cachedYoutube)
-      }
-
       searchPromises.push(
-        searchYouTube(query, cachedYoutube?.nextPageToken)
-          .then(({ results, hasMore, nextPageToken }) => {
-            // 캐시된 URL 제외
-            const cachedUrls = new Set(cachedYoutube?.results.map(r => r.url) || [])
-            const filteredResults = results.filter(r => !cachedUrls.has(r.url))
-
-            setPlatformResults(prev => {
-              const next = new Map(prev)
-              next.set('youtube', {
-                platform: 'youtube',
-                results: filteredResults,
-                hasMore,
-                isLoading: false,
-                isLoadingMore: false,
-                error: null,
-                currentPage: 1,
-                currentOffset: 0,
-                nextPageToken,
-              })
-              return next
-            })
-
-            // 새 결과를 캐시에 추가 (기존 캐시 + 새 결과)
-            const allResults = [...(cachedYoutube?.results || []), ...filteredResults]
-            updatePlatformCache(query, 'youtube', {
-              results: allResults,
-              nextPageToken,
-              currentPage: 1,
-              currentOffset: 0,
-              hasMore,
-            })
-          })
-          .catch(error => {
-            setPlatformResults(prev => {
-              const next = new Map(prev)
-              next.set('youtube', {
-                platform: 'youtube',
-                results: [],
-                hasMore: false,
-                isLoading: false,
-                isLoadingMore: false,
-                error: error.message,
-                currentPage: 1,
-                currentOffset: 0,
-              })
-              return next
-            })
-          })
+        processPlatformSearch(
+          'youtube',
+          cachedYoutube,
+          () => searchYouTube(query, cachedYoutube?.nextPageToken),
+          newCachedResults
+        )
       )
     }
 
     if (enabledPlatforms.has('twitter')) {
       const cachedTwitter = cached?.platforms.twitter
-      if (cachedTwitter && cachedTwitter.results.length > 0) {
-        newCachedResults.set('twitter', cachedTwitter)
-      }
-
       searchPromises.push(
-        searchTwitter(query, cachedTwitter?.nextCursor)
-          .then(({ results, hasMore, nextCursor }) => {
-            const cachedUrls = new Set(cachedTwitter?.results.map(r => r.url) || [])
-            const filteredResults = results.filter(r => !cachedUrls.has(r.url))
-
-            setPlatformResults(prev => {
-              const next = new Map(prev)
-              next.set('twitter', {
-                platform: 'twitter',
-                results: filteredResults,
-                hasMore,
-                isLoading: false,
-                isLoadingMore: false,
-                error: null,
-                currentPage: 1,
-                currentOffset: 0,
-                nextCursor,
-              })
-              return next
-            })
-
-            const allResults = [...(cachedTwitter?.results || []), ...filteredResults]
-            updatePlatformCache(query, 'twitter', {
-              results: allResults,
-              nextCursor,
-              currentPage: 1,
-              currentOffset: 0,
-              hasMore,
-            })
-          })
-          .catch(error => {
-            console.error('[UnifiedSearch] Twitter error:', error)
-            setPlatformResults(prev => {
-              const next = new Map(prev)
-              next.set('twitter', {
-                platform: 'twitter',
-                results: [],
-                hasMore: false,
-                isLoading: false,
-                isLoadingMore: false,
-                error: error?.message || error?.toString() || 'Twitter 검색 실패',
-                currentPage: 1,
-                currentOffset: 0,
-              })
-              return next
-            })
-          })
+        processPlatformSearch(
+          'twitter',
+          cachedTwitter,
+          () => searchTwitter(query, cachedTwitter?.nextCursor),
+          newCachedResults
+        )
       )
     }
 
     if (enabledPlatforms.has('heye')) {
       const cachedHeye = cached?.platforms.heye
-      if (cachedHeye && cachedHeye.results.length > 0) {
-        newCachedResults.set('heye', cachedHeye)
-      }
-
-      // heye는 cursor가 없으므로 캐시 offset부터 검색
-      const startPage = cachedHeye ? cachedHeye.currentPage : 1
-      const startOffset = cachedHeye ? cachedHeye.currentOffset : 0
-
+      const startPage = cachedHeye?.currentPage ?? 1
+      const startOffset = cachedHeye?.currentOffset ?? 0
       searchPromises.push(
-        searchHeye(query, startPage, startOffset)
-          .then(({ results, hasMore }) => {
-            const cachedUrls = new Set(cachedHeye?.results.map(r => r.url) || [])
-            const filteredResults = results.filter(r => !cachedUrls.has(r.url))
-
-            setPlatformResults(prev => {
-              const next = new Map(prev)
-              next.set('heye', {
-                platform: 'heye',
-                results: filteredResults,
-                hasMore,
-                isLoading: false,
-                isLoadingMore: false,
-                error: null,
-                currentPage: startPage,
-                currentOffset: startOffset + filteredResults.length,
-              })
-              return next
-            })
-
-            const allResults = [...(cachedHeye?.results || []), ...filteredResults]
-            updatePlatformCache(query, 'heye', {
-              results: allResults,
-              currentPage: startPage,
-              currentOffset: startOffset + filteredResults.length,
-              hasMore,
-            })
-          })
-          .catch(error => {
-            setPlatformResults(prev => {
-              const next = new Map(prev)
-              next.set('heye', {
-                platform: 'heye',
-                results: [],
-                hasMore: false,
-                isLoading: false,
-                isLoadingMore: false,
-                error: error.message,
-                currentPage: 1,
-                currentOffset: 0,
-              })
-              return next
-            })
-          })
+        processPlatformSearch(
+          'heye',
+          cachedHeye,
+          () => searchHeye(query, startPage, startOffset),
+          newCachedResults
+        )
       )
     }
 
     if (enabledPlatforms.has('kgirls')) {
       const cachedKgirls = cached?.platforms.kgirls
-      if (cachedKgirls && cachedKgirls.results.length > 0) {
-        newCachedResults.set('kgirls', cachedKgirls)
-      }
-
-      const startPage = cachedKgirls ? cachedKgirls.currentPage : 1
-      const startOffset = cachedKgirls ? cachedKgirls.currentOffset : 0
-
+      const startPage = cachedKgirls?.currentPage ?? 1
+      const startOffset = cachedKgirls?.currentOffset ?? 0
       searchPromises.push(
-        searchKgirls(query, startPage, startOffset)
-          .then(({ results, hasMore }) => {
-            const cachedUrls = new Set(cachedKgirls?.results.map(r => r.url) || [])
-            const filteredResults = results.filter(r => !cachedUrls.has(r.url))
-
-            setPlatformResults(prev => {
-              const next = new Map(prev)
-              next.set('kgirls', {
-                platform: 'kgirls',
-                results: filteredResults,
-                hasMore,
-                isLoading: false,
-                isLoadingMore: false,
-                error: null,
-                currentPage: startPage,
-                currentOffset: startOffset + filteredResults.length,
-              })
-              return next
-            })
-
-            const allResults = [...(cachedKgirls?.results || []), ...filteredResults]
-            updatePlatformCache(query, 'kgirls', {
-              results: allResults,
-              currentPage: startPage,
-              currentOffset: startOffset + filteredResults.length,
-              hasMore,
-            })
-          })
-          .catch(error => {
-            console.error('[UnifiedSearch] Kgirls error:', error)
-            setPlatformResults(prev => {
-              const next = new Map(prev)
-              next.set('kgirls', {
-                platform: 'kgirls',
-                results: [],
-                hasMore: false,
-                isLoading: false,
-                isLoadingMore: false,
-                error: error?.message || error?.toString() || 'kgirls 검색 실패',
-                currentPage: 1,
-                currentOffset: 0,
-              })
-              return next
-            })
-          })
+        processPlatformSearch(
+          'kgirls',
+          cachedKgirls,
+          () => searchKgirls(query, startPage, startOffset),
+          newCachedResults
+        )
       )
     }
+
+    await Promise.allSettled(searchPromises)
 
     // 캐시된 결과 상태 설정
     setCachedResults(newCachedResults)
     // 캐시된 결과는 기본적으로 접힌 상태
     setShowCached(new Map())
 
-    await Promise.allSettled(searchPromises)
     setIsSearching(false)
   }
 

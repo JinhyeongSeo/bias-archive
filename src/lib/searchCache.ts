@@ -25,6 +25,7 @@ export interface CachedPlatformResult {
   currentPage: number      // heye, kgirls
   currentOffset: number
   hasMore: boolean
+  displayedIndex: number   // 현재까지 표시한 결과 인덱스 (다음에 표시할 시작점)
 }
 
 export interface SearchCacheEntry {
