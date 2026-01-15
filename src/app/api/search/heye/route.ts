@@ -13,6 +13,31 @@ interface HeyeSearchResult {
   author: string
 }
 
+// 개별 heye 게시글에서 첫 번째 이미지를 썸네일로 추출
+async function fetchThumbnail(postUrl: string): Promise<string | null> {
+  try {
+    const response = await fetch(postUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+      },
+    })
+
+    if (!response.ok) return null
+
+    const html = await response.text()
+
+    // heye.kr 이미지 패턴: https://img1.heye.kr/image/idol/YYYY/MM/timestamp.ext
+    const imagePattern = /https?:\/\/img1\.heye\.kr\/image\/idol\/\d{4}\/\d{2}\/\d+\.(jpeg|jpg|png|gif)/i
+    const match = html.match(imagePattern)
+
+    return match ? match[0] : null
+  } catch {
+    return null
+  }
+}
+
 interface HeyeSearchResponse {
   results: HeyeSearchResult[]
   totalPages: number
@@ -98,10 +123,23 @@ export async function GET(request: NextRequest) {
       results.push({
         url,
         title,
-        thumbnailUrl: null, // heye.kr search results don't have thumbnails in list view
+        thumbnailUrl: null, // 나중에 병렬 로드로 채움
         author,
       })
     })
+
+    // 모든 결과에 대해 썸네일 병렬 로드 (페이지당 약 6-10개)
+    const thumbnailPromises = results.map(async (result, index) => {
+      const thumbnail = await fetchThumbnail(result.url)
+      return { index, thumbnail }
+    })
+
+    const thumbnailResults = await Promise.all(thumbnailPromises)
+    for (const { index, thumbnail } of thumbnailResults) {
+      if (thumbnail) {
+        results[index].thumbnailUrl = thumbnail
+      }
+    }
 
     // Extract total pages from pagination
     // Pattern: <span class='num'>...<a href='?id=idol&smode=both&skey=카리나&page=10'>10</a>...</span>

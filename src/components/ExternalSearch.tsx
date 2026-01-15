@@ -391,12 +391,6 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     ))
 
     try {
-      const metaResponse = await fetch('/api/metadata', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: result.url }),
-      })
-
       let metadata: {
         title: string
         thumbnailUrl: string | null
@@ -410,14 +404,24 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         authorName: result.author,
       }
 
-      if (metaResponse.ok) {
-        const fullMetadata = await metaResponse.json()
-        metadata = {
-          title: fullMetadata.title || result.title,
-          thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
-          platform: fullMetadata.platform || result.platform,
-          authorName: fullMetadata.authorName || result.author,
-          media: fullMetadata.media,
+      // heye는 이미 검색 시 썸네일/미디어를 로드했으므로 metadata 재요청 스킵
+      // 다른 플랫폼은 미디어 정보 등을 가져오기 위해 metadata 요청 필요
+      if (result.platform !== 'heye') {
+        const metaResponse = await fetch('/api/metadata', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: result.url }),
+        })
+
+        if (metaResponse.ok) {
+          const fullMetadata = await metaResponse.json()
+          metadata = {
+            title: fullMetadata.title || result.title,
+            thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
+            platform: fullMetadata.platform || result.platform,
+            authorName: fullMetadata.authorName || result.author,
+            media: fullMetadata.media,
+          }
         }
       }
 
@@ -478,12 +482,6 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       if (!result || result.isSaved) continue
 
       try {
-        const metaResponse = await fetch('/api/metadata', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url }),
-        })
-
         let metadata: {
           title: string
           thumbnailUrl: string | null
@@ -497,14 +495,23 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
           authorName: result.author,
         }
 
-        if (metaResponse.ok) {
-          const fullMetadata = await metaResponse.json()
-          metadata = {
-            title: fullMetadata.title || result.title,
-            thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
-            platform: fullMetadata.platform || result.platform,
-            authorName: fullMetadata.authorName || result.author,
-            media: fullMetadata.media,
+        // heye는 이미 검색 시 썸네일을 로드했으므로 metadata 재요청 스킵
+        if (result.platform !== 'heye') {
+          const metaResponse = await fetch('/api/metadata', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+          })
+
+          if (metaResponse.ok) {
+            const fullMetadata = await metaResponse.json()
+            metadata = {
+              title: fullMetadata.title || result.title,
+              thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
+              platform: fullMetadata.platform || result.platform,
+              authorName: fullMetadata.authorName || result.author,
+              media: fullMetadata.media,
+            }
           }
         }
 
@@ -876,12 +883,14 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                         />
                       </div>
 
-                      {/* Thumbnail - larger size */}
+                      {/* Thumbnail - larger size, heye/kgirls use top crop for face visibility */}
                       {result.thumbnailUrl ? (
                         <img
                           src={result.thumbnailUrl}
                           alt=""
-                          className="w-32 h-20 object-cover rounded-lg flex-shrink-0"
+                          className={`w-32 h-20 object-cover rounded-lg flex-shrink-0 ${
+                            result.platform === 'heye' || result.platform === 'kgirls' ? 'object-top' : ''
+                          }`}
                         />
                       ) : (
                         <div className="w-32 h-20 bg-zinc-200 dark:bg-zinc-700 rounded-lg flex-shrink-0 flex items-center justify-center">
