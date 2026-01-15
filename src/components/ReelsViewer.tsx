@@ -220,18 +220,26 @@ function VideoWithFallback({ url, className, style, originalUrl, isActive = true
 }
 
 // Full screen media content component
-function ReelsMediaContent({ link, platform, isActive = true }: { link: FullLink; platform: Platform; isActive?: boolean }) {
-  const [mediaIndex, setMediaIndex] = useState(0)
-
+function ReelsMediaContent({
+  link,
+  platform,
+  isActive = true,
+  mediaIndex = 0,
+  onMediaIndexChange
+}: {
+  link: FullLink
+  platform: Platform
+  isActive?: boolean
+  mediaIndex?: number
+  onMediaIndexChange?: (index: number) => void
+}) {
   // Get displayable media
   const mediaItems = link.media?.filter(
     m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video'
   ) || []
 
-  // Reset media index when link changes
-  useEffect(() => {
-    setMediaIndex(0)
-  }, [link.id])
+  // Clamp mediaIndex to valid range
+  const safeMediaIndex = Math.max(0, Math.min(mediaIndex, mediaItems.length - 1))
 
   // YouTube: show embed (only when active to prevent multiple videos playing)
   if (platform === 'youtube') {
@@ -249,14 +257,14 @@ function ReelsMediaContent({ link, platform, isActive = true }: { link: FullLink
 
   // Has media items (images/videos from Twitter, heye, kgirls, etc.)
   if (mediaItems.length > 0) {
-    const currentMedia = mediaItems[mediaIndex]
+    const currentMedia = mediaItems[safeMediaIndex]
     const isVideo = currentMedia.media_type === 'video'
 
     return (
       <div className="relative w-full h-full flex items-center justify-center">
         {isVideo ? (
           <VideoWithFallback
-            key={`${currentMedia.media_url}-${mediaIndex}`}
+            key={`${currentMedia.media_url}-${safeMediaIndex}`}
             url={currentMedia.media_url}
             className="max-w-full max-h-full object-contain"
             style={{ maxHeight: 'calc(100vh - 200px)' }}
@@ -285,7 +293,8 @@ function ReelsMediaContent({ link, platform, isActive = true }: { link: FullLink
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                setMediaIndex(prev => prev === 0 ? mediaItems.length - 1 : prev - 1)
+                const newIndex = safeMediaIndex === 0 ? mediaItems.length - 1 : safeMediaIndex - 1
+                onMediaIndexChange?.(newIndex)
               }}
               className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
             >
@@ -298,7 +307,8 @@ function ReelsMediaContent({ link, platform, isActive = true }: { link: FullLink
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                setMediaIndex(prev => prev === mediaItems.length - 1 ? 0 : prev + 1)
+                const newIndex = safeMediaIndex === mediaItems.length - 1 ? 0 : safeMediaIndex + 1
+                onMediaIndexChange?.(newIndex)
               }}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
             >
@@ -314,10 +324,10 @@ function ReelsMediaContent({ link, platform, isActive = true }: { link: FullLink
                   key={idx}
                   onClick={(e) => {
                     e.stopPropagation()
-                    setMediaIndex(idx)
+                    onMediaIndexChange?.(idx)
                   }}
                   className={`w-2 h-2 rounded-full transition-colors ${
-                    idx === mediaIndex ? 'bg-white' : 'bg-white/50'
+                    idx === safeMediaIndex ? 'bg-white' : 'bg-white/50'
                   }`}
                 />
               ))}
@@ -325,7 +335,7 @@ function ReelsMediaContent({ link, platform, isActive = true }: { link: FullLink
 
             {/* Counter */}
             <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/50 text-white text-sm z-10">
-              {mediaIndex + 1} / {mediaItems.length}
+              {safeMediaIndex + 1} / {mediaItems.length}
             </div>
           </>
         )}
@@ -362,17 +372,21 @@ function ReelsMediaContent({ link, platform, isActive = true }: { link: FullLink
 
 export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChange }: ReelsViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
+  const [mediaIndex, setMediaIndex] = useState(0) // Current media index within the current link
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
   const { getTagDisplayName } = useNameLanguage()
 
-  // Motion value for drag position
-  const dragY = useMotionValue(0)
+  // Motion values for drag position
+  const dragY = useMotionValue(0) // Vertical: link navigation
+  const dragX = useMotionValue(0) // Horizontal: media navigation within link
   const containerHeight = useRef(0)
+  const containerWidth = useRef(0)
+  // Track which axis is being used for this drag gesture
+  const dragAxis = useRef<'x' | 'y' | null>(null)
 
-  // Transform for prev/next content positions - must be at top level, not inside conditional JSX
-  // Using window.innerHeight as fallback since containerHeight.current may be 0 initially
+  // Transform for prev/next content positions (vertical swipe for links)
   const prevY = useTransform(dragY, (y) => {
     const height = containerHeight.current || (typeof window !== 'undefined' ? window.innerHeight : 800)
     return y - height
@@ -397,6 +411,16 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
 
   const platform = (currentLink?.platform || 'other') as Platform
 
+  // Get displayable media items for current link
+  const currentMediaItems = useMemo(() =>
+    currentLink?.media?.filter(
+      m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video'
+    ) || []
+  , [currentLink])
+  const mediaCount = currentMediaItems.length
+  const hasPrevMedia = mediaIndex > 0
+  const hasNextMedia = mediaIndex < mediaCount - 1
+
   // Get downloadable media items
   const downloadableMedia = currentLink?.media?.filter(
     m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video'
@@ -405,27 +429,42 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
   // Reset index when initialIndex changes
   useEffect(() => {
     setCurrentIndex(initialIndex)
+    setMediaIndex(0) // Reset media index when link changes
     dragY.set(0)
-  }, [initialIndex, dragY])
+    dragX.set(0)
+  }, [initialIndex, dragX, dragY])
 
-  // Update container height
+  // Reset media index when current link changes
+  useEffect(() => {
+    setMediaIndex(0)
+  }, [currentIndex])
+
+  // Update container dimensions
   useEffect(() => {
     if (containerRef.current) {
       containerHeight.current = containerRef.current.clientHeight
+      containerWidth.current = containerRef.current.clientWidth
     }
   }, [isOpen])
 
   // Pointer-based drag handling (instead of framer-motion drag which has issues)
   const isDragging = useRef(false)
   const dragStartY = useRef(0)
+  const dragStartX = useRef(0)
   const dragStartTime = useRef(0)
   const lastY = useRef(0)
+  const lastX = useRef(0)
+  // Threshold to determine drag axis (in pixels)
+  const AXIS_LOCK_THRESHOLD = 10
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     isDragging.current = true
     dragStartY.current = e.clientY
+    dragStartX.current = e.clientX
     dragStartTime.current = Date.now()
     lastY.current = e.clientY
+    lastX.current = e.clientX
+    dragAxis.current = null // Reset axis lock
     // Capture pointer to track movements outside element
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
   }, [])
@@ -438,93 +477,154 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     if (!isDragging.current) return
 
     const deltaY = e.clientY - dragStartY.current
+    const deltaX = e.clientX - dragStartX.current
     lastY.current = e.clientY
+    lastX.current = e.clientX
     const height = containerHeight.current || window.innerHeight
 
-    // Apply resistance at boundaries
-    if (deltaY > 0 && !prevLink) {
-      dragY.set(deltaY * 0.2)
-    } else if (deltaY < 0 && !nextLink) {
-      dragY.set(deltaY * 0.2)
-    } else {
-      dragY.set(deltaY)
+    // Determine axis lock if not yet set
+    if (dragAxis.current === null) {
+      const absX = Math.abs(deltaX)
+      const absY = Math.abs(deltaY)
+      if (absX > AXIS_LOCK_THRESHOLD || absY > AXIS_LOCK_THRESHOLD) {
+        dragAxis.current = absX > absY ? 'x' : 'y'
+      }
     }
 
-    // When dragged past 50%, start playing the next/prev video (but don't transition yet)
-    const previewThreshold = height * 0.5
-    if (deltaY < -previewThreshold && nextLink) {
-      // Dragged up past 50% - preview next (start playing)
-      setPreviewActiveIndex(currentIndex + 1)
-    } else if (deltaY > previewThreshold && prevLink) {
-      // Dragged down past 50% - preview previous (start playing)
-      setPreviewActiveIndex(currentIndex - 1)
-    } else {
-      // Not past threshold - current is active
-      setPreviewActiveIndex(null)
+    // Apply drag based on locked axis
+    if (dragAxis.current === 'y') {
+      // Vertical drag - link navigation
+      if (deltaY > 0 && !prevLink) {
+        dragY.set(deltaY * 0.2)
+      } else if (deltaY < 0 && !nextLink) {
+        dragY.set(deltaY * 0.2)
+      } else {
+        dragY.set(deltaY)
+      }
+      dragX.set(0)
+
+      // Preview threshold for vertical
+      const previewThreshold = height * 0.5
+      if (deltaY < -previewThreshold && nextLink) {
+        setPreviewActiveIndex(currentIndex + 1)
+      } else if (deltaY > previewThreshold && prevLink) {
+        setPreviewActiveIndex(currentIndex - 1)
+      } else {
+        setPreviewActiveIndex(null)
+      }
+    } else if (dragAxis.current === 'x') {
+      // Horizontal drag - media navigation within current link
+      // Apply resistance at boundaries (first/last media)
+      if (deltaX > 0 && !hasPrevMedia) {
+        dragX.set(deltaX * 0.2)
+      } else if (deltaX < 0 && !hasNextMedia) {
+        dragX.set(deltaX * 0.2)
+      } else {
+        dragX.set(deltaX)
+      }
+      dragY.set(0)
+      // No preview for media navigation
     }
-  }, [currentIndex, dragY, nextLink, prevLink])
+  }, [currentIndex, dragX, dragY, hasNextMedia, hasPrevMedia, nextLink, prevLink])
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return
     isDragging.current = false
+    const currentAxis = dragAxis.current
+    dragAxis.current = null // Reset for next drag
     // Don't reset previewActiveIndex here - it will be handled below based on navigation decision
     ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
 
     const height = containerHeight.current || window.innerHeight
-    const threshold = height * SNAP_THRESHOLD
+    const width = containerWidth.current || window.innerWidth
     const deltaY = e.clientY - dragStartY.current
+    const deltaX = e.clientX - dragStartX.current
     const deltaTime = Date.now() - dragStartTime.current
-    const velocity = deltaTime > 0 ? (deltaY / deltaTime) * 1000 : 0
     const velocityThreshold = 500
 
-    // Determine if we should snap to next/prev
-    const shouldGoNext = (deltaY < -threshold || velocity < -velocityThreshold) && nextLink
-    const shouldGoPrev = (deltaY > threshold || velocity > velocityThreshold) && prevLink
+    if (currentAxis === 'y') {
+      // Vertical swipe
+      const threshold = height * SNAP_THRESHOLD
+      const velocity = deltaTime > 0 ? (deltaY / deltaTime) * 1000 : 0
+      const shouldGoNext = (deltaY < -threshold || velocity < -velocityThreshold) && nextLink
+      const shouldGoPrev = (deltaY > threshold || velocity > velocityThreshold) && prevLink
 
-    if (shouldGoNext) {
-      // Keep next video playing during animation (don't reset previewActiveIndex yet)
-      setPreviewActiveIndex(currentIndex + 1)
-      // Animate to next position, then change index
-      animate(dragY, -height, {
-        type: 'spring',
-        stiffness: 400,
-        damping: 40,
-        restDelta: 0.5,
-        restSpeed: 10,
-        onComplete: () => {
-          setCurrentIndex(prev => prev + 1)
-          onIndexChange?.(currentIndex + 1)
-          dragY.set(0)
-          setPreviewActiveIndex(null)
-        }
-      })
-    } else if (shouldGoPrev) {
-      // Keep prev video playing during animation (don't reset previewActiveIndex yet)
-      setPreviewActiveIndex(currentIndex - 1)
-      // Animate to prev position, then change index
-      animate(dragY, height, {
-        type: 'spring',
-        stiffness: 400,
-        damping: 40,
-        restDelta: 0.5,
-        restSpeed: 10,
-        onComplete: () => {
-          setCurrentIndex(prev => prev - 1)
-          onIndexChange?.(currentIndex - 1)
-          dragY.set(0)
-          setPreviewActiveIndex(null)
-        }
-      })
+      if (shouldGoNext) {
+        setPreviewActiveIndex(currentIndex + 1)
+        animate(dragY, -height, {
+          type: 'spring',
+          stiffness: 400,
+          damping: 40,
+          restDelta: 0.5,
+          restSpeed: 10,
+          onComplete: () => {
+            setCurrentIndex(prev => prev + 1)
+            onIndexChange?.(currentIndex + 1)
+            dragY.set(0)
+            setPreviewActiveIndex(null)
+          }
+        })
+      } else if (shouldGoPrev) {
+        setPreviewActiveIndex(currentIndex - 1)
+        animate(dragY, height, {
+          type: 'spring',
+          stiffness: 400,
+          damping: 40,
+          restDelta: 0.5,
+          restSpeed: 10,
+          onComplete: () => {
+            setCurrentIndex(prev => prev - 1)
+            onIndexChange?.(currentIndex - 1)
+            dragY.set(0)
+            setPreviewActiveIndex(null)
+          }
+        })
+      } else {
+        setPreviewActiveIndex(null)
+        animate(dragY, 0, {
+          type: 'spring',
+          stiffness: 400,
+          damping: 40,
+        })
+      }
+    } else if (currentAxis === 'x') {
+      // Horizontal swipe - media navigation within current link
+      const threshold = width * SNAP_THRESHOLD
+      const velocity = deltaTime > 0 ? (deltaX / deltaTime) * 1000 : 0
+      const shouldGoNextMedia = (deltaX < -threshold || velocity < -velocityThreshold) && hasNextMedia
+      const shouldGoPrevMedia = (deltaX > threshold || velocity > velocityThreshold) && hasPrevMedia
+
+      if (shouldGoNextMedia) {
+        // Swipe left -> next media
+        setMediaIndex(prev => prev + 1)
+        animate(dragX, 0, {
+          type: 'spring',
+          stiffness: 400,
+          damping: 40,
+        })
+      } else if (shouldGoPrevMedia) {
+        // Swipe right -> previous media
+        setMediaIndex(prev => prev - 1)
+        animate(dragX, 0, {
+          type: 'spring',
+          stiffness: 400,
+          damping: 40,
+        })
+      } else {
+        // Snap back
+        animate(dragX, 0, {
+          type: 'spring',
+          stiffness: 400,
+          damping: 40,
+        })
+      }
     } else {
-      // Snap back to center - reset preview state
+      // No axis was locked (very short drag), just reset
       setPreviewActiveIndex(null)
-      animate(dragY, 0, {
-        type: 'spring',
-        stiffness: 400,
-        damping: 40,
-      })
+      animate(dragY, 0, { type: 'spring', stiffness: 400, damping: 40 })
+      animate(dragX, 0, { type: 'spring', stiffness: 400, damping: 40 })
     }
-  }, [currentIndex, dragY, nextLink, onIndexChange, prevLink])
+  }, [currentIndex, dragX, dragY, hasNextMedia, hasPrevMedia, nextLink, onIndexChange, prevLink])
 
   const goToPrevious = useCallback(() => {
     if (currentIndex > 0) {
@@ -723,19 +823,29 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
               const offset = linkIndex - currentIndex
               // offset: -1=prev, 0=current, 1=next
               const yStyle = offset === -1 ? prevY : offset === 0 ? dragY : nextY
+              // X transform only applies to current link for media swipe feedback
+              const xStyle = offset === 0 ? dragX : 0
               // If dragged past 50%, the preview link becomes active (starts playing)
               // Otherwise, the current link is active
               const activeIndex = previewActiveIndex !== null ? previewActiveIndex : currentIndex
               const isActiveLink = linkIndex === activeIndex
+              // Only pass mediaIndex to current link
+              const linkMediaIndex = offset === 0 ? mediaIndex : 0
 
               return (
                 <motion.div
                   key={link.id}
                   className="absolute inset-0 flex items-center justify-center"
-                  style={{ y: yStyle }}
+                  style={{ y: yStyle, x: xStyle }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <ReelsMediaContent link={link} platform={linkPlatform} isActive={isActiveLink} />
+                  <ReelsMediaContent
+                    link={link}
+                    platform={linkPlatform}
+                    isActive={isActiveLink}
+                    mediaIndex={linkMediaIndex}
+                    onMediaIndexChange={offset === 0 ? setMediaIndex : undefined}
+                  />
                 </motion.div>
               )
             })}
