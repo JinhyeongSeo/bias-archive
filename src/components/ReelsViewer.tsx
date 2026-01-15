@@ -48,6 +48,56 @@ function extractYouTubeVideoId(url: string): string | null {
   return null
 }
 
+// YouTube embed component - maximizes video size to fit screen
+// Has overlay for drag gestures, tap to interact with video
+function YouTubeEmbed({ videoId, title, isActive }: { videoId: string; title: string | null; isActive: boolean }) {
+  const [interacting, setInteracting] = useState(false)
+
+  // Reset interaction state when switching videos
+  useEffect(() => {
+    setInteracting(false)
+  }, [videoId])
+
+  return (
+    <div className="w-full h-full flex items-center justify-center p-4">
+      {/* Maximize to fill available space while maintaining 16:9 aspect ratio */}
+      <div className="w-full h-full max-h-[calc(100vh-180px)] flex items-center justify-center">
+        <div className="relative w-full aspect-video max-h-full" style={{ maxWidth: 'calc((100vh - 180px) * 16 / 9)' }}>
+          {isActive ? (
+            <>
+              <iframe
+                src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+                title="YouTube video player"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="w-full h-full rounded-lg"
+              />
+              {/* Transparent overlay for drag - tap to dismiss and interact with video */}
+              {!interacting && (
+                <div
+                  className="absolute inset-0 z-10 cursor-pointer"
+                  onClick={() => setInteracting(true)}
+                />
+              )}
+            </>
+          ) : (
+            <div className="relative w-full h-full bg-black/50 rounded-lg">
+              <Image
+                src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+                alt={title || 'YouTube thumbnail'}
+                fill
+                className="object-cover rounded-lg select-none pointer-events-none"
+                unoptimized
+                draggable={false}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Video component with fallback handling
 // isActive: whether this is the currently visible video
 function VideoWithFallback({ url, className, style, originalUrl, isActive = true }: { url: string; className?: string; style?: React.CSSProperties; originalUrl?: string; isActive?: boolean }) {
@@ -187,31 +237,11 @@ function ReelsMediaContent({ link, platform, isActive = true }: { link: FullLink
     const videoId = extractYouTubeVideoId(link.url)
     if (videoId) {
       return (
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="w-full max-w-4xl aspect-video">
-            {isActive ? (
-              <iframe
-                src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
-                title="YouTube video player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                className="w-full h-full rounded-lg"
-              />
-            ) : (
-              // Show thumbnail when not active
-              <div className="w-full h-full bg-black/50 rounded-lg flex items-center justify-center">
-                <Image
-                  src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
-                  alt={link.title || 'YouTube thumbnail'}
-                  fill
-                  className="object-cover rounded-lg select-none pointer-events-none"
-                  unoptimized
-                  draggable={false}
-                />
-              </div>
-            )}
-          </div>
-        </div>
+        <YouTubeEmbed
+          videoId={videoId}
+          title={link.title}
+          isActive={isActive}
+        />
       )
     }
   }
@@ -681,9 +711,15 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
             })}
           </div>
 
-          {/* Bottom overlay - info section */}
+          {/* Bottom overlay - gradient background (pointer-events-none for drag-through) */}
           <div
-            className="absolute bottom-0 left-0 right-0 z-20 p-4 pb-8 bg-gradient-to-t from-black/80 via-black/50 to-transparent"
+            className="absolute bottom-0 left-0 right-0 z-10 h-48 bg-gradient-to-t from-black/80 via-black/50 to-transparent pointer-events-none"
+          />
+
+          {/* Bottom overlay - content section */}
+          {/* pointer-events-none so drag passes through, buttons have pointer-events-auto */}
+          <div
+            className="absolute bottom-0 left-0 right-0 z-30 p-4 pb-8 pointer-events-none"
             style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
           >
             {/* Title - no animation for instant response */}
@@ -713,8 +749,8 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
               </div>
             )}
 
-            {/* Action buttons - always visible, just update href/onClick */}
-            <div className="flex items-center gap-3">
+            {/* Action buttons - pointer-events-auto so buttons are clickable */}
+            <div className="flex items-center gap-3 pointer-events-auto">
               {/* Download all button */}
               {downloadableMedia.length > 0 && (
                 <motion.button
