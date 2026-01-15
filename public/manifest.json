@@ -1,6 +1,6 @@
 {
-  "name": "내 최애 아카이브",
-  "short_name": "최애 아카이브",
+  "name": "아이돌 아카이브",
+  "short_name": "아이돌 아카이브",
   "description": "직캠과 사진 링크를 태그별로 정리하는 미디어 큐레이션 앱",
   "start_url": "/ko",
   "display": "standalone",

@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "My Bias Archive",
+    "title": "Idol Archive",
     "description": "A personal media curation app for organizing fancams and photo links by tags"
   },
   "nav": {
@@ -19,7 +19,7 @@
     "externalSearch": "Platform Search",
     "platform": "Platform",
     "platformAll": "All",
-    "biasList": "Bias List",
+    "biasList": "Idol List",
     "tags": "Tags",
     "viewAll": "View All",
     "selectedTag": "Selected Tag",
@@ -100,7 +100,7 @@
     "skipped": "Skipped",
     "links": "Links",
     "tags": "Tags",
-    "biases": "Biases",
+    "biases": "Idols",
     "backupDate": "Backup Date",
     "close": "Close",
     "errors": "Errors"
@@ -160,7 +160,7 @@
   },
   "footer": {
     "contact": "Contact",
-    "copyright": "© 2026 My Bias Archive. All rights reserved.",
+    "copyright": "© 2026 Idol Archive. All rights reserved.",
     "github": "GitHub",
     "twitter": "Twitter",
     "email": "Email"

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-K-pop 최애(bias) 아카이브 웹앱. YouTube, Twitter/X, Weverse 등 여러 플랫폼의 직캠/사진 링크를 태그별로 정리하고 관리하는 개인 미디어 큐레이션 서비스.
+K-pop 아이돌 아카이브 웹앱. YouTube, Twitter/X, Weverse 등 여러 플랫폼의 직캠/사진 링크를 태그별로 정리하고 관리하는 개인 미디어 큐레이션 서비스.
 
 ## Commands
 
@@ -32,7 +32,7 @@ npm run lint     # ESLint 실행
 
 ### 핵심 데이터 흐름
 1. **Link 저장**: URL 입력 → `src/lib/parsers/`에서 플랫폼별 메타데이터 추출 → Supabase 저장
-2. **자동 태그**: `src/lib/autoTag.ts`가 제목/설명에서 등록된 최애 이름 매칭
+2. **자동 태그**: `src/lib/autoTag.ts`가 제목/설명에서 등록된 아이돌 이름 매칭
 3. **외부 검색**: `src/app/api/search/` 및 `src/app/api/youtube/search/`를 통해 YouTube, Twitter, heye, kgirls 검색
 
 ### 플랫폼별 파서 (`src/lib/parsers/`)
@@ -52,7 +52,7 @@ npm run lint     # ESLint 실행
 - 마이그레이션: `supabase/migrations/`
 
 ### 주요 컴포넌트
-- `BiasManager.tsx` - 최애 등록/관리 (kpopnet.json 연동)
+- `BiasManager.tsx` - 아이돌 등록/관리 (kpopnet.json 연동)
 - `UnifiedSearch.tsx` - 통합 검색 (아카이브 + 외부)
 - `LinkForm.tsx` - 링크 저장 폼
 - `GifMaker.tsx` - FFmpeg.wasm 기반 GIF 생성

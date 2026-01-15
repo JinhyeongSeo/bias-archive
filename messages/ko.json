@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "내 최애 아카이브",
+    "title": "아이돌 아카이브",
     "description": "직캠과 사진 링크를 태그별로 정리하는 개인 미디어 큐레이션 앱"
   },
   "nav": {
@@ -19,7 +19,7 @@
     "externalSearch": "플랫폼별 검색",
     "platform": "플랫폼",
     "platformAll": "전체",
-    "biasList": "최애 목록",
+    "biasList": "아이돌 목록",
     "tags": "태그",
     "viewAll": "전체 보기",
     "selectedTag": "선택된 태그",
@@ -100,7 +100,7 @@
     "skipped": "스킵됨",
     "links": "링크",
     "tags": "태그",
-    "biases": "최애",
+    "biases": "아이돌",
     "backupDate": "백업 날짜",
     "close": "닫기",
     "errors": "오류"
@@ -160,7 +160,7 @@
   },
   "footer": {
     "contact": "문의하기",
-    "copyright": "© 2026 내 최애 아카이브. All rights reserved.",
+    "copyright": "© 2026 아이돌 아카이브. All rights reserved.",
     "github": "GitHub",
     "twitter": "Twitter",
     "email": "이메일"
