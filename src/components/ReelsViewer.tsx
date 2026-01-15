@@ -1,14 +1,14 @@
 'use client'
 
-import { useEffect, useCallback, useState, useRef } from 'react'
+import { useEffect, useCallback, useState, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence, type PanInfo } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion'
 import Image from 'next/image'
 import type { Link, Tag, LinkMedia } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
 import { downloadMedia, getFilenameFromUrl } from './EmbedViewer'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
-import { smoothSpring, easeOutExpo } from '@/lib/animations'
+import { easeOutExpo } from '@/lib/animations'
 import { getProxiedImageUrl, getProxiedVideoUrl } from '@/lib/proxy'
 
 type LinkWithTags = Link & { tags: Tag[] }
@@ -32,21 +32,8 @@ function formatDate(dateString: string): string {
   })
 }
 
-// Reels-style slide animation variants
-const reelsSlideVariants = {
-  enter: (direction: number) => ({
-    y: direction > 0 ? '100%' : '-100%',
-    opacity: 0,
-  }),
-  center: {
-    y: 0,
-    opacity: 1,
-  },
-  exit: (direction: number) => ({
-    y: direction < 0 ? '100%' : '-100%',
-    opacity: 0,
-  }),
-}
+// Snap threshold - when dragged past this percentage, snap to next/prev
+const SNAP_THRESHOLD = 0.3 // 30% of screen height
 
 // Extract YouTube video ID
 function extractYouTubeVideoId(url: string): string | null {
@@ -62,9 +49,11 @@ function extractYouTubeVideoId(url: string): string | null {
 }
 
 // Video component with fallback handling
-function VideoWithFallback({ url, className, style, originalUrl }: { url: string; className?: string; style?: React.CSSProperties; originalUrl?: string }) {
+function VideoWithFallback({ url, className, style, originalUrl, isActive = true }: { url: string; className?: string; style?: React.CSSProperties; originalUrl?: string; isActive?: boolean }) {
   const [status, setStatus] = useState<'loading' | 'playing' | 'failed'>('loading')
+  const [showSpinner, setShowSpinner] = useState(false)
   const [tryCount, setTryCount] = useState(0)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const proxiedUrl = getProxiedVideoUrl(url)
 
   // Try order: proxied URL first, then direct URL
@@ -82,15 +71,48 @@ function VideoWithFallback({ url, className, style, originalUrl }: { url: string
     }
   }, [currentUrl, hasMoreFallbacks, url])
 
-  const handleCanPlay = useCallback(() => {
-    setStatus('playing')
-  }, [])
 
   // Reset state when URL changes
   useEffect(() => {
     setTryCount(0)
     setStatus('loading')
+    setShowSpinner(false)
+
+    // Delay showing spinner to prevent flash on fast loads
+    const timer = setTimeout(() => {
+      setShowSpinner(true)
+    }, 300)
+
+    return () => clearTimeout(timer)
   }, [url])
+
+  // Control play/pause based on isActive - use immediate check, not just effect
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    if (isActive) {
+      // If video is already loaded, play immediately
+      if (video.readyState >= 3) { // HAVE_FUTURE_DATA or higher
+        video.play().catch(() => {})
+      }
+      // Otherwise onCanPlay will trigger play
+    } else {
+      video.pause()
+      // Reset to beginning when becoming inactive (optional, for cleaner UX)
+      // video.currentTime = 0
+    }
+  }, [isActive])
+
+  // Also try to play when video becomes ready AND is active
+  const handleCanPlayInternal = useCallback(() => {
+    setStatus('playing')
+    setShowSpinner(false)
+    // If active, start playing immediately
+    if (isActive && videoRef.current) {
+      videoRef.current.play().catch(() => {})
+    }
+  }, [isActive])
 
   // Show error state with link to original
   if (status === 'failed') {
@@ -120,9 +142,9 @@ function VideoWithFallback({ url, className, style, originalUrl }: { url: string
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
-      {/* Loading spinner */}
-      {status === 'loading' && (
-        <div className="absolute inset-0 flex items-center justify-center">
+      {/* Loading spinner - delayed to prevent flash */}
+      {status === 'loading' && showSpinner && (
+        <div className="absolute inset-0 flex items-center justify-center z-10">
           <svg className="w-12 h-12 animate-spin text-white/50" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -130,24 +152,26 @@ function VideoWithFallback({ url, className, style, originalUrl }: { url: string
         </div>
       )}
       <video
+        ref={videoRef}
         key={`${url}-${tryCount}`}
         src={currentUrl}
         controls
-        autoPlay
+        autoPlay={isActive}
         loop
         playsInline
         muted
-        className={className}
-        style={{ ...style, opacity: status === 'playing' ? 1 : 0 }}
+        preload="auto"
+        className={`${className} transition-opacity duration-200`}
+        style={{ ...style, opacity: status === 'playing' ? 1 : 0.3 }}
         onError={handleError}
-        onCanPlay={handleCanPlay}
+        onCanPlay={handleCanPlayInternal}
       />
     </div>
   )
 }
 
 // Full screen media content component
-function ReelsMediaContent({ link, platform }: { link: FullLink; platform: Platform }) {
+function ReelsMediaContent({ link, platform, isActive = true }: { link: FullLink; platform: Platform; isActive?: boolean }) {
   const [mediaIndex, setMediaIndex] = useState(0)
 
   // Get displayable media
@@ -160,20 +184,33 @@ function ReelsMediaContent({ link, platform }: { link: FullLink; platform: Platf
     setMediaIndex(0)
   }, [link.id])
 
-  // YouTube: show embed
+  // YouTube: show embed (only when active to prevent multiple videos playing)
   if (platform === 'youtube') {
     const videoId = extractYouTubeVideoId(link.url)
     if (videoId) {
       return (
         <div className="w-full h-full flex items-center justify-center">
           <div className="w-full max-w-4xl aspect-video">
-            <iframe
-              src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
-              title="YouTube video player"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="w-full h-full rounded-lg"
-            />
+            {isActive ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+                title="YouTube video player"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="w-full h-full rounded-lg"
+              />
+            ) : (
+              // Show thumbnail when not active
+              <div className="w-full h-full bg-black/50 rounded-lg flex items-center justify-center">
+                <Image
+                  src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+                  alt={link.title || 'YouTube thumbnail'}
+                  fill
+                  className="object-cover rounded-lg"
+                  unoptimized
+                />
+              </div>
+            )}
           </div>
         </div>
       )
@@ -194,6 +231,7 @@ function ReelsMediaContent({ link, platform }: { link: FullLink; platform: Platf
             className="max-w-full max-h-full object-contain"
             style={{ maxHeight: 'calc(100vh - 200px)' }}
             originalUrl={link.url}
+            isActive={isActive}
           />
         ) : (
           <div className="relative w-full h-full flex items-center justify-center">
@@ -292,14 +330,39 @@ function ReelsMediaContent({ link, platform }: { link: FullLink; platform: Platf
 
 export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChange }: ReelsViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
-  const [direction, setDirection] = useState(0)
-  const [isDragging, setIsDragging] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
   const { getTagDisplayName } = useNameLanguage()
 
+  // Motion value for drag position
+  const dragY = useMotionValue(0)
+  const containerHeight = useRef(0)
+
+  // Transform for prev/next content positions - must be at top level, not inside conditional JSX
+  // Using window.innerHeight as fallback since containerHeight.current may be 0 initially
+  const prevY = useTransform(dragY, (y) => {
+    const height = containerHeight.current || (typeof window !== 'undefined' ? window.innerHeight : 800)
+    return y - height
+  })
+  const nextY = useTransform(dragY, (y) => {
+    const height = containerHeight.current || (typeof window !== 'undefined' ? window.innerHeight : 800)
+    return y + height
+  })
+
   const currentLink = links[currentIndex]
+  const prevLink = currentIndex > 0 ? links[currentIndex - 1] : null
+  const nextLink = currentIndex < links.length - 1 ? links[currentIndex + 1] : null
+
+  // Visible links array for stable key-based rendering (prevents remounting on index change)
+  const visibleLinks = useMemo(() => {
+    const result: FullLink[] = []
+    if (prevLink) result.push(prevLink)
+    result.push(currentLink)
+    if (nextLink) result.push(nextLink)
+    return result
+  }, [prevLink, currentLink, nextLink])
+
   const platform = (currentLink?.platform || 'other') as Platform
 
   // Get downloadable media items
@@ -310,41 +373,125 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
   // Reset index when initialIndex changes
   useEffect(() => {
     setCurrentIndex(initialIndex)
-    setDirection(0)
-  }, [initialIndex])
+    dragY.set(0)
+  }, [initialIndex, dragY])
+
+  // Update container height
+  useEffect(() => {
+    if (containerRef.current) {
+      containerHeight.current = containerRef.current.clientHeight
+    }
+  }, [isOpen])
+
+  // Pointer-based drag handling (instead of framer-motion drag which has issues)
+  const isDragging = useRef(false)
+  const dragStartY = useRef(0)
+  const dragStartTime = useRef(0)
+  const lastY = useRef(0)
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    isDragging.current = true
+    dragStartY.current = e.clientY
+    dragStartTime.current = Date.now()
+    lastY.current = e.clientY
+    // Capture pointer to track movements outside element
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+  }, [])
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return
+
+    const deltaY = e.clientY - dragStartY.current
+    lastY.current = e.clientY
+
+    // Apply resistance at boundaries
+    if (deltaY > 0 && !prevLink) {
+      dragY.set(deltaY * 0.2)
+    } else if (deltaY < 0 && !nextLink) {
+      dragY.set(deltaY * 0.2)
+    } else {
+      dragY.set(deltaY)
+    }
+  }, [dragY, nextLink, prevLink])
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return
+    isDragging.current = false
+    ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
+
+    const height = containerHeight.current || window.innerHeight
+    const threshold = height * SNAP_THRESHOLD
+    const deltaY = e.clientY - dragStartY.current
+    const deltaTime = Date.now() - dragStartTime.current
+    const velocity = deltaTime > 0 ? (deltaY / deltaTime) * 1000 : 0
+    const velocityThreshold = 500
+
+    // Determine if we should snap to next/prev
+    const shouldGoNext = (deltaY < -threshold || velocity < -velocityThreshold) && nextLink
+    const shouldGoPrev = (deltaY > threshold || velocity > velocityThreshold) && prevLink
+
+    if (shouldGoNext) {
+      animate(dragY, -height, {
+        type: 'spring',
+        stiffness: 300,
+        damping: 30,
+        onComplete: () => {
+          setCurrentIndex(prev => prev + 1)
+          onIndexChange?.(currentIndex + 1)
+          dragY.set(0)
+        }
+      })
+    } else if (shouldGoPrev) {
+      animate(dragY, height, {
+        type: 'spring',
+        stiffness: 300,
+        damping: 30,
+        onComplete: () => {
+          setCurrentIndex(prev => prev - 1)
+          onIndexChange?.(currentIndex - 1)
+          dragY.set(0)
+        }
+      })
+    } else {
+      animate(dragY, 0, {
+        type: 'spring',
+        stiffness: 400,
+        damping: 30,
+      })
+    }
+  }, [currentIndex, dragY, nextLink, onIndexChange, prevLink])
 
   const goToPrevious = useCallback(() => {
     if (currentIndex > 0) {
-      setDirection(-1)
-      setCurrentIndex(prev => prev - 1)
-      onIndexChange?.(currentIndex - 1)
+      const height = containerHeight.current || window.innerHeight
+      animate(dragY, height, {
+        type: 'spring',
+        stiffness: 300,
+        damping: 30,
+        onComplete: () => {
+          setCurrentIndex(prev => prev - 1)
+          onIndexChange?.(currentIndex - 1)
+          dragY.set(0)
+        }
+      })
     }
-  }, [currentIndex, onIndexChange])
+  }, [currentIndex, dragY, onIndexChange])
 
   const goToNext = useCallback(() => {
     if (currentIndex < links.length - 1) {
-      setDirection(1)
-      setCurrentIndex(prev => prev + 1)
-      onIndexChange?.(currentIndex + 1)
+      const height = containerHeight.current || window.innerHeight
+      animate(dragY, -height, {
+        type: 'spring',
+        stiffness: 300,
+        damping: 30,
+        onComplete: () => {
+          setCurrentIndex(prev => prev + 1)
+          onIndexChange?.(currentIndex + 1)
+          dragY.set(0)
+        }
+      })
     }
-  }, [currentIndex, links.length, onIndexChange])
-
-  // Handle drag end for swipe navigation (Instagram Reels style)
-  // Swipe UP = next, Swipe DOWN = previous
-  const handleDragEnd = useCallback((_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    setIsDragging(false)
-    const threshold = 50
-    const velocityThreshold = 300
-
-    // Swipe up -> next (negative offset.y)
-    if (info.offset.y < -threshold || info.velocity.y < -velocityThreshold) {
-      goToNext()
-    }
-    // Swipe down -> previous (positive offset.y)
-    else if (info.offset.y > threshold || info.velocity.y > velocityThreshold) {
-      goToPrevious()
-    }
-  }, [goToNext, goToPrevious])
+  }, [currentIndex, dragY, links.length, onIndexChange])
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -445,70 +592,81 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
             </motion.button>
           </div>
 
-          {/* Main content area - swipeable */}
-          <motion.div
-            className="flex-1 flex items-center justify-center overflow-hidden"
-            drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={0.2}
-            onDragStart={() => setIsDragging(true)}
-            onDragEnd={handleDragEnd}
+          {/* Main content area - Instagram Reels style swipeable */}
+          <div
+            className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
             style={{ touchAction: 'none' }}
           >
-            <AnimatePresence initial={false} custom={direction} mode="wait">
-              <motion.div
-                key={`${currentLink.id}-${currentIndex}`}
-                custom={direction}
-                variants={reelsSlideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={smoothSpring}
-                className="w-full h-full flex items-center justify-center"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Full screen media viewer */}
-                <ReelsMediaContent link={currentLink} platform={platform} />
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
+            {/* Render visible links with stable keys to prevent remounting */}
+            {visibleLinks.map((link) => {
+              const linkPlatform = (link.platform || 'other') as Platform
+              const linkIndex = links.findIndex(l => l.id === link.id)
+              const offset = linkIndex - currentIndex
+              // offset: -1=prev, 0=current, 1=next
+              const yStyle = offset === -1 ? prevY : offset === 0 ? dragY : nextY
+              const isCurrentLink = offset === 0
+
+              return (
+                <motion.div
+                  key={link.id}
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ y: yStyle }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ReelsMediaContent link={link} platform={linkPlatform} isActive={isCurrentLink} />
+                </motion.div>
+              )
+            })}
+          </div>
 
           {/* Bottom overlay - info section */}
-          <motion.div
+          <div
             className="absolute bottom-0 left-0 right-0 z-20 p-4 pb-8 bg-gradient-to-t from-black/80 via-black/50 to-transparent"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, ...easeOutExpo }}
             style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
           >
-            {/* Title */}
-            <h2 className="font-medium text-white text-base line-clamp-2 mb-1">
-              {currentLink.title || '제목 없음'}
-            </h2>
+            {/* Animated content that changes with currentIndex */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentLink.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                {/* Title */}
+                <h2 className="font-medium text-white text-base line-clamp-2 mb-1">
+                  {currentLink.title || '제목 없음'}
+                </h2>
 
-            {/* Author & Date */}
-            <div className="flex items-center gap-2 text-sm text-white/70 mb-3">
-              {currentLink.author_name && (
-                <span className="text-white/90">@{currentLink.author_name}</span>
-              )}
-              <span>{formatDate(currentLink.created_at)}</span>
-            </div>
+                {/* Author & Date */}
+                <div className="flex items-center gap-2 text-sm text-white/70 mb-3">
+                  {currentLink.author_name && (
+                    <span className="text-white/90">@{currentLink.author_name}</span>
+                  )}
+                  <span>{formatDate(currentLink.created_at)}</span>
+                </div>
 
-            {/* Tags */}
-            {currentLink.tags && currentLink.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {currentLink.tags.map((tag) => (
-                  <span
-                    key={tag.id}
-                    className="px-2 py-0.5 text-xs rounded-full bg-white/20 text-white/90"
-                  >
-                    #{getTagDisplayName(tag.name)}
-                  </span>
-                ))}
-              </div>
-            )}
+                {/* Tags */}
+                {currentLink.tags && currentLink.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {currentLink.tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="px-2 py-0.5 text-xs rounded-full bg-white/20 text-white/90"
+                      >
+                        #{getTagDisplayName(tag.name)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
 
-            {/* Action buttons */}
+            {/* Action buttons - always visible, just update href/onClick */}
             <div className="flex items-center gap-3">
               {/* Download all button */}
               {downloadableMedia.length > 0 && (
@@ -556,10 +714,10 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
                 원본
               </motion.a>
             </div>
-          </motion.div>
+          </div>
 
           {/* Navigation hint - swipe up for next */}
-          {links.length > 1 && !isDragging && currentIndex < links.length - 1 && (
+          {links.length > 1 && currentIndex < links.length - 1 && (
             <motion.div
               className="absolute bottom-36 left-1/2 -translate-x-1/2 text-white/30 text-xs flex flex-col items-center gap-1 pointer-events-none"
               initial={{ opacity: 0 }}
