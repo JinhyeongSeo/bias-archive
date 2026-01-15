@@ -189,6 +189,10 @@ function TwitterEmbed({ tweetId }: { tweetId: string }) {
 function MediaGallery({ media }: { media: LinkMedia[] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
+  const containerRef = useRef<HTMLDivElement>(null)
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
+  const isSwiping = useRef(false)
   // Include images, GIFs, and videos
   const items = media.filter(m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video')
 
@@ -199,6 +203,51 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
   const goToNext = useCallback(() => {
     setCurrentIndex((prev) => (prev === items.length - 1 ? 0 : prev + 1))
   }, [items.length])
+
+  // Touch swipe handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+    isSwiping.current = false
+  }, [])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return
+
+    const currentX = e.touches[0].clientX
+    const currentY = e.touches[0].clientY
+    const diffX = touchStartX.current - currentX
+    const diffY = touchStartY.current - currentY
+
+    // Determine if this is a horizontal swipe (more horizontal than vertical movement)
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+      isSwiping.current = true
+      // Prevent vertical scrolling during horizontal swipe
+      e.preventDefault()
+    }
+  }, [])
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null) return
+
+    const touchEndX = e.changedTouches[0].clientX
+    const diff = touchStartX.current - touchEndX
+    const threshold = 50 // Minimum swipe distance
+
+    if (isSwiping.current && Math.abs(diff) > threshold) {
+      if (diff > 0) {
+        // Swiped left -> next
+        goToNext()
+      } else {
+        // Swiped right -> previous
+        goToPrevious()
+      }
+    }
+
+    touchStartX.current = null
+    touchStartY.current = null
+    isSwiping.current = false
+  }, [goToNext, goToPrevious])
 
   // Preload adjacent images (skip videos) - runs on mount and when index changes
   useEffect(() => {
@@ -247,7 +296,13 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
   const isVideo = currentItem.media_type === 'video'
 
   return (
-    <div className="relative w-full">
+    <div
+      ref={containerRef}
+      className="relative w-full touch-pan-y"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Main content - image or video */}
       <div className="relative w-full flex items-center justify-center" style={{ aspectRatio: '3/4', maxHeight: 'min(90vh, 700px)' }}>
         {isVideo ? (
