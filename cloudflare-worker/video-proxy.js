@@ -22,6 +22,7 @@ const ALLOWED_DOMAINS = [
   'heye.kr',
   'www.heye.kr',
   'img1.heye.kr',
+  'video.twimg.com', // Twitter videos
 ]
 
 // Maximum file size (100MB)

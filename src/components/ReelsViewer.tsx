@@ -49,6 +49,7 @@ function extractYouTubeVideoId(url: string): string | null {
 }
 
 // Video component with fallback handling
+// isActive: whether this is the currently visible video
 function VideoWithFallback({ url, className, style, originalUrl, isActive = true }: { url: string; className?: string; style?: React.CSSProperties; originalUrl?: string; isActive?: boolean }) {
   const [status, setStatus] = useState<'loading' | 'playing' | 'failed'>('loading')
   const [showSpinner, setShowSpinner] = useState(false)
@@ -86,29 +87,26 @@ function VideoWithFallback({ url, className, style, originalUrl, isActive = true
     return () => clearTimeout(timer)
   }, [url])
 
-  // Control play/pause based on isActive - use immediate check, not just effect
+  // Control play/pause based on isActive
+  // preload videos will buffer via preload="auto" attribute, not by playing
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
     if (isActive) {
-      // If video is already loaded, play immediately
-      if (video.readyState >= 3) { // HAVE_FUTURE_DATA or higher
-        video.play().catch(() => {})
-      }
-      // Otherwise onCanPlay will trigger play
+      // Active video: play immediately
+      video.play().catch(() => {})
     } else {
+      // Not active: pause (preload videos will still buffer via preload attribute)
       video.pause()
-      // Reset to beginning when becoming inactive (optional, for cleaner UX)
-      // video.currentTime = 0
     }
   }, [isActive])
 
-  // Also try to play when video becomes ready AND is active
+  // When video becomes ready, update status and play if active
   const handleCanPlayInternal = useCallback(() => {
     setStatus('playing')
     setShowSpinner(false)
-    // If active, start playing immediately
+    // Only play if this is the active video
     if (isActive && videoRef.current) {
       videoRef.current.play().catch(() => {})
     }
@@ -431,10 +429,13 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     const shouldGoPrev = (deltaY > threshold || velocity > velocityThreshold) && prevLink
 
     if (shouldGoNext) {
+      // Animate to next position, then change index - critically damped (no bounce)
       animate(dragY, -height, {
         type: 'spring',
-        stiffness: 300,
-        damping: 30,
+        stiffness: 400,
+        damping: 40,
+        restDelta: 0.5, // Consider "done" when within 0.5px
+        restSpeed: 10, // Consider "done" at low speed
         onComplete: () => {
           setCurrentIndex(prev => prev + 1)
           onIndexChange?.(currentIndex + 1)
@@ -442,10 +443,13 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
         }
       })
     } else if (shouldGoPrev) {
+      // Animate to prev position, then change index - critically damped (no bounce)
       animate(dragY, height, {
         type: 'spring',
-        stiffness: 300,
-        damping: 30,
+        stiffness: 400,
+        damping: 40,
+        restDelta: 10,
+        restSpeed: 10,
         onComplete: () => {
           setCurrentIndex(prev => prev - 1)
           onIndexChange?.(currentIndex - 1)
@@ -453,10 +457,11 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
         }
       })
     } else {
+      // Snap back to center
       animate(dragY, 0, {
         type: 'spring',
         stiffness: 400,
-        damping: 30,
+        damping: 40,
       })
     }
   }, [currentIndex, dragY, nextLink, onIndexChange, prevLink])
@@ -464,15 +469,14 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
   const goToPrevious = useCallback(() => {
     if (currentIndex > 0) {
       const height = containerHeight.current || window.innerHeight
-      animate(dragY, height, {
+      // Start from off-screen position, change index immediately, animate to center
+      dragY.set(-height)
+      setCurrentIndex(prev => prev - 1)
+      onIndexChange?.(currentIndex - 1)
+      animate(dragY, 0, {
         type: 'spring',
         stiffness: 300,
         damping: 30,
-        onComplete: () => {
-          setCurrentIndex(prev => prev - 1)
-          onIndexChange?.(currentIndex - 1)
-          dragY.set(0)
-        }
       })
     }
   }, [currentIndex, dragY, onIndexChange])
@@ -480,15 +484,14 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
   const goToNext = useCallback(() => {
     if (currentIndex < links.length - 1) {
       const height = containerHeight.current || window.innerHeight
-      animate(dragY, -height, {
+      // Start from off-screen position, change index immediately, animate to center
+      dragY.set(height)
+      setCurrentIndex(prev => prev + 1)
+      onIndexChange?.(currentIndex + 1)
+      animate(dragY, 0, {
         type: 'spring',
         stiffness: 300,
         damping: 30,
-        onComplete: () => {
-          setCurrentIndex(prev => prev + 1)
-          onIndexChange?.(currentIndex + 1)
-          dragY.set(0)
-        }
       })
     }
   }, [currentIndex, dragY, links.length, onIndexChange])
@@ -518,6 +521,58 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, goToNext, goToPrevious, onClose])
+
+  // Handle mouse wheel navigation - accumulate scroll and navigate when stopped
+  const wheelAccumulator = useRef(0)
+  const wheelTimeout = useRef<NodeJS.Timeout | null>(null)
+  const isAnimating = useRef(false)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const container = containerRef.current
+    if (!container) return
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault()
+
+      // Don't accumulate while animating
+      if (isAnimating.current) return
+
+      // Accumulate scroll delta
+      wheelAccumulator.current += e.deltaY
+
+      // Clear previous timeout
+      if (wheelTimeout.current) {
+        clearTimeout(wheelTimeout.current)
+      }
+
+      // Set new timeout - navigate when scrolling stops
+      wheelTimeout.current = setTimeout(() => {
+        const threshold = 50 // Minimum accumulated scroll to trigger navigation
+
+        if (wheelAccumulator.current > threshold && nextLink) {
+          isAnimating.current = true
+          goToNext()
+          setTimeout(() => { isAnimating.current = false }, 400)
+        } else if (wheelAccumulator.current < -threshold && prevLink) {
+          isAnimating.current = true
+          goToPrevious()
+          setTimeout(() => { isAnimating.current = false }, 400)
+        }
+
+        // Reset accumulator
+        wheelAccumulator.current = 0
+      }, 150) // Wait 150ms after last scroll event
+    }
+
+    container.addEventListener('wheel', handleWheel, { passive: false })
+    return () => {
+      container.removeEventListener('wheel', handleWheel)
+      if (wheelTimeout.current) {
+        clearTimeout(wheelTimeout.current)
+      }
+    }
+  }, [isOpen, goToNext, goToPrevious, nextLink, prevLink])
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -628,43 +683,32 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
             className="absolute bottom-0 left-0 right-0 z-20 p-4 pb-8 bg-gradient-to-t from-black/80 via-black/50 to-transparent"
             style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
           >
-            {/* Animated content that changes with currentIndex */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentLink.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                {/* Title */}
-                <h2 className="font-medium text-white text-base line-clamp-2 mb-1">
-                  {currentLink.title || '제목 없음'}
-                </h2>
+            {/* Title - no animation for instant response */}
+            <h2 className="font-medium text-white text-base line-clamp-2 mb-1">
+              {currentLink.title || '제목 없음'}
+            </h2>
 
-                {/* Author & Date */}
-                <div className="flex items-center gap-2 text-sm text-white/70 mb-3">
-                  {currentLink.author_name && (
-                    <span className="text-white/90">@{currentLink.author_name}</span>
-                  )}
-                  <span>{formatDate(currentLink.created_at)}</span>
-                </div>
+            {/* Author & Date */}
+            <div className="flex items-center gap-2 text-sm text-white/70 mb-3">
+              {currentLink.author_name && (
+                <span className="text-white/90">@{currentLink.author_name}</span>
+              )}
+              <span>{formatDate(currentLink.created_at)}</span>
+            </div>
 
-                {/* Tags */}
-                {currentLink.tags && currentLink.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {currentLink.tags.map((tag) => (
-                      <span
-                        key={tag.id}
-                        className="px-2 py-0.5 text-xs rounded-full bg-white/20 text-white/90"
-                      >
-                        #{getTagDisplayName(tag.name)}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
+            {/* Tags */}
+            {currentLink.tags && currentLink.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                {currentLink.tags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="px-2 py-0.5 text-xs rounded-full bg-white/20 text-white/90"
+                  >
+                    #{getTagDisplayName(tag.name)}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Action buttons - always visible, just update href/onClick */}
             <div className="flex items-center gap-3">
