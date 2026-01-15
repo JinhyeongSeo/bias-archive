@@ -221,19 +221,70 @@ function VideoWithFallback({ url, className, style, originalUrl, isActive = true
   )
 }
 
+// Single media item renderer (used by ReelsMediaContent for each visible media)
+function MediaItemRenderer({
+  media,
+  title,
+  originalUrl,
+  isActive
+}: {
+  media: LinkMedia
+  title: string | null
+  originalUrl: string
+  isActive: boolean
+}) {
+  const isVideo = media.media_type === 'video'
+
+  if (isVideo) {
+    return (
+      <VideoWithFallback
+        url={media.media_url}
+        className="max-w-full max-h-full object-contain"
+        style={{ maxHeight: 'calc(100vh - 200px)' }}
+        originalUrl={originalUrl}
+        isActive={isActive}
+      />
+    )
+  }
+
+  // Use explicit width/height instead of fill to avoid layout issues during animation
+  return (
+    <Image
+      src={getProxiedImageUrl(media.media_url)}
+      alt={title || 'Media'}
+      width={1920}
+      height={1080}
+      className="max-w-full max-h-[calc(100vh-200px)] w-auto h-auto object-contain select-none pointer-events-none"
+      priority
+      unoptimized
+      draggable={false}
+    />
+  )
+}
+
 // Full screen media content component
 function ReelsMediaContent({
   link,
   platform,
   isActive = true,
   mediaIndex = 0,
-  onMediaIndexChange
+  previewActiveMediaIndex,
+  onMediaIndexChange,
+  onAnimateToMedia,
+  dragX,
+  prevMediaX,
+  nextMediaX
 }: {
   link: FullLink
   platform: Platform
   isActive?: boolean
   mediaIndex?: number
+  previewActiveMediaIndex?: number | null
   onMediaIndexChange?: (index: number) => void
+  onAnimateToMedia?: (direction: 'prev' | 'next') => void
+  dragX?: ReturnType<typeof useMotionValue<number>>
+  prevMediaX?: ReturnType<typeof useTransform<number, number>>
+  nextMediaX?: ReturnType<typeof useTransform<number, number>>
 }) {
   // Get displayable media
   const mediaItems = link.media?.filter(
@@ -259,34 +310,43 @@ function ReelsMediaContent({
 
   // Has media items (images/videos from Twitter, heye, kgirls, etc.)
   if (mediaItems.length > 0) {
-    const currentMedia = mediaItems[safeMediaIndex]
-    const isVideo = currentMedia.media_type === 'video'
+    // Build visible media array (prev, current, next) - similar to visibleLinks pattern
+    // This ensures stable keys and prevents remounting when mediaIndex changes
+    const visibleMediaIndices: number[] = []
+    if (safeMediaIndex > 0) visibleMediaIndices.push(safeMediaIndex - 1)
+    visibleMediaIndices.push(safeMediaIndex)
+    if (safeMediaIndex < mediaItems.length - 1) visibleMediaIndices.push(safeMediaIndex + 1)
+
+    // Determine which media should be active based on preview state
+    // If previewActiveMediaIndex is set (dragged past 50%), that media becomes active
+    const activeMediaIdx = previewActiveMediaIndex !== null && previewActiveMediaIndex !== undefined
+      ? previewActiveMediaIndex
+      : safeMediaIndex
 
     return (
-      <div className="relative w-full h-full flex items-center justify-center">
-        {isVideo ? (
-          <VideoWithFallback
-            key={`${currentMedia.media_url}-${safeMediaIndex}`}
-            url={currentMedia.media_url}
-            className="max-w-full max-h-full object-contain"
-            style={{ maxHeight: 'calc(100vh - 200px)' }}
-            originalUrl={link.url}
-            isActive={isActive}
-          />
-        ) : (
-          <div className="relative w-full h-full flex items-center justify-center">
-            <Image
-              key={currentMedia.media_url}
-              src={getProxiedImageUrl(currentMedia.media_url)}
-              alt={link.title || 'Media'}
-              fill
-              className="object-contain select-none pointer-events-none"
-              priority
-              unoptimized
-              draggable={false}
-            />
-          </div>
-        )}
+      <div className="relative w-full h-full overflow-hidden">
+        {/* Render visible media items with stable keys (by media URL) */}
+        {visibleMediaIndices.map((idx) => {
+          const media = mediaItems[idx]
+          const offset = idx - safeMediaIndex // -1=prev, 0=current, 1=next
+          // Choose x transform based on position relative to current
+          const xStyle = offset === -1 ? prevMediaX : offset === 0 ? dragX : nextMediaX
+
+          return (
+            <motion.div
+              key={media.media_url}
+              className="absolute inset-0 flex items-center justify-center"
+              style={{ x: xStyle }}
+            >
+              <MediaItemRenderer
+                media={media}
+                title={link.title}
+                originalUrl={link.url}
+                isActive={isActive && activeMediaIdx === idx}
+              />
+            </motion.div>
+          )
+        })}
 
         {/* Media navigation for multiple items */}
         {mediaItems.length > 1 && (
@@ -295,8 +355,13 @@ function ReelsMediaContent({
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                const newIndex = safeMediaIndex === 0 ? mediaItems.length - 1 : safeMediaIndex - 1
-                onMediaIndexChange?.(newIndex)
+                if (onAnimateToMedia && safeMediaIndex > 0) {
+                  onAnimateToMedia('prev')
+                } else if (onMediaIndexChange) {
+                  // Wrap around when no animation (or at first item)
+                  const newIndex = safeMediaIndex === 0 ? mediaItems.length - 1 : safeMediaIndex - 1
+                  onMediaIndexChange(newIndex)
+                }
               }}
               className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
             >
@@ -309,8 +374,13 @@ function ReelsMediaContent({
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                const newIndex = safeMediaIndex === mediaItems.length - 1 ? 0 : safeMediaIndex + 1
-                onMediaIndexChange?.(newIndex)
+                if (onAnimateToMedia && safeMediaIndex < mediaItems.length - 1) {
+                  onAnimateToMedia('next')
+                } else if (onMediaIndexChange) {
+                  // Wrap around when no animation (or at last item)
+                  const newIndex = safeMediaIndex === mediaItems.length - 1 ? 0 : safeMediaIndex + 1
+                  onMediaIndexChange(newIndex)
+                }
               }}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
             >
@@ -326,6 +396,7 @@ function ReelsMediaContent({
                   key={idx}
                   onClick={(e) => {
                     e.stopPropagation()
+                    // Direct jump without animation for dots
                     onMediaIndexChange?.(idx)
                   }}
                   className={`w-2 h-2 rounded-full transition-colors ${
@@ -396,6 +467,16 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
   const nextY = useTransform(dragY, (y) => {
     const height = containerHeight.current || (typeof window !== 'undefined' ? window.innerHeight : 800)
     return y + height
+  })
+
+  // Transform for prev/next media positions (horizontal swipe within link)
+  const prevMediaX = useTransform(dragX, (x) => {
+    const width = containerWidth.current || (typeof window !== 'undefined' ? window.innerWidth : 400)
+    return x - width
+  })
+  const nextMediaX = useTransform(dragX, (x) => {
+    const width = containerWidth.current || (typeof window !== 'undefined' ? window.innerWidth : 400)
+    return x + width
   })
 
   const currentLink = links[currentIndex]
@@ -476,6 +557,8 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
   // Track which link should be "active" (playing) during drag
   // When dragged past 50%, the next/prev link becomes active even before finger is lifted
   const [previewActiveIndex, setPreviewActiveIndex] = useState<number | null>(null)
+  // Track which media should be "active" during horizontal drag (for preview)
+  const [previewActiveMediaIndex, setPreviewActiveMediaIndex] = useState<number | null>(null)
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return
@@ -519,6 +602,7 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
       }
     } else if (dragAxis.current === 'x') {
       // Horizontal drag - media navigation within current link
+      const width = containerWidth.current || window.innerWidth
       // Apply resistance at boundaries (first/last media)
       if (deltaX > 0 && !hasPrevMedia) {
         dragX.set(deltaX * 0.2)
@@ -528,9 +612,18 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
         dragX.set(deltaX)
       }
       dragY.set(0)
-      // No preview for media navigation
+
+      // Preview threshold for horizontal (50% of screen width)
+      const previewThreshold = width * 0.5
+      if (deltaX < -previewThreshold && hasNextMedia) {
+        setPreviewActiveMediaIndex(mediaIndex + 1)
+      } else if (deltaX > previewThreshold && hasPrevMedia) {
+        setPreviewActiveMediaIndex(mediaIndex - 1)
+      } else {
+        setPreviewActiveMediaIndex(null)
+      }
     }
-  }, [currentIndex, dragX, dragY, hasNextMedia, hasPrevMedia, nextLink, prevLink])
+  }, [currentIndex, dragX, dragY, hasNextMedia, hasPrevMedia, mediaIndex, nextLink, prevLink])
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return
@@ -600,23 +693,38 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
       const shouldGoPrevMedia = (deltaX > threshold || velocity > velocityThreshold) && hasPrevMedia
 
       if (shouldGoNextMedia) {
-        // Swipe left -> next media
-        setMediaIndex(prev => prev + 1)
-        animate(dragX, 0, {
+        // Swipe left -> next media: animate current out to left, then change index
+        setPreviewActiveMediaIndex(mediaIndex + 1)
+        animate(dragX, -width, {
           type: 'spring',
           stiffness: 400,
           damping: 40,
+          restDelta: 0.5,
+          restSpeed: 10,
+          onComplete: () => {
+            setMediaIndex(prev => prev + 1)
+            dragX.set(0)
+            setPreviewActiveMediaIndex(null)
+          }
         })
       } else if (shouldGoPrevMedia) {
-        // Swipe right -> previous media
-        setMediaIndex(prev => prev - 1)
-        animate(dragX, 0, {
+        // Swipe right -> previous media: animate current out to right, then change index
+        setPreviewActiveMediaIndex(mediaIndex - 1)
+        animate(dragX, width, {
           type: 'spring',
           stiffness: 400,
           damping: 40,
+          restDelta: 0.5,
+          restSpeed: 10,
+          onComplete: () => {
+            setMediaIndex(prev => prev - 1)
+            dragX.set(0)
+            setPreviewActiveMediaIndex(null)
+          }
         })
       } else {
         // Snap back
+        setPreviewActiveMediaIndex(null)
         animate(dragX, 0, {
           type: 'spring',
           stiffness: 400,
@@ -626,10 +734,11 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     } else {
       // No axis was locked (very short drag), just reset
       setPreviewActiveIndex(null)
+      setPreviewActiveMediaIndex(null)
       animate(dragY, 0, { type: 'spring', stiffness: 400, damping: 40 })
       animate(dragX, 0, { type: 'spring', stiffness: 400, damping: 40 })
     }
-  }, [currentIndex, dragX, dragY, hasNextMedia, hasPrevMedia, nextLink, onIndexChange, prevLink])
+  }, [currentIndex, dragX, dragY, hasNextMedia, hasPrevMedia, mediaIndex, nextLink, onIndexChange, prevLink])
 
   const goToPrevious = useCallback(() => {
     if (currentIndex > 0) {
@@ -660,6 +769,40 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
       })
     }
   }, [currentIndex, dragY, links.length, onIndexChange])
+
+  // Animate to prev/next media within current link (for button clicks)
+  const animateToMedia = useCallback((direction: 'prev' | 'next') => {
+    const width = containerWidth.current || window.innerWidth
+    if (direction === 'next' && hasNextMedia) {
+      setPreviewActiveMediaIndex(mediaIndex + 1)
+      animate(dragX, -width, {
+        type: 'spring',
+        stiffness: 400,
+        damping: 40,
+        restDelta: 0.5,
+        restSpeed: 10,
+        onComplete: () => {
+          setMediaIndex(prev => prev + 1)
+          dragX.set(0)
+          setPreviewActiveMediaIndex(null)
+        }
+      })
+    } else if (direction === 'prev' && hasPrevMedia) {
+      setPreviewActiveMediaIndex(mediaIndex - 1)
+      animate(dragX, width, {
+        type: 'spring',
+        stiffness: 400,
+        damping: 40,
+        restDelta: 0.5,
+        restSpeed: 10,
+        onComplete: () => {
+          setMediaIndex(prev => prev - 1)
+          dragX.set(0)
+          setPreviewActiveMediaIndex(null)
+        }
+      })
+    }
+  }, [dragX, hasNextMedia, hasPrevMedia, mediaIndex])
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -881,8 +1024,6 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
               const offset = linkIndex - currentIndex
               // offset: -1=prev, 0=current, 1=next
               const yStyle = offset === -1 ? prevY : offset === 0 ? dragY : nextY
-              // X transform only applies to current link for media swipe feedback
-              const xStyle = offset === 0 ? dragX : 0
               // If dragged past 50%, the preview link becomes active (starts playing)
               // Otherwise, the current link is active
               const activeIndex = previewActiveIndex !== null ? previewActiveIndex : currentIndex
@@ -893,8 +1034,8 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
               return (
                 <motion.div
                   key={link.id}
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{ y: yStyle, x: xStyle }}
+                  className="absolute inset-0 flex items-center justify-center overflow-hidden"
+                  style={{ y: yStyle }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ReelsMediaContent
@@ -902,7 +1043,12 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
                     platform={linkPlatform}
                     isActive={isActiveLink}
                     mediaIndex={linkMediaIndex}
+                    previewActiveMediaIndex={offset === 0 ? previewActiveMediaIndex : undefined}
                     onMediaIndexChange={offset === 0 ? setMediaIndex : undefined}
+                    onAnimateToMedia={offset === 0 ? animateToMedia : undefined}
+                    dragX={offset === 0 ? dragX : undefined}
+                    prevMediaX={offset === 0 ? prevMediaX : undefined}
+                    nextMediaX={offset === 0 ? nextMediaX : undefined}
                   />
                 </motion.div>
               )
