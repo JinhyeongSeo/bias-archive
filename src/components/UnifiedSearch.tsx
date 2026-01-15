@@ -693,16 +693,104 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           // Use cursor for ScrapeBadger pagination
           searchResult = await searchTwitter(query, currentData.nextCursor)
           break
-        case 'heye':
-          // Use offset-based pagination within the same page first
-          searchResult = await searchHeye(query, currentData.currentPage, currentData.currentOffset)
-          newOffset = currentData.currentOffset + searchResult.results.length
+        case 'heye': {
+          // Check cache first
+          const heyeCache = getSearchCache(query)?.platforms.heye
+          const heyeDisplayedIndex = heyeCache?.displayedIndex ?? 0
+          const heyeCachedResults = heyeCache?.results ?? []
+          const heyeRemainingInCache = heyeCachedResults.length - heyeDisplayedIndex
+
+          if (heyeRemainingInCache >= RESULTS_PER_PLATFORM) {
+            // Use cached results only
+            const toDisplay = heyeCachedResults.slice(heyeDisplayedIndex, heyeDisplayedIndex + RESULTS_PER_PLATFORM)
+            searchResult = {
+              results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+              hasMore: heyeCachedResults.length > heyeDisplayedIndex + RESULTS_PER_PLATFORM || heyeCache?.hasMore || false,
+            }
+            // Update cache displayedIndex
+            updatePlatformCache(query, 'heye', {
+              ...heyeCache!,
+              displayedIndex: heyeDisplayedIndex + RESULTS_PER_PLATFORM,
+            })
+          } else {
+            // Combine remaining cache + fetch next page
+            const fromCache = heyeCachedResults.slice(heyeDisplayedIndex)
+            const needed = RESULTS_PER_PLATFORM - fromCache.length
+            newPage = currentData.currentPage + 1
+            const apiResult = await searchHeye(query, newPage, 0)
+            const fromApi = apiResult.results.slice(0, needed)
+            const leftoverApi = apiResult.results.slice(needed)
+
+            searchResult = {
+              results: [
+                ...fromCache.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+                ...fromApi,
+              ],
+              hasMore: leftoverApi.length > 0 || apiResult.hasMore,
+            }
+
+            // Update cache with new API results (leftover for next load more)
+            if (leftoverApi.length > 0 || apiResult.hasMore) {
+              updatePlatformCache(query, 'heye', {
+                results: [...heyeCachedResults, ...apiResult.results],
+                displayedIndex: heyeCachedResults.length + needed,
+                currentPage: newPage,
+                currentOffset: 0,
+                hasMore: apiResult.hasMore,
+              })
+            }
+          }
           break
-        case 'kgirls':
-          // Use offset-based pagination within the same page first
-          searchResult = await searchKgirls(query, currentData.currentPage, currentData.currentOffset)
-          newOffset = currentData.currentOffset + searchResult.results.length
+        }
+        case 'kgirls': {
+          // Check cache first
+          const kgirlsCache = getSearchCache(query)?.platforms.kgirls
+          const kgirlsDisplayedIndex = kgirlsCache?.displayedIndex ?? 0
+          const kgirlsCachedResults = kgirlsCache?.results ?? []
+          const kgirlsRemainingInCache = kgirlsCachedResults.length - kgirlsDisplayedIndex
+
+          if (kgirlsRemainingInCache >= RESULTS_PER_PLATFORM) {
+            // Use cached results only
+            const toDisplay = kgirlsCachedResults.slice(kgirlsDisplayedIndex, kgirlsDisplayedIndex + RESULTS_PER_PLATFORM)
+            searchResult = {
+              results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+              hasMore: kgirlsCachedResults.length > kgirlsDisplayedIndex + RESULTS_PER_PLATFORM || kgirlsCache?.hasMore || false,
+            }
+            // Update cache displayedIndex
+            updatePlatformCache(query, 'kgirls', {
+              ...kgirlsCache!,
+              displayedIndex: kgirlsDisplayedIndex + RESULTS_PER_PLATFORM,
+            })
+          } else {
+            // Combine remaining cache + fetch next page
+            const fromCache = kgirlsCachedResults.slice(kgirlsDisplayedIndex)
+            const needed = RESULTS_PER_PLATFORM - fromCache.length
+            newPage = currentData.currentPage + 1
+            const apiResult = await searchKgirls(query, newPage, 0)
+            const fromApi = apiResult.results.slice(0, needed)
+            const leftoverApi = apiResult.results.slice(needed)
+
+            searchResult = {
+              results: [
+                ...fromCache.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+                ...fromApi,
+              ],
+              hasMore: leftoverApi.length > 0 || apiResult.hasMore,
+            }
+
+            // Update cache with new API results (leftover for next load more)
+            if (leftoverApi.length > 0 || apiResult.hasMore) {
+              updatePlatformCache(query, 'kgirls', {
+                results: [...kgirlsCachedResults, ...apiResult.results],
+                displayedIndex: kgirlsCachedResults.length + needed,
+                currentPage: newPage,
+                currentOffset: 0,
+                hasMore: apiResult.hasMore,
+              })
+            }
+          }
           break
+        }
         default:
           return
       }
