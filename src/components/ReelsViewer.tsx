@@ -426,7 +426,7 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return
     isDragging.current = false
-    setPreviewActiveIndex(null) // Reset preview state
+    // Don't reset previewActiveIndex here - it will be handled below based on navigation decision
     ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
 
     const height = containerHeight.current || window.innerHeight
@@ -441,35 +441,42 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     const shouldGoPrev = (deltaY > threshold || velocity > velocityThreshold) && prevLink
 
     if (shouldGoNext) {
-      // Animate to next position, then change index - critically damped (no bounce)
+      // Keep next video playing during animation (don't reset previewActiveIndex yet)
+      setPreviewActiveIndex(currentIndex + 1)
+      // Animate to next position, then change index
       animate(dragY, -height, {
         type: 'spring',
         stiffness: 400,
         damping: 40,
-        restDelta: 0.5, // Consider "done" when within 0.5px
-        restSpeed: 10, // Consider "done" at low speed
+        restDelta: 0.5,
+        restSpeed: 10,
         onComplete: () => {
           setCurrentIndex(prev => prev + 1)
           onIndexChange?.(currentIndex + 1)
           dragY.set(0)
+          setPreviewActiveIndex(null)
         }
       })
     } else if (shouldGoPrev) {
-      // Animate to prev position, then change index - critically damped (no bounce)
+      // Keep prev video playing during animation (don't reset previewActiveIndex yet)
+      setPreviewActiveIndex(currentIndex - 1)
+      // Animate to prev position, then change index
       animate(dragY, height, {
         type: 'spring',
         stiffness: 400,
         damping: 40,
-        restDelta: 10,
+        restDelta: 0.5,
         restSpeed: 10,
         onComplete: () => {
           setCurrentIndex(prev => prev - 1)
           onIndexChange?.(currentIndex - 1)
           dragY.set(0)
+          setPreviewActiveIndex(null)
         }
       })
     } else {
-      // Snap back to center
+      // Snap back to center - reset preview state
+      setPreviewActiveIndex(null)
       animate(dragY, 0, {
         type: 'spring',
         stiffness: 400,
