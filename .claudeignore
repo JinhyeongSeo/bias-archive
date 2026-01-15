@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Lock files (large and auto-generated)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Minified files
+*.min.js
+*.min.css
+
+# Source maps
+*.map
+
+# Cache
+.cache/
+*.tsbuildinfo
+
+# Vercel
+.vercel/
