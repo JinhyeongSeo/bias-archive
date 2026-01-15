@@ -172,9 +172,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(responseData)
   } catch (error) {
-    console.error('[Kgirls Search] Error:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    console.error('[Kgirls Search] Error:', errorMessage, error)
     return NextResponse.json(
-      { error: 'kgirls.net 검색 중 오류가 발생했습니다' },
+      { error: `kgirls.net 검색 중 오류: ${errorMessage}` },
       { status: 500 }
     )
   }

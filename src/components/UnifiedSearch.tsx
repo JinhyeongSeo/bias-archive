@@ -471,6 +471,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             })
           })
           .catch(error => {
+            console.error('[UnifiedSearch] Twitter error:', error)
             setPlatformResults(prev => {
               const next = new Map(prev)
               next.set('twitter', {
@@ -479,7 +480,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 hasMore: false,
                 isLoading: false,
                 isLoadingMore: false,
-                error: error.message,
+                error: error?.message || error?.toString() || 'Twitter 검색 실패',
                 currentPage: 1,
                 currentOffset: 0,
               })
@@ -547,6 +548,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             })
           })
           .catch(error => {
+            console.error('[UnifiedSearch] Kgirls error:', error)
             setPlatformResults(prev => {
               const next = new Map(prev)
               next.set('kgirls', {
@@ -555,7 +557,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 hasMore: false,
                 isLoading: false,
                 isLoadingMore: false,
-                error: error.message,
+                error: error?.message || error?.toString() || 'kgirls 검색 실패',
                 currentPage: 1,
                 currentOffset: 0,
               })

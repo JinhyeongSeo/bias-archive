@@ -60,8 +60,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const errorMessage = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
-      { error: 'Twitter 검색 중 오류가 발생했습니다' },
+      { error: `Twitter 검색 중 오류: ${errorMessage}` },
       { status: 500 }
     )
   }
