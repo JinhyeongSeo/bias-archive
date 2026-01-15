@@ -37,7 +37,15 @@
     "playViewer": "Play in Viewer",
     "noTitle": "No Title",
     "cancel": "Cancel",
-    "confirmDelete": "Confirm Delete"
+    "confirmDelete": "Confirm Delete",
+    "memo": "Memo",
+    "memoPlaceholder": "Enter a memo...",
+    "editMemo": "Edit Memo",
+    "starred": "Starred",
+    "addToFavorites": "Add to Favorites",
+    "removeFromFavorites": "Remove from Favorites",
+    "saveMemo": "Save Memo",
+    "memoSaved": "Memo saved"
   },
   "tag": {
     "add": "Add Tag",

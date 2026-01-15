@@ -48,6 +48,75 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 /**
+ * PATCH /api/links/[id]
+ * Update a link's memo or starred status (requires authentication)
+ */
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다' },
+        { status: 401 }
+      )
+    }
+
+    const { id } = await params
+
+    if (!id) {
+      return NextResponse.json(
+        { error: '링크 ID가 필요합니다' },
+        { status: 400 }
+      )
+    }
+
+    const body = await request.json()
+    const { memo, starred } = body as { memo?: string | null; starred?: boolean }
+
+    // Validate that at least one field is being updated
+    if (memo === undefined && starred === undefined) {
+      return NextResponse.json(
+        { error: '업데이트할 필드가 필요합니다 (memo 또는 starred)' },
+        { status: 400 }
+      )
+    }
+
+    // Build update object
+    const updateData: { memo?: string | null; starred?: boolean; updated_at: string } = {
+      updated_at: new Date().toISOString(),
+    }
+    if (memo !== undefined) updateData.memo = memo
+    if (starred !== undefined) updateData.starred = starred
+
+    const { data: link, error } = await supabase
+      .from('links')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json(
+          { error: '링크를 찾을 수 없습니다' },
+          { status: 404 }
+        )
+      }
+      throw error
+    }
+
+    return NextResponse.json(link)
+  } catch (error) {
+    console.error('Error updating link:', error)
+    return NextResponse.json(
+      { error: '링크를 업데이트하는데 실패했습니다' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * DELETE /api/links/[id]
  * Delete a link by ID (requires authentication)
  */

@@ -91,6 +91,8 @@ export type Database = {
           author_name: string | null
           bias_id: string | null
           user_id: string | null
+          memo: string | null
+          starred: boolean
           created_at: string
           updated_at: string
         }
@@ -105,6 +107,8 @@ export type Database = {
           author_name?: string | null
           bias_id?: string | null
           user_id?: string | null
+          memo?: string | null
+          starred?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -119,6 +123,8 @@ export type Database = {
           author_name?: string | null
           bias_id?: string | null
           user_id?: string | null
+          memo?: string | null
+          starred?: boolean
           updated_at?: string
         }
         Relationships: [

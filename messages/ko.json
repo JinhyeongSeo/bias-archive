@@ -37,7 +37,15 @@
     "playViewer": "뷰어로 재생",
     "noTitle": "제목 없음",
     "cancel": "취소",
-    "confirmDelete": "삭제 확인"
+    "confirmDelete": "삭제 확인",
+    "memo": "메모",
+    "memoPlaceholder": "메모를 입력하세요...",
+    "editMemo": "메모 편집",
+    "starred": "즐겨찾기",
+    "addToFavorites": "즐겨찾기 추가",
+    "removeFromFavorites": "즐겨찾기 해제",
+    "saveMemo": "메모 저장",
+    "memoSaved": "메모가 저장되었습니다"
   },
   "tag": {
     "add": "태그 추가",

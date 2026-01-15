@@ -318,6 +318,108 @@ export async function searchLinksWithTags(
 }
 
 /**
+ * Update a link's memo or starred status
+ */
+export async function updateLink(
+  id: string,
+  data: { memo?: string | null; starred?: boolean },
+  client = supabase
+): Promise<Link> {
+  const { data: link, error } = await client
+    .from("links")
+    .update({
+      ...data,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return link;
+}
+
+/**
+ * Toggle starred status for a link
+ */
+export async function toggleLinkStarred(
+  id: string,
+  client = supabase
+): Promise<Link> {
+  // First get current starred status
+  const { data: currentLink, error: fetchError } = await client
+    .from("links")
+    .select("starred")
+    .eq("id", id)
+    .single();
+
+  if (fetchError) {
+    throw fetchError;
+  }
+
+  // Toggle the status
+  const newStarred = !currentLink.starred;
+  return updateLink(id, { starred: newStarred }, client);
+}
+
+/**
+ * Get starred links with tags and media
+ */
+export async function getStarredLinks(
+  biasId?: string,
+  client = supabase
+): Promise<LinkWithTagsAndMedia[]> {
+  let query = client
+    .from("links")
+    .select(
+      `
+      *,
+      link_tags (
+        tags (*)
+      ),
+      link_media (*)
+    `
+    )
+    .eq("starred", true)
+    .order("created_at", { ascending: false });
+
+  if (biasId) {
+    query = query.eq("bias_id", biasId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  // Transform the nested link_tags into a flat tags array and include media
+  return (data ?? []).map((link) => {
+    const linkTags = (link.link_tags as Array<{ tags: Tag }>) ?? [];
+    const tags = linkTags
+      .map((lt) => lt.tags)
+      .filter((tag): tag is Tag => tag !== null);
+
+    // Get media sorted by position
+    const media = ((link.link_media as LinkMedia[]) ?? []).sort(
+      (a, b) => a.position - b.position
+    );
+
+    // Remove link_tags and link_media from the result and add tags/media arrays
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { link_tags: _lt, link_media: _lm, ...linkWithoutRelations } = link;
+    return {
+      ...linkWithoutRelations,
+      tags,
+      media,
+    } as LinkWithTagsAndMedia;
+  });
+}
+
+/**
  * Get links saved on this day in past years ("On This Day" feature)
  * Matches month and day of original_date or created_at with today's date
  * @param yearsAgo - How many years back to look (default: 1)

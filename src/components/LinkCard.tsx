@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Image from 'next/image'
-import { useLocale } from 'next-intl'
-import { motion } from 'framer-motion'
+import { useLocale, useTranslations } from 'next-intl'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { Link, Tag, LinkMedia } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
 import { TagEditor } from './TagEditor'
@@ -20,6 +20,8 @@ interface LinkCardProps {
   link: LinkWithTags & LinkWithMedia
   onDelete?: (id: string) => void
   onTagsChange?: (linkId: string, tags: Tag[]) => void
+  onMemoChange?: (linkId: string, memo: string | null) => void
+  onStarredChange?: (linkId: string, starred: boolean) => void
   layout?: LayoutType
   priority?: boolean
   selectionMode?: boolean
@@ -58,6 +60,8 @@ export function LinkCard({
   link,
   onDelete,
   onTagsChange,
+  onMemoChange,
+  onStarredChange,
   layout = 'grid',
   priority = false,
   selectionMode = false,
@@ -65,14 +69,75 @@ export function LinkCard({
   onSelect
 }: LinkCardProps) {
   const locale = useLocale()
+  const t = useTranslations('link')
   const [deleting, setDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [editingTags, setEditingTags] = useState(false)
+  const [editingMemo, setEditingMemo] = useState(false)
   const [tags, setTags] = useState<Tag[]>(link.tags || [])
+  const [memo, setMemo] = useState<string>(link.memo || '')
+  const [starred, setStarred] = useState<boolean>(link.starred || false)
+  const [savingMemo, setSavingMemo] = useState(false)
+  const [togglingStarred, setTogglingStarred] = useState(false)
   const [viewerOpen, setViewerOpen] = useState(false)
   const { getTagDisplayName } = useNameLanguage()
 
   const platform = (link.platform || 'other') as Platform
+
+  const handleSaveMemo = useCallback(async () => {
+    setSavingMemo(true)
+    try {
+      const response = await fetch(`/api/links/${link.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memo: memo || null }),
+      })
+
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to save memo')
+      }
+
+      onMemoChange?.(link.id, memo || null)
+      setEditingMemo(false)
+    } catch (error) {
+      console.error('Save memo error:', error)
+    } finally {
+      setSavingMemo(false)
+    }
+  }, [link.id, memo, locale, onMemoChange])
+
+  const handleToggleStarred = useCallback(async () => {
+    setTogglingStarred(true)
+    const newStarred = !starred
+    try {
+      const response = await fetch(`/api/links/${link.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ starred: newStarred }),
+      })
+
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to toggle starred')
+      }
+
+      setStarred(newStarred)
+      onStarredChange?.(link.id, newStarred)
+    } catch (error) {
+      console.error('Toggle starred error:', error)
+    } finally {
+      setTogglingStarred(false)
+    }
+  }, [link.id, starred, locale, onStarredChange])
 
   const handleTagsChange = (newTags: Tag[]) => {
     setTags(newTags)
@@ -249,6 +314,13 @@ export function LinkCard({
             </div>
           )}
 
+          {/* Memo display */}
+          {!editingMemo && memo && (
+            <p className="mt-2 text-xs text-muted-foreground italic line-clamp-2">
+              {memo}
+            </p>
+          )}
+
           {/* Tag Editor */}
           {editingTags && (
             <TagEditor
@@ -258,16 +330,98 @@ export function LinkCard({
               onClose={() => setEditingTags(false)}
             />
           )}
+
+          {/* Memo Editor */}
+          <AnimatePresence>
+            {editingMemo && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-2"
+              >
+                <textarea
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                  placeholder={t('memoPlaceholder')}
+                  className="w-full px-2 py-1 text-xs rounded border border-border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                  rows={2}
+                />
+                <div className="flex gap-1 mt-1">
+                  <button
+                    onClick={handleSaveMemo}
+                    disabled={savingMemo}
+                    className="px-2 py-0.5 text-xs rounded bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {savingMemo ? '...' : t('saveMemo')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMemo(link.memo || '')
+                      setEditingMemo(false)
+                    }}
+                    className="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground hover:bg-muted/80"
+                  >
+                    {t('cancel')}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
+
+        {/* Starred indicator */}
+        {starred && (
+          <div className="absolute top-2 right-2 pointer-events-none">
+            <svg className="w-5 h-5 text-yellow-500 fill-current" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Starred button */}
+          <motion.button
+            onClick={handleToggleStarred}
+            disabled={togglingStarred}
+            className={`p-1.5 rounded-md shadow-sm transition-colors ${
+              starred
+                ? 'bg-yellow-500 text-white'
+                : 'bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-yellow-500'
+            }`}
+            title={starred ? t('removeFromFavorites') : t('addToFavorites')}
+            whileTap={{ scale: 0.9 }}
+          >
+            <svg className="w-4 h-4" fill={starred ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+          </motion.button>
+
+          {/* Memo button */}
+          <motion.button
+            onClick={() => setEditingMemo(!editingMemo)}
+            className={`p-1.5 rounded-md shadow-sm transition-colors ${
+              editingMemo
+                ? 'bg-primary text-white'
+                : memo
+                  ? 'bg-card/90 dark:bg-zinc-800/90 text-primary'
+                  : 'bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-primary'
+            }`}
+            title={t('editMemo')}
+            whileTap={{ scale: 0.9 }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </motion.button>
+
           {/* Play/View button for supported platforms */}
           {supportsViewer && (
             <motion.button
               onClick={() => setViewerOpen(true)}
               className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-green-500 dark:hover:text-green-400 shadow-sm transition-colors"
-              title="뷰어로 재생"
+              title={t('playViewer')}
               whileTap={{ scale: 0.9 }}
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -282,7 +436,7 @@ export function LinkCard({
             target="_blank"
             rel="noopener noreferrer"
             className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-primary shadow-sm transition-smooth"
-            title="원본 링크 열기"
+            title={t('openLink')}
             whileTap={{ scale: 0.9 }}
           >
             <svg
@@ -308,7 +462,7 @@ export function LinkCard({
                   ? 'bg-primary text-white'
                   : 'bg-card/90 text-surface-foreground hover:text-primary'
               }`}
-            title="태그 편집"
+            title={t('editTags')}
             whileTap={{ scale: 0.9 }}
           >
             <svg
@@ -518,6 +672,13 @@ export function LinkCard({
           </div>
         )}
 
+        {/* Memo display */}
+        {!editingMemo && memo && (
+          <p className="mt-2 text-xs text-muted-foreground italic line-clamp-2">
+            {memo}
+          </p>
+        )}
+
         {/* Tag Editor */}
         {editingTags && (
           <TagEditor
@@ -527,16 +688,98 @@ export function LinkCard({
             onClose={() => setEditingTags(false)}
           />
         )}
+
+        {/* Memo Editor */}
+        <AnimatePresence>
+          {editingMemo && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-2"
+            >
+              <textarea
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+                placeholder={t('memoPlaceholder')}
+                className="w-full px-2 py-1 text-xs rounded border border-border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                rows={2}
+              />
+              <div className="flex gap-1 mt-1">
+                <button
+                  onClick={handleSaveMemo}
+                  disabled={savingMemo}
+                  className="px-2 py-0.5 text-xs rounded bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {savingMemo ? '...' : t('saveMemo')}
+                </button>
+                <button
+                  onClick={() => {
+                    setMemo(link.memo || '')
+                    setEditingMemo(false)
+                  }}
+                  className="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground hover:bg-muted/80"
+                >
+                  {t('cancel')}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* Starred indicator */}
+      {starred && (
+        <div className="absolute top-2 right-2 pointer-events-none">
+          <svg className="w-5 h-5 text-yellow-500 fill-current" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Starred button */}
+        <motion.button
+          onClick={handleToggleStarred}
+          disabled={togglingStarred}
+          className={`p-1.5 rounded-md shadow-sm transition-colors ${
+            starred
+              ? 'bg-yellow-500 text-white'
+              : 'bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-yellow-500'
+          }`}
+          title={starred ? t('removeFromFavorites') : t('addToFavorites')}
+          whileTap={{ scale: 0.9 }}
+        >
+          <svg className="w-4 h-4" fill={starred ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+          </svg>
+        </motion.button>
+
+        {/* Memo button */}
+        <motion.button
+          onClick={() => setEditingMemo(!editingMemo)}
+          className={`p-1.5 rounded-md shadow-sm transition-colors ${
+            editingMemo
+              ? 'bg-primary text-white'
+              : memo
+                ? 'bg-card/90 dark:bg-zinc-800/90 text-primary'
+                : 'bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-primary'
+          }`}
+          title={t('editMemo')}
+          whileTap={{ scale: 0.9 }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </motion.button>
+
         {/* Play/View button for supported platforms */}
         {supportsViewer && (
           <motion.button
             onClick={() => setViewerOpen(true)}
             className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-green-500 dark:hover:text-green-400 shadow-sm transition-colors"
-            title="뷰어로 재생"
+            title={t('playViewer')}
             whileTap={{ scale: 0.9 }}
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -551,7 +794,7 @@ export function LinkCard({
           target="_blank"
           rel="noopener noreferrer"
           className="p-1.5 rounded-md bg-card/90 dark:bg-zinc-800/90 text-surface-foreground dark:text-zinc-300 hover:text-primary shadow-sm transition-smooth"
-          title="원본 링크 열기"
+          title={t('openLink')}
           whileTap={{ scale: 0.9 }}
         >
           <svg
@@ -577,7 +820,7 @@ export function LinkCard({
                 ? 'bg-primary text-white'
                 : 'bg-card/90 text-surface-foreground hover:text-primary'
             }`}
-          title="태그 편집"
+          title={t('editTags')}
           whileTap={{ scale: 0.9 }}
         >
           <svg
