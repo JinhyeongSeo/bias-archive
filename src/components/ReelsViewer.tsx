@@ -451,6 +451,7 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
 
   // Pointer-based drag handling (instead of framer-motion drag which has issues)
   const isDragging = useRef(false)
+  const wasDragged = useRef(false) // Track if actual drag movement occurred
   const dragStartY = useRef(0)
   const dragStartX = useRef(0)
   const dragStartTime = useRef(0)
@@ -461,6 +462,7 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     isDragging.current = true
+    wasDragged.current = false // Reset drag flag
     dragStartY.current = e.clientY
     dragStartX.current = e.clientX
     dragStartTime.current = Date.now()
@@ -490,6 +492,7 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
       const absY = Math.abs(deltaY)
       if (absX > AXIS_LOCK_THRESHOLD || absY > AXIS_LOCK_THRESHOLD) {
         dragAxis.current = absX > absY ? 'x' : 'y'
+        wasDragged.current = true // Mark as dragged
       }
     }
 
@@ -799,6 +802,11 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
 
   // Handle backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
+    // Ignore click if it was a drag gesture
+    if (wasDragged.current) {
+      wasDragged.current = false
+      return
+    }
     if (e.target === e.currentTarget) {
       onClose()
     }
