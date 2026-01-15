@@ -223,28 +223,49 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       // so we skip it and rely on Google's default relevance ranking
     })
 
-    const response = await fetch(`/api/search/twitter?${params}`)
-    const data = await response.json()
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Twitter 검색 실패')
+    let data
+    try {
+      const response = await fetch(`/api/search/twitter?${params}`, {
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+      data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Twitter 검색 실패')
+      }
+    } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('요청 시간이 초과되었습니다')
+      }
+      throw error
     }
 
-    const results: EnrichedResult[] = []
     const twitterResults = (data.results as TwitterResult[]).slice(0, RESULTS_PER_PLATFORM)
 
-    for (const item of twitterResults) {
+    // Fetch metadata for all results in parallel with timeout
+    const metadataPromises = twitterResults.map(async (item): Promise<EnrichedResult> => {
       const isSaved = checkIfSaved(item.link)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+
       try {
         const metaResponse = await fetch('/api/metadata', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: item.link }),
+          signal: controller.signal,
         })
+
+        clearTimeout(timeoutId)
 
         if (metaResponse.ok) {
           const metadata = await metaResponse.json()
-          results.push({
+          return {
             url: item.link,
             title: metadata.title || item.title,
             thumbnailUrl: metadata.thumbnailUrl || null,
@@ -252,31 +273,25 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             platform: 'twitter',
             isSaved,
             isSaving: false,
-          })
-        } else {
-          results.push({
-            url: item.link,
-            title: item.title,
-            thumbnailUrl: null,
-            author: '',
-            platform: 'twitter',
-            isSaved,
-            isSaving: false,
-          })
+          }
         }
       } catch {
-        results.push({
-          url: item.link,
-          title: item.title,
-          thumbnailUrl: null,
-          author: '',
-          platform: 'twitter',
-          isSaved,
-          isSaving: false,
-        })
+        clearTimeout(timeoutId)
       }
-    }
 
+      // Fallback result if metadata fetch fails
+      return {
+        url: item.link,
+        title: item.title,
+        thumbnailUrl: null,
+        author: '',
+        platform: 'twitter',
+        isSaved,
+        isSaving: false,
+      }
+    })
+
+    const results = await Promise.all(metadataPromises)
     return { results, hasMore: data.hasMore ?? false }
   }
 
@@ -287,26 +302,41 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       limit: String(RESULTS_PER_PLATFORM),
       offset: String(offset),
     })
-    const response = await fetch(`/api/search/heye?${params}`)
-    const data = await response.json()
 
-    if (!response.ok) {
-      throw new Error(data.error || 'heye.kr 검색 실패')
-    }
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
 
-    const results = (data.results as HeyeResult[]).map(item => ({
-      url: item.url,
-      title: item.title,
-      thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
-      author: item.author,
-      platform: 'heye' as Platform,
-      isSaved: checkIfSaved(item.url),
-      isSaving: false,
-    }))
+    try {
+      const response = await fetch(`/api/search/heye?${params}`, {
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+      const data = await response.json()
 
-    return {
-      results,
-      hasMore: data.hasMore ?? false,
+      if (!response.ok) {
+        throw new Error(data.error || 'heye.kr 검색 실패')
+      }
+
+      const results = (data.results as HeyeResult[]).map(item => ({
+        url: item.url,
+        title: item.title,
+        thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
+        author: item.author,
+        platform: 'heye' as Platform,
+        isSaved: checkIfSaved(item.url),
+        isSaving: false,
+      }))
+
+      return {
+        results,
+        hasMore: data.hasMore ?? false,
+      }
+    } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('요청 시간이 초과되었습니다')
+      }
+      throw error
     }
   }
 
@@ -318,26 +348,41 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       limit: String(RESULTS_PER_PLATFORM),
       offset: String(offset),
     })
-    const response = await fetch(`/api/search/kgirls?${params}`)
-    const data = await response.json()
 
-    if (!response.ok) {
-      throw new Error(data.error || 'kgirls.net 검색 실패')
-    }
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
 
-    const results = (data.results as KgirlsResult[]).map(item => ({
-      url: item.url,
-      title: item.title,
-      thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
-      author: item.author,
-      platform: 'kgirls' as Platform,
-      isSaved: checkIfSaved(item.url),
-      isSaving: false,
-    }))
+    try {
+      const response = await fetch(`/api/search/kgirls?${params}`, {
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+      const data = await response.json()
 
-    return {
-      results,
-      hasMore: data.hasMore ?? false,
+      if (!response.ok) {
+        throw new Error(data.error || 'kgirls.net 검색 실패')
+      }
+
+      const results = (data.results as KgirlsResult[]).map(item => ({
+        url: item.url,
+        title: item.title,
+        thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
+        author: item.author,
+        platform: 'kgirls' as Platform,
+        isSaved: checkIfSaved(item.url),
+        isSaving: false,
+      }))
+
+      return {
+        results,
+        hasMore: data.hasMore ?? false,
+      }
+    } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('요청 시간이 초과되었습니다')
+      }
+      throw error
     }
   }
 
