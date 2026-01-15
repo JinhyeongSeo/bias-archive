@@ -777,6 +777,100 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
   }
 
   // Save functions
+  const handleSaveCachedResult = async (platform: Platform, result: EnrichedResult) => {
+    if (result.isSaved || result.isSaving) return
+
+    // Update isSaving state in cachedResults
+    setCachedResults(prev => {
+      const next = new Map(prev)
+      const platformData = next.get(platform)
+      if (platformData) {
+        next.set(platform, {
+          ...platformData,
+          results: platformData.results.map(r =>
+            r.url === result.url ? { ...r, isSaving: true } : r
+          ),
+        })
+      }
+      return next
+    })
+
+    try {
+      const metaResponse = await fetch('/api/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: result.url }),
+      })
+
+      let metadata = {
+        title: result.title,
+        thumbnailUrl: result.thumbnailUrl,
+        platform: result.platform,
+        authorName: result.author,
+        media: undefined as { type: string; url: string }[] | undefined,
+      }
+
+      if (metaResponse.ok) {
+        const fullMetadata = await metaResponse.json()
+        metadata = {
+          title: fullMetadata.title || result.title,
+          thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
+          platform: fullMetadata.platform || result.platform,
+          authorName: fullMetadata.authorName || result.author,
+          media: fullMetadata.media,
+        }
+      }
+
+      const saveResponse = await fetch('/api/links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: result.url,
+          title: metadata.title,
+          thumbnailUrl: metadata.thumbnailUrl,
+          platform: metadata.platform,
+          authorName: metadata.authorName,
+          searchQuery: query,
+          media: metadata.media,
+        }),
+      })
+
+      if (saveResponse.ok || saveResponse.status === 409) {
+        setCachedResults(prev => {
+          const next = new Map(prev)
+          const platformData = next.get(platform)
+          if (platformData) {
+            next.set(platform, {
+              ...platformData,
+              results: platformData.results.map(r =>
+                r.url === result.url ? { ...r, isSaved: true, isSaving: false } : r
+              ),
+            })
+          }
+          return next
+        })
+        onSave?.()
+      } else {
+        throw new Error('저장 실패')
+      }
+    } catch (err) {
+      console.error('Save cached result error:', err)
+      setCachedResults(prev => {
+        const next = new Map(prev)
+        const platformData = next.get(platform)
+        if (platformData) {
+          next.set(platform, {
+            ...platformData,
+            results: platformData.results.map(r =>
+              r.url === result.url ? { ...r, isSaving: false } : r
+            ),
+          })
+        }
+        return next
+      })
+    }
+  }
+
   const handleSave = async (result: EnrichedResult) => {
     if (result.isSaved || result.isSaving) return
 
@@ -1243,8 +1337,26 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
                                       {/* Status */}
                                       <div className="flex-shrink-0 flex items-center">
-                                        {result.isSaved && (
+                                        {result.isSaved ? (
                                           <span className="text-[10px] sm:text-xs text-green-600 dark:text-green-400">저장됨</span>
+                                        ) : result.isSaving ? (
+                                          <svg className="w-4 h-4 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                          </svg>
+                                        ) : (
+                                          <motion.button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleSaveCachedResult(platformConfig.id, result)
+                                            }}
+                                            className="p-1.5 sm:p-1 text-zinc-400 hover:text-primary transition-colors"
+                                            whileTap={{ scale: 0.9 }}
+                                          >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                          </motion.button>
                                         )}
                                       </div>
                                     </div>
