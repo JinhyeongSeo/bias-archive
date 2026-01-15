@@ -137,13 +137,23 @@ export async function searchTwitterWithScrapeBadger(
 
     // Transform ScrapeBadger response to our format
     const results: TwitterSearchResult[] = (data.data || []).map((tweet) => {
-      // Get thumbnail URL from media, filtering out t.co short links
+      // Get thumbnail URL from media
+      // For videos/gifs: use preview_image_url
+      // For photos: use url (but filter out t.co short links)
       let thumbnailUrl: string | undefined
-      const mediaUrl = tweet.media?.[0]?.url
-      if (mediaUrl && !mediaUrl.includes('t.co/')) {
-        thumbnailUrl = mediaUrl
-      } else if (tweet.media?.[0]?.preview_image_url) {
-        thumbnailUrl = tweet.media[0].preview_image_url
+      const firstMedia = tweet.media?.[0]
+
+      if (firstMedia) {
+        if (firstMedia.type === 'video' || firstMedia.type === 'animated_gif') {
+          // For video/gif, prefer preview_image_url (thumbnail)
+          thumbnailUrl = firstMedia.preview_image_url
+        } else if (firstMedia.type === 'photo') {
+          // For photo, use url if it's a valid image URL (not t.co)
+          const url = firstMedia.url
+          if (url && (url.includes('pbs.twimg.com') || url.includes('twimg.com'))) {
+            thumbnailUrl = url
+          }
+        }
       }
 
       return {
