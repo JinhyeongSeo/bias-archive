@@ -1962,8 +1962,14 @@ export function UnifiedSearch({
 
       if (metaResponse.ok) {
         const fullMetadata = await metaResponse.json();
+        // If metadata API returns URL as title (fallback from parser failure),
+        // prefer the original result.title which has proper content from ScrapeBadger
+        const isUrlTitle =
+          fullMetadata.title &&
+          (fullMetadata.title.startsWith("http://") ||
+            fullMetadata.title.startsWith("https://"));
         metadata = {
-          title: fullMetadata.title || result.title,
+          title: isUrlTitle ? result.title : fullMetadata.title || result.title,
           thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
           platform: fullMetadata.platform || result.platform,
           authorName: fullMetadata.authorName || result.author,
@@ -2058,8 +2064,14 @@ export function UnifiedSearch({
 
       if (metaResponse.ok) {
         const fullMetadata = await metaResponse.json();
+        // If metadata API returns URL as title (fallback from parser failure),
+        // prefer the original result.title which has proper content from ScrapeBadger
+        const isUrlTitle =
+          fullMetadata.title &&
+          (fullMetadata.title.startsWith("http://") ||
+            fullMetadata.title.startsWith("https://"));
         metadata = {
-          title: fullMetadata.title || result.title,
+          title: isUrlTitle ? result.title : fullMetadata.title || result.title,
           thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
           platform: fullMetadata.platform || result.platform,
           authorName: fullMetadata.authorName || result.author,
@@ -2161,8 +2173,16 @@ export function UnifiedSearch({
 
         if (metaResponse.ok) {
           const fullMetadata = await metaResponse.json();
+          // If metadata API returns URL as title (fallback from parser failure),
+          // prefer the original result.title which has proper content from ScrapeBadger
+          const isUrlTitle =
+            fullMetadata.title &&
+            (fullMetadata.title.startsWith("http://") ||
+              fullMetadata.title.startsWith("https://"));
           metadata = {
-            title: fullMetadata.title || result.title,
+            title: isUrlTitle
+              ? result.title
+              : fullMetadata.title || result.title,
             thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
             platform: fullMetadata.platform || result.platform,
             authorName: fullMetadata.authorName || result.author,
