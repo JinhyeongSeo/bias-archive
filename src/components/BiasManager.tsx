@@ -675,7 +675,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   }
 
   async function handleDeleteGroup(groupId: string, groupName: string) {
-    if (!confirm(`"${groupName}" 그룹을 삭제하시겠습니까? 그룹 내 최애들은 유지됩니다.`)) {
+    if (!confirm(`"${groupName}" 그룹과 그 안의 모든 멤버를 삭제하시겠습니까?`)) {
       return
     }
 
@@ -834,10 +834,10 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                           }`}
                         >
                           {/* Group header with drag handle */}
-                          <div className="flex items-center group/header">
+                          <div className="flex items-center group">
                             <div
                               {...groupDragProvided.dragHandleProps}
-                              className="p-1 cursor-grab active:cursor-grabbing opacity-0 group-hover/header:opacity-100 transition-opacity"
+                              className="p-1 cursor-grab active:cursor-grabbing md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                             >
                               <svg
                                 className="w-4 h-4 text-zinc-400 dark:text-zinc-500"
@@ -879,7 +879,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                                 handleDeleteGroup(group!.id, groupDisplayName)
                               }}
                               disabled={deletingGroupId === group!.id}
-                              className="opacity-0 group-hover/header:opacity-100 p-1 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50 flex-shrink-0"
+                              className="md:opacity-0 md:group-hover:opacity-100 p-1 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50 flex-shrink-0"
                               title="그룹 삭제"
                               whileTap={{ scale: 0.85 }}
                               transition={quickSpring}

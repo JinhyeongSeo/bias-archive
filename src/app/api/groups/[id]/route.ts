@@ -7,8 +7,7 @@ type RouteParams = {
 
 /**
  * DELETE /api/groups/[id]
- * Delete a group (requires authentication)
- * FK constraint ON DELETE SET NULL ensures biases.group_id becomes NULL
+ * Delete a group and all its members (requires authentication)
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
@@ -22,12 +21,22 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id } = await params
-    const { error } = await supabase
+
+    // First, delete all biases belonging to this group
+    const { error: biasesError } = await supabase
+      .from('biases')
+      .delete()
+      .eq('group_id', id)
+
+    if (biasesError) throw biasesError
+
+    // Then, delete the group itself
+    const { error: groupError } = await supabase
       .from('groups')
       .delete()
       .eq('id', id)
 
-    if (error) throw error
+    if (groupError) throw groupError
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting group:', error)
