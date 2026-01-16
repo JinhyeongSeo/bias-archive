@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 22 - Selca K-pop Data (kpopnet.json 대체)
+**Current focus:** All phases complete! Milestone ready for completion.
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
 Phase: 22 of 22 (Selca K-pop Data)
-Plan: 0 of 2 in current phase
-Status: Planned, ready for execution
-Last activity: 2026-01-16 — Phase 22 planning complete
+Plan: 2 of 2 in current phase
+Status: Complete
+Last activity: 2026-01-16 — Completed 22-02-PLAN.md
 
-Progress: █████████████████████ 95% (21/22 phases complete)
+Progress: ██████████████████████ 100% (22/22 phases complete)
 
 ## Performance Metrics
 
@@ -51,11 +51,12 @@ Progress: █████████████████████ 95% (2
 | 19. Bias UI Improvements | 1 | 3 min | 3 min |
 | 20. Authentication | 3 | ~45 min | 15 min |
 | 21. Design Overhaul | 5 | ~45 min | 9 min |
+| 22. Selca K-pop Data | 2 | ~10 min | 5 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 21-01 (2m), 21-02 (~10m), 21-03 (~10m), 21-04 (~8m), 21-05 (~15m)
-- Trend: Phase 21 완료! 전체 로드맵 100% 달성
+- Last 5 plans: 21-04 (~8m), 21-05 (~15m), 22-01 (~5m), 22-02 (~5m)
+- Trend: Phase 22 완료! 전체 로드맵 100% 달성 (22개 Phase 모두 완료)
 
 ## Accumulated Context
 
@@ -94,6 +95,9 @@ Progress: █████████████████████ 95% (2
 - RLS 정책으로 사용자별 데이터 분리
 - 미들웨어에서 세션 자동 새로고침 (next-intl과 통합)
 - API 라우트에서 인증 체크 및 user_id 자동 할당
+- selca.kastden.org HTML 파싱으로 K-pop 데이터 실시간 조회 (kpopnet.json 대체)
+- selca 검색 API 미작동으로 전체 목록 캐싱 후 필터링 방식 사용
+- node-html-parser로 HTML 파싱 (서버사이드)
 
 ### Roadmap Evolution
 
@@ -110,7 +114,7 @@ Progress: █████████████████████ 95% (2
 - Phase 20 added: Authentication (사용자 로그인/회원가입 기능)
 - Phase 21 added: Design Overhaul (토스 스타일 애니메이션, 트렌디한 디자인 전면 개편)
 - Phase 21-05 확장: 모바일 최적화, 이름 언어 auto 고정, 라이트 모드 색상 수정 추가
-- Phase 22 added: Namuwiki Idol Data (나무위키에서 아이돌 그룹/멤버 정보 가져오기)
+- Phase 22 added: Selca K-pop Data (selca.kastden.org에서 최신 아이돌 데이터 가져오기) ✓
 
 ### Deferred Issues
 
@@ -130,6 +134,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-14
-Stopped at: Completed 21-05-PLAN.md (Final Polish) - Phase 21 Complete!
+Last session: 2026-01-16
+Stopped at: Completed 22-02-PLAN.md - Phase 22 Complete! All phases done.
 Resume file: None

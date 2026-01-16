@@ -42,7 +42,7 @@ None
 - [x] **Phase 19: Bias UI Improvements** - 버튼 레이아웃 수정 및 멤버 자동완성 ✓
 - [x] **Phase 20: Authentication** - 사용자 로그인/회원가입 기능 ✓
 - [x] **Phase 21: Design Overhaul** - 토스 스타일 애니메이션 및 트렌디한 디자인 전면 개편 ✓
-- [ ] **Phase 22: Selca K-pop Data** - selca.kastden.org에서 최신 아이돌 데이터 가져오기 (kpopnet.json 대체)
+- [x] **Phase 22: Selca K-pop Data** - selca.kastden.org에서 최신 아이돌 데이터 가져오기 (kpopnet.json 대체) ✓
 
 ## Phase Details
 
@@ -403,8 +403,8 @@ Plans:
 
 Plans:
 
-- [ ] 22-01: Selca 파서 모듈 생성 및 API 라우트 연동
-- [ ] 22-02: kpopnet.json 의존성 제거 및 최종 검증
+- [x] 22-01: Selca 파서 모듈 생성 및 API 라우트 연동 ✓
+- [x] 22-02: kpopnet.json 의존성 제거 및 최종 검증 ✓
 
 ## Progress
 
@@ -434,4 +434,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 19. Bias UI Improvements | - | 1/1 | Complete | 2026-01-14 |
 | 20. Authentication | - | 3/3 | Complete | 2026-01-14 |
 | 21. Design Overhaul | - | 5/5 | Complete | 2026-01-14 |
-| 22. Selca K-pop Data | - | 0/2 | Planned | - |
+| 22. Selca K-pop Data | - | 2/2 | Complete | 2026-01-16 |
