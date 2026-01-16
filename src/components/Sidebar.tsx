@@ -409,7 +409,7 @@ export function Sidebar({
       </section>
 
       {/* Tags / Album Mode */}
-      <section className="flex-1">
+      <section className="flex-1 mb-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold text-muted-foreground">
             {t('sidebar.tags')}
