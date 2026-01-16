@@ -53,6 +53,7 @@
   --weverse: #00d9cc;
   --heye: #ff6b35;
   --kgirls: #ff1493;
+  --selca: #9b59b6;
 
   /* 🎯 Gradients */
   --gradient-primary: linear-gradient(135deg, #b57edc 0%, #cc33cc 100%);
@@ -144,6 +145,7 @@
   --color-weverse: var(--weverse);
   --color-heye: var(--heye);
   --color-kgirls: var(--kgirls);
+  --color-selca: var(--selca);
 }
 
 /* ========================================

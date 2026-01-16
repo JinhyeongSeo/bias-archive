@@ -32,7 +32,7 @@ const platformColors: Record<Platform, string> = {
   weverse: 'bg-[--color-weverse]',
   heye: 'bg-[--color-heye]',
   kgirls: 'bg-[--color-kgirls]',
-  selca: 'bg-purple-500',
+  selca: 'bg-[--color-selca]',
   other: 'bg-muted-foreground',
 }
 

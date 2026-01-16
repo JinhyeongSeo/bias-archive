@@ -35,6 +35,7 @@ const platformLabels: Record<Platform, string> = {
   weverse: 'Weverse',
   heye: 'heye.kr',
   kgirls: 'kgirls.net',
+  selca: 'selca',
   other: '웹사이트',
 }
 
@@ -44,6 +45,7 @@ const platformColors: Record<Platform, string> = {
   weverse: 'bg-[--color-weverse]',
   heye: 'bg-[--color-heye]',
   kgirls: 'bg-[--color-kgirls]',
+  selca: 'bg-[--color-selca]',
   other: 'bg-muted-foreground',
 }
 
