@@ -27,6 +27,8 @@ export async function GET(
       groupName: result.groupName,
       groupNameOriginal: result.groupNameOriginal,
       members: result.members,
+      hasSelcaGroup: result.hasSelcaGroup,
+      selcaGroupSlug: result.selcaGroupSlug,
     })
   } catch (error) {
     console.error('Error fetching group members:', error)

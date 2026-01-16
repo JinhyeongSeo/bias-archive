@@ -22,13 +22,19 @@ export type { KpopGroup, KpopMember, KpopMemberWithGroup } from '@/lib/selca-typ
 const BASE_URL = 'https://selca.kastden.org'
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-const TIMEOUT_MS = 5000
+const TIMEOUT_MS = 30000 // selca.kastden.org는 응답이 느림 (404도 20초 이상 소요)
 const CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
 
 // In-memory caches
 let groupsCache: CacheEntry<KpopGroup[]> | undefined = undefined
 const groupMembersCache = new Map<string, CacheEntry<GroupMembersResult>>()
-const idolStageNameCache = new Map<string, CacheEntry<string>>()
+
+/** 아이돌 상세 정보 캐시 (한글 이름 + selca owner 여부) */
+interface IdolDetails {
+  koreanStageName: string
+  hasSelcaOwner: boolean
+}
+const idolDetailsCache = new Map<string, CacheEntry<IdolDetails>>()
 
 /**
  * HTML 페이지를 가져오는 유틸리티 함수 (공유용으로 export)
@@ -61,8 +67,8 @@ function getText(element: HTMLElement | null): string {
   return element?.textContent?.trim() ?? ''
 }
 
-async function fetchIdolKoreanStageName(idolSlug: string): Promise<string> {
-  const cached = idolStageNameCache.get(idolSlug)
+async function fetchIdolDetails(idolSlug: string): Promise<IdolDetails> {
+  const cached = idolDetailsCache.get(idolSlug)
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
     return cached.data
   }
@@ -73,6 +79,7 @@ async function fetchIdolKoreanStageName(idolSlug: string): Promise<string> {
 
     const rows = root.querySelectorAll('tr')
     let koreanStageName = ''
+    let hasSelcaOwner = false
 
     for (const row of rows) {
       const cells = row.querySelectorAll('td')
@@ -82,20 +89,24 @@ async function fetchIdolKoreanStageName(idolSlug: string): Promise<string> {
 
         if (label === 'Stage name (original)') {
           koreanStageName = value
-          break
+        } else if (label === 'Selca owner') {
+          // Selca owner 필드에 값이 있으면 owner 페이지 존재
+          hasSelcaOwner = value.length > 0
         }
       }
     }
 
-    idolStageNameCache.set(idolSlug, {
-      data: koreanStageName,
+    const details: IdolDetails = { koreanStageName, hasSelcaOwner }
+
+    idolDetailsCache.set(idolSlug, {
+      data: details,
       timestamp: Date.now(),
     })
 
-    return koreanStageName
+    return details
   } catch (error) {
-    console.error(`[Selca Parser] Error fetching Korean stage name for ${idolSlug}:`, error)
-    return ''
+    console.error(`[Selca Parser] Error fetching idol details for ${idolSlug}:`, error)
+    return { koreanStageName: '', hasSelcaOwner: false }
   }
 }
 
@@ -212,6 +223,8 @@ export async function getGroupMembers(groupSlug: string): Promise<GroupMembersRe
 
     let groupName = ''
     let groupNameOriginal = ''
+    let hasSelcaGroup = false
+    let selcaGroupSlug: string | undefined = undefined
 
     const infoRows = root.querySelectorAll('table tr')
     for (const row of infoRows) {
@@ -224,6 +237,20 @@ export async function getGroupMembers(groupSlug: string): Promise<GroupMembersRe
           groupName = value
         } else if (label === 'Display name (original)') {
           groupNameOriginal = value
+        } else if (label === 'Selca group') {
+          // Selca group 필드에 값이 있으면 그룹 페이지 존재
+          hasSelcaGroup = value.length > 0
+          if (hasSelcaGroup) {
+            // /group/{slug}/ 링크에서 slug 추출
+            const groupLink = cells[1].querySelector('a[href^="/group/"]')
+            if (groupLink) {
+              const href = groupLink.getAttribute('href') || ''
+              const match = href.match(/\/group\/([^/]+)\//)
+              if (match) {
+                selcaGroupSlug = match[1]
+              }
+            }
+          }
         }
       }
     }
@@ -261,19 +288,26 @@ export async function getGroupMembers(groupSlug: string): Promise<GroupMembersRe
       })
     }
 
-    const membersWithKoreanNames: KpopMember[] = await Promise.all(
+    const membersWithDetails: KpopMember[] = await Promise.all(
       basicMembers.map(async (member) => {
-        const koreanStageName = await fetchIdolKoreanStageName(member.id)
+        const details = await fetchIdolDetails(member.id)
         return {
           id: member.id,
           name: member.name,
-          name_original: koreanStageName || member.name,
-          name_stage_ko: koreanStageName || undefined,
+          name_original: details.koreanStageName || member.name,
+          name_stage_ko: details.koreanStageName || undefined,
+          hasSelcaOwner: details.hasSelcaOwner,
         }
       })
     )
 
-    const result: GroupMembersResult = { groupName, groupNameOriginal, members: membersWithKoreanNames }
+    const result: GroupMembersResult = {
+      groupName,
+      groupNameOriginal,
+      members: membersWithDetails,
+      hasSelcaGroup,
+      selcaGroupSlug,
+    }
 
     groupMembersCache.set(groupSlug, {
       data: result,
@@ -390,20 +424,20 @@ async function fetchAllIdols(): Promise<KpopMemberWithGroup[]> {
       })
     }
 
-    const idolsWithKoreanNames = await Promise.all(
+    const idolsWithDetails = await Promise.all(
       basicIdols.map(async (idol) => {
-        const koreanStageName = await fetchIdolKoreanStageName(idol.id)
+        const details = await fetchIdolDetails(idol.id)
         return {
           id: idol.id,
           name: idol.stageName,
           name_original: idol.realName,
-          name_stage_ko: koreanStageName || undefined,
+          name_stage_ko: details.koreanStageName || undefined,
           group: idol.group,
         }
       })
     )
 
-    return idolsWithKoreanNames
+    return idolsWithDetails
   } catch (error) {
     console.error('[Selca Parser] Error fetching idols:', error)
     return []

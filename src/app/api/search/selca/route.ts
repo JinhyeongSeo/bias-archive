@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
   const query = searchParams.get('query')
   const page = parseInt(searchParams.get('page') || '1', 10)
   const maxTimeId = searchParams.get('maxTimeId')
+  const searchType = searchParams.get('type') || 'member' // 'member' (default) or 'group'
 
   if (!query) {
     return NextResponse.json(
@@ -43,47 +44,57 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Step 1: Determine idol slug
-    let idolSlug: string
-    let idolName: string
+    let slug: string
+    let displayName: string
 
-    // slug 형식 감지: 언더스코어 포함 + 영문소문자/숫자만
-    // 예: "aespa_winter", "ive_yujin"
-    if (query.includes('_') && SLUG_PATTERN.test(query)) {
-      // Query is already a slug - use it directly (Bias.selca_slug 활용)
-      idolSlug = query
-      idolName = query.replace(/_/g, ' ')
-      console.log(`[Selca Search API] Using slug directly: "${idolSlug}"`)
-    } else {
-      // Query is not a slug - search for matching idol
-      // NOTE: searchMembers는 @deprecated, 타임아웃 가능성 있음
-      console.log(`[Selca Search API] Searching for idol: "${query}"`)
-      const idols = await searchMembers(query)
+    // 그룹 검색인 경우
+    if (searchType === 'group') {
+      // 그룹은 slug 형식이 단순함 (예: "nmixx", "aespa")
+      slug = query.toLowerCase()
+      displayName = query
+      console.log(`[Selca Search API] Group search: "${slug}"`)
+    }
+    // 멤버 검색인 경우
+    else {
+      // slug 형식 감지: 언더스코어 포함 + 영문소문자/숫자만
+      // 예: "aespa_winter", "ive_yujin"
+      if (query.includes('_') && SLUG_PATTERN.test(query)) {
+        // Query is already a slug - use it directly (Bias.selca_slug 활용)
+        slug = query
+        displayName = query.replace(/_/g, ' ')
+        console.log(`[Selca Search API] Using slug directly: "${slug}"`)
+      } else {
+        // Query is not a slug - search for matching idol
+        // NOTE: searchMembers는 @deprecated, 타임아웃 가능성 있음
+        console.log(`[Selca Search API] Searching for idol: "${query}"`)
+        const idols = await searchMembers(query)
 
-      if (idols.length === 0) {
-        return NextResponse.json(
-          {
-            error: '매칭되는 아이돌을 찾을 수 없습니다',
-            hint: '영문 이름이나 아이돌 드롭다운을 사용해보세요',
-          },
-          { status: 404 }
-        )
+        if (idols.length === 0) {
+          return NextResponse.json(
+            {
+              error: '매칭되는 아이돌을 찾을 수 없습니다',
+              hint: '영문 이름이나 아이돌 드롭다운을 사용해보세요',
+            },
+            { status: 404 }
+          )
+        }
+
+        const idol = idols[0]
+        slug = idol.id
+        displayName = idol.name_original || idol.name
       }
-
-      const idol = idols[0]
-      idolSlug = idol.id
-      idolName = idol.name_original || idol.name
     }
 
-    // Step 2: Fetch idol's owner page with pagination
+    // Step 2: Fetch page with pagination (그룹: /group/, 멤버: /owner/)
+    const basePath = searchType === 'group' ? 'group' : 'owner'
     const params = new URLSearchParams()
     if (maxTimeId) {
       params.set('max_time_id', maxTimeId)
     }
-    const ownerUrl = params.toString()
-      ? `${BASE_URL}/owner/${idolSlug}/?${params}`
-      : `${BASE_URL}/owner/${idolSlug}/`
-    const html = await fetchHtmlFromSelca(ownerUrl)
+    const pageUrl = params.toString()
+      ? `${BASE_URL}/${basePath}/${slug}/?${params}`
+      : `${BASE_URL}/${basePath}/${slug}/`
+    const html = await fetchHtmlFromSelca(pageUrl)
     const root = parse(html)
 
     // Step 3: Parse media items and track nextMaxTimeId
@@ -132,9 +143,9 @@ export async function GET(request: NextRequest) {
 
       results.push({
         url,
-        title: title || `${idolName} 미디어`,
+        title: title || `${displayName} 미디어`,
         thumbnailUrl,
-        author: idolName,
+        author: displayName,
       })
     }
 
@@ -153,11 +164,20 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[Selca Search] Error:', error)
 
-    if (error instanceof Error && error.message.includes('HTTP 404')) {
-      return NextResponse.json(
-        { error: '해당 아이돌의 페이지를 찾을 수 없습니다' },
-        { status: 404 }
-      )
+    if (error instanceof Error) {
+      if (error.message.includes('HTTP 404')) {
+        return NextResponse.json(
+          { error: '해당 아이돌의 콘텐츠가 아직 없습니다' },
+          { status: 404 }
+        )
+      }
+
+      if (error.name === 'AbortError' || error.message.includes('aborted')) {
+        return NextResponse.json(
+          { error: 'selca.kastden.org 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.' },
+          { status: 504 }
+        )
+      }
     }
 
     return NextResponse.json(

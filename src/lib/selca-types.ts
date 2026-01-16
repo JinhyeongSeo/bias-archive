@@ -33,6 +33,8 @@ export interface KpopMember {
   name_original: string
   /** 한글 활동명 (예: "가을"), 없을 수 있음 */
   name_stage_ko?: string
+  /** Selca owner 페이지 존재 여부 (false면 콘텐츠 없음) */
+  hasSelcaOwner?: boolean
 }
 
 /**
@@ -115,4 +117,8 @@ export interface GroupMembersResult {
   groupNameOriginal: string
   /** 멤버 목록 */
   members: KpopMember[]
+  /** Selca group 페이지 존재 여부 (false면 그룹 콘텐츠 없음) */
+  hasSelcaGroup?: boolean
+  /** Selca group slug (예: "nmixx") */
+  selcaGroupSlug?: string
 }

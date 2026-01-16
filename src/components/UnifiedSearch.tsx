@@ -927,9 +927,10 @@ export function UnifiedSearch({
     page: number = 1,
     maxTimeId?: string
   ): Promise<{ results: EnrichedResult[]; hasMore: boolean; nextMaxTimeId?: string }> => {
-    // Step 1: Bias 목록에서 매칭 찾기
+    // Step 1: Bias 또는 Group에서 매칭 찾기
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
+    // 개별 멤버(Bias) 매칭
     const matchedBias = biases.find(bias => {
       const nameMatch = bias.name.toLowerCase() === normalizedQuery;
       const nameEnMatch = bias.name_en?.toLowerCase() === normalizedQuery;
@@ -937,12 +938,39 @@ export function UnifiedSearch({
       return nameMatch || nameEnMatch || nameKoMatch;
     });
 
-    // Step 2: selca_slug 우선 사용 (있으면 바로 검색, 없으면 기존 방식)
-    let queryToUse = searchQuery;
+    // 그룹 매칭
+    const matchedGroup = groups.find(group => {
+      const nameMatch = group.name.toLowerCase() === normalizedQuery;
+      const nameEnMatch = group.name_en?.toLowerCase() === normalizedQuery;
+      const nameKoMatch = group.name_ko?.toLowerCase() === normalizedQuery;
+      return nameMatch || nameEnMatch || nameKoMatch;
+    });
 
-    if (matchedBias?.selca_slug) {
-      queryToUse = matchedBias.selca_slug;
-      console.log(`[Selca Search] "${searchQuery}" → slug: "${queryToUse}" (from Bias)`);
+    // Step 2: selca_slug 우선 사용 (멤버 > 그룹 순서로 확인)
+    let queryToUse = searchQuery;
+    let searchType: 'member' | 'group' = 'member';
+
+    if (matchedBias) {
+      // Bias가 매칭됐지만 selca_slug가 null이면 콘텐츠 없음
+      if (matchedBias.selca_slug === null) {
+        console.log(`[Selca Search] "${searchQuery}" → Selca owner 없음 (API 호출 스킵)`);
+        throw new Error('해당 아이돌의 Selca 콘텐츠가 없습니다');
+      }
+      if (matchedBias.selca_slug) {
+        queryToUse = matchedBias.selca_slug;
+        console.log(`[Selca Search] "${searchQuery}" → slug: "${queryToUse}" (from Bias)`);
+      }
+    } else if (matchedGroup) {
+      // 그룹이 매칭됐지만 selca_slug가 null이면 콘텐츠 없음
+      if (matchedGroup.selca_slug === null) {
+        console.log(`[Selca Search] "${searchQuery}" → Selca group 없음 (API 호출 스킵)`);
+        throw new Error('해당 그룹의 Selca 콘텐츠가 없습니다');
+      }
+      if (matchedGroup.selca_slug) {
+        queryToUse = matchedGroup.selca_slug;
+        searchType = 'group';
+        console.log(`[Selca Search] "${searchQuery}" → slug: "${queryToUse}" (from Group)`);
+      }
     } else {
       // 기존 방식: 한글 → 영문 변환
       const normalizedFallback = normalizeIdolName(searchQuery);
@@ -956,6 +984,7 @@ export function UnifiedSearch({
       query: queryToUse, // selca_slug 또는 변환된 검색어 사용
       page: String(page),
       limit: String(API_FETCH_COUNT),
+      type: searchType, // 'member' or 'group'
     });
     if (maxTimeId) {
       params.set('maxTimeId', maxTimeId);

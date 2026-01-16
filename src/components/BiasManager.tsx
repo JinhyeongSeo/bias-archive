@@ -67,7 +67,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   const [isGroupMode, setIsGroupMode] = useState(false)
   const [groupQuery, setGroupQuery] = useState('')
   const [groupResults, setGroupResults] = useState<KpopGroup[]>([])
-  const [selectedGroup, setSelectedGroup] = useState<{ id: string; name: string; nameOriginal: string } | null>(null)
+  const [selectedGroup, setSelectedGroup] = useState<{ id: string; name: string; nameOriginal: string; hasSelcaGroup?: boolean; selcaGroupSlug?: string } | null>(null)
   const [groupMembers, setGroupMembers] = useState<KpopMember[]>([])
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
   const [isSearching, setIsSearching] = useState(false)
@@ -492,11 +492,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
 
   // Fetch members when group is selected
   async function handleGroupSelect(group: KpopGroup) {
-    setSelectedGroup({
-      id: group.id,
-      name: group.name,
-      nameOriginal: group.name_original,
-    })
     setGroupQuery('')
     setShowDropdown(false)
     setIsLoadingMembers(true)
@@ -508,9 +503,28 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         setGroupMembers(data.members || [])
         // Select all members by default
         setSelectedMembers(new Set(data.members?.map((m: KpopMember) => m.id) || []))
+        // Set group with selca info from API response
+        setSelectedGroup({
+          id: group.id,
+          name: group.name,
+          nameOriginal: group.name_original,
+          hasSelcaGroup: data.hasSelcaGroup,
+          selcaGroupSlug: data.selcaGroupSlug,
+        })
+      } else {
+        setSelectedGroup({
+          id: group.id,
+          name: group.name,
+          nameOriginal: group.name_original,
+        })
       }
     } catch (error) {
       console.error('Error fetching group members:', error)
+      setSelectedGroup({
+        id: group.id,
+        name: group.name,
+        nameOriginal: group.name_original,
+      })
     } finally {
       setIsLoadingMembers(false)
     }
@@ -551,7 +565,8 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
           groupName: selectedGroup.nameOriginal,
           nameEn: m.name, // English name from kpopnet
           nameKo: m.name_original, // Korean name from kpopnet
-          selcaSlug: m.id, // selca.kastden.org slug (e.g., aespa_winter)
+          // selca_slug는 Selca owner가 있는 경우에만 저장 (없으면 검색 불가)
+          selcaSlug: m.hasSelcaOwner ? m.id : null,
         }))
 
       const response = await fetch('/api/biases/batch', {
@@ -563,6 +578,8 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
             name: selectedGroup.name,
             nameEn: selectedGroup.name,
             nameKo: selectedGroup.nameOriginal,
+            // selca_slug는 Selca group이 있는 경우에만 저장
+            selcaSlug: selectedGroup.hasSelcaGroup ? selectedGroup.selcaGroupSlug : null,
           },
         }),
       })

@@ -58,6 +58,7 @@ export type Database = {
           name_ko: string | null
           sort_order: number | null
           user_id: string | null
+          selca_slug: string | null
           created_at: string
           updated_at: string
         }
@@ -68,6 +69,7 @@ export type Database = {
           name_ko?: string | null
           sort_order?: number | null
           user_id?: string | null
+          selca_slug?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -78,6 +80,7 @@ export type Database = {
           name_ko?: string | null
           sort_order?: number | null
           user_id?: string | null
+          selca_slug?: string | null
           updated_at?: string
         }
         Relationships: []

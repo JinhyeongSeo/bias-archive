@@ -6,6 +6,7 @@ interface GroupInfo {
   name: string
   nameEn?: string
   nameKo?: string
+  selcaSlug?: string | null
 }
 
 interface BatchMember {
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
           name: group.name,
           name_en: group.nameEn || null,
           name_ko: group.nameKo || null,
+          selca_slug: group.selcaSlug || null,
           user_id: user.id,
         }
         const { data: newGroup, error: groupError } = await supabase
