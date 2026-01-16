@@ -88,6 +88,7 @@ interface PlatformResults {
   currentOffset: number; // For heye/kgirls pagination within page
   nextPageToken?: string; // For YouTube pagination
   nextCursor?: string; // For Twitter (ScrapeBadger) pagination
+  nextMaxTimeId?: string; // For selca pagination (max_time_id based)
 }
 
 interface UnifiedSearchProps {
@@ -923,8 +924,9 @@ export function UnifiedSearch({
 
   const searchSelca = async (
     searchQuery: string,
-    page: number = 1
-  ): Promise<{ results: EnrichedResult[]; hasMore: boolean }> => {
+    page: number = 1,
+    maxTimeId?: string
+  ): Promise<{ results: EnrichedResult[]; hasMore: boolean; nextMaxTimeId?: string }> => {
     // Step 1: Bias 목록에서 매칭 찾기
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
@@ -955,6 +957,9 @@ export function UnifiedSearch({
       page: String(page),
       limit: String(API_FETCH_COUNT),
     });
+    if (maxTimeId) {
+      params.set('maxTimeId', maxTimeId);
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
@@ -987,6 +992,7 @@ export function UnifiedSearch({
       return {
         results,
         hasMore: data.hasNextPage ?? false,
+        nextMaxTimeId: data.nextMaxTimeId,
       };
     } catch (error) {
       clearTimeout(timeoutId);
@@ -1006,6 +1012,7 @@ export function UnifiedSearch({
       hasMore: boolean;
       nextPageToken?: string;
       nextCursor?: string;
+      nextMaxTimeId?: string;
     }>,
     newCachedResults: Map<Platform, CachedPlatformResult>
   ) => {
@@ -1045,6 +1052,7 @@ export function UnifiedSearch({
           currentOffset: cachedData?.currentOffset ?? 0,
           nextPageToken: cachedData?.nextPageToken,
           nextCursor: cachedData?.nextCursor,
+          nextMaxTimeId: cachedData?.nextMaxTimeId,
         });
         return next;
       });
@@ -1065,6 +1073,7 @@ export function UnifiedSearch({
         hasMore,
         nextPageToken,
         nextCursor,
+        nextMaxTimeId,
       } = await searchFn();
 
       // 캐시에서 가져올 부분 (미표시 부분)
@@ -1091,6 +1100,7 @@ export function UnifiedSearch({
           hasMore: false,
           nextPageToken: cachedData?.nextPageToken,
           nextCursor: cachedData?.nextCursor,
+          nextMaxTimeId: cachedData?.nextMaxTimeId,
         });
       }
 
@@ -1107,6 +1117,7 @@ export function UnifiedSearch({
           currentOffset: 0,
           nextPageToken,
           nextCursor,
+          nextMaxTimeId,
         });
         return next;
       });
@@ -1122,6 +1133,7 @@ export function UnifiedSearch({
         displayedIndex: alreadyDisplayed.length + toDisplay.length,
         nextPageToken,
         nextCursor,
+        nextMaxTimeId,
         currentPage: 1,
         currentOffset: 0,
         hasMore,
@@ -1249,7 +1261,7 @@ export function UnifiedSearch({
         processPlatformSearch(
           "selca",
           cachedSelca,
-          () => searchSelca(query, startPage),
+          () => searchSelca(query, startPage, cachedSelca?.nextMaxTimeId),
           newCachedResults
         )
       );
@@ -1302,6 +1314,7 @@ export function UnifiedSearch({
         hasMore: boolean;
         nextPageToken?: string;
         nextCursor?: string;
+        nextMaxTimeId?: string;
       };
       let newPage = currentData.currentPage;
       const newOffset = currentData.currentOffset;
@@ -1705,6 +1718,83 @@ export function UnifiedSearch({
           }
           break;
         }
+        case "selca": {
+          // selca uses max_time_id based pagination (forward-only)
+          const selcaCacheEntry = await getSearchCache(query);
+          const selcaCache = selcaCacheEntry?.platforms.selca;
+          const selcaCachedResults = selcaCache?.results ?? [];
+
+          // 현재 화면에 표시된 URL들
+          const selcaDisplayedUrls = new Set(
+            currentData.results.map((r) => r.url)
+          );
+          // 캐시에서 아직 표시되지 않은 결과만 필터링
+          const selcaUnshownInCache = selcaCachedResults.filter(
+            (r) => !selcaDisplayedUrls.has(r.url)
+          );
+
+          if (selcaUnshownInCache.length >= RESULTS_PER_PLATFORM) {
+            // Use cached results only
+            const toDisplay = selcaUnshownInCache.slice(0, RESULTS_PER_PLATFORM);
+            searchResult = {
+              results: toDisplay.map((r) => ({
+                ...r,
+                isSaved: checkIfSaved(r.url),
+                isSaving: false,
+              })),
+              hasMore:
+                selcaUnshownInCache.length > RESULTS_PER_PLATFORM ||
+                selcaCache?.hasMore ||
+                false,
+              nextMaxTimeId: selcaCache?.nextMaxTimeId,
+            };
+            // Update cache displayedIndex
+            void updatePlatformCache(query, "selca", {
+              ...selcaCache!,
+              displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM,
+            });
+          } else {
+            // Combine remaining cache + fetch next page using nextMaxTimeId
+            const fromCache = selcaUnshownInCache;
+            const needed = RESULTS_PER_PLATFORM - fromCache.length;
+            const nextMaxTimeId = selcaCache?.nextMaxTimeId || currentData.nextMaxTimeId;
+            const apiResult = await searchSelca(query, newPage, nextMaxTimeId);
+
+            // API 결과에서도 이미 표시된 URL 제외
+            const newApiResults = apiResult.results.filter(
+              (r) => !selcaDisplayedUrls.has(r.url)
+            );
+            const fromApi = newApiResults.slice(0, needed);
+            const leftoverApi = newApiResults.slice(needed);
+
+            searchResult = {
+              results: [
+                ...fromCache.map((r) => ({
+                  ...r,
+                  isSaved: checkIfSaved(r.url),
+                  isSaving: false,
+                })),
+                ...fromApi,
+              ],
+              hasMore: leftoverApi.length > 0 || apiResult.hasMore,
+              nextMaxTimeId: apiResult.nextMaxTimeId,
+            };
+
+            // Update cache with new API results
+            if (leftoverApi.length > 0 || apiResult.hasMore) {
+              void updatePlatformCache(query, "selca", {
+                results: [...selcaCachedResults, ...apiResult.results],
+                displayedIndex:
+                  localDisplayedCount + fromCache.length + fromApi.length,
+                currentPage: newPage,
+                currentOffset: 0,
+                hasMore: apiResult.hasMore,
+                nextMaxTimeId: apiResult.nextMaxTimeId,
+              });
+            }
+          }
+          break;
+        }
         default:
           return;
       }
@@ -1742,6 +1832,7 @@ export function UnifiedSearch({
             currentOffset: newOffset,
             nextPageToken: searchResult.nextPageToken,
             nextCursor: searchResult.nextCursor,
+            nextMaxTimeId: searchResult.nextMaxTimeId,
           });
         }
         return next;

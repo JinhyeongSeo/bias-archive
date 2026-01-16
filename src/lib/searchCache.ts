@@ -22,6 +22,7 @@ export interface CachedPlatformResult {
   results: EnrichedResult[]
   nextCursor?: string      // Twitter (ScrapeBadger)
   nextPageToken?: string   // YouTube
+  nextMaxTimeId?: string   // selca (max_time_id based pagination)
   currentPage: number      // heye, kgirls
   currentOffset: number
   hasMore: boolean
