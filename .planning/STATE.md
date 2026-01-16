@@ -158,12 +158,9 @@ Progress: ███████████████████████�
 
 None.
 
-### In Progress
-
-- [통합검색 Twitter 검색 결과에 HTML 태그 포함되는 버그](.planning/todos/done/2026-01-16-twitter-search-malformed-url-storage.md) (Area: api)
-
 ### Completed (Recently)
 
+- [통합검색 Twitter 검색 결과 URL 제목 저장 버그](.planning/todos/done/2026-01-16-twitter-search-malformed-url-storage.md) (Area: api) ✓
 - [Fix database loading issue for links and groups](.planning/todos/done/2026-01-14-fix-db-loading-issue.md) (Area: database)
 
 ### Blockers/Concerns
