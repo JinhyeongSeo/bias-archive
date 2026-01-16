@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 
-type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue'
+type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca'
 
 const CACHE_TTL_HOURS = 24
 
