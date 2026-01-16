@@ -10,12 +10,14 @@ See: .planning/PROJECT.md (updated 2026-01-13)
 
 ## Current Position
 
-Phase: 26 of 26 (Bias List UX Fixes)
-Plan: 1 of 1 in current phase
-Status: Complete
-Last activity: 2026-01-16 — Completed 26-01-PLAN.md
+Phase: 27 of 27 (Selca External Search)
+Plan: Not planned yet
+Status: Not Started
+Last activity: 2026-01-16 — Phase 27 added to roadmap
 
-Progress: ██████████████████████████ 100% (26/26 phases complete)
+Progress: ████████████████████████░░ 96% (26/27 phases complete)
+
+**Next Phase:** Phase 27 - Selca External Search
 
 ## Performance Metrics
 
@@ -128,6 +130,7 @@ Progress: ███████████████████████�
 - Phase 24 added: Group Deletion (BiasManager에서 그룹 전체 삭제 기능) ✓
 - Phase 25 added: UI Fixes (태그 구분선 간격 & 내보내기 통계 0/0/0 버그)
 - Phase 26 added: Bias List UX Fixes (그룹 순서 실시간 반영 & 추가 위치 수정)
+- Phase 27 added: Selca External Search (selca.kastden.org 외부 검색 플랫폼 추가)
 
 ### Deferred Issues
 
@@ -148,5 +151,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-16
-Stopped at: Completed 26-01-PLAN.md (Phase 26 complete, all phases done)
+Stopped at: Phase 27 added to roadmap (Selca External Search)
 Resume file: None

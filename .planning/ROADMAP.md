@@ -47,6 +47,7 @@ None
 - [x] **Phase 24: Group Deletion** - BiasManager에서 그룹 전체 삭제 기능 추가 ✓
 - [x] **Phase 25: UI Fixes** - 태그 구분선 간격 수정, 내보내기 통계 0/0/0 버그 수정 ✓
 - [x] **Phase 26: Bias List UX Fixes** - 그룹 순서 변경 시 통합검색 실시간 반영, 최애/그룹 추가 시 아래에 추가 ✓
+- [ ] **Phase 27: Selca External Search** - selca.kastden.org 외부 검색 기능 추가 (셀카/영상 콘텐츠)
 
 ## Phase Details
 
@@ -484,6 +485,25 @@ Plans:
 
 - [x] 26-01: API sort_order 자동 설정 + Sidebar onBiasReordered 연결 ✓
 
+### Phase 27: Selca External Search
+
+**Goal**: selca.kastden.org 사이트를 외부 검색 플랫폼으로 추가하여 통합검색에서 셀카/영상 콘텐츠 검색 가능
+**Depends on**: Phase 26
+**Research**: Likely (selca.kastden.org 검색 API 및 HTML 구조 분석 필요)
+**Plans**: TBD
+
+**기능 설명:**
+
+- UnifiedSearch 모달에 selca 탭 추가 (YouTube, Twitter, heye, kgirls와 동일한 방식)
+- selca.kastden.org 검색 기능 구현 (아이돌 이름 기반 셀카/영상 콘텐츠 검색)
+- 검색 결과를 아카이브에 저장 가능 (이미지 및 영상 지원)
+- LinkCard에서 selca 플랫폼 아이콘 표시
+- 검색 캐시 및 조회 기록 지원
+
+Plans:
+
+- [ ] TBD (run /gsd:plan-phase 27 to break down)
+
 ## Progress
 
 **Execution Order:**
@@ -517,3 +537,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 24. Group Deletion | - | 1/1 | Complete | 2026-01-16 |
 | 25. UI Fixes | - | 1/1 | Complete | 2026-01-16 |
 | 26. Bias List UX Fixes | - | 1/1 | Complete | 2026-01-16 |
+| 27. Selca External Search | - | 0/TBD | Not Started | - |
