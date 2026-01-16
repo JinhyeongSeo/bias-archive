@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { getProxiedImageUrl } from '@/lib/proxy'
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { getProxiedImageUrl } from "@/lib/proxy";
 import {
   modalOverlay,
   modalContent,
@@ -10,436 +10,616 @@ import {
   easeOutExpo,
   pressScale,
   quickSpring,
-} from '@/lib/animations'
-import type { Bias, BiasWithGroup, Group } from '@/types/database'
-import { useNameLanguage } from '@/contexts/NameLanguageContext'
+} from "@/lib/animations";
+import type { Bias, BiasWithGroup, Group } from "@/types/database";
+import { useNameLanguage } from "@/contexts/NameLanguageContext";
 import {
   getSearchCache,
   updatePlatformCache,
   clearExpiredCache,
   type CachedPlatformResult,
-} from '@/lib/searchCache'
-import { useTranslations, useLocale } from 'next-intl'
+} from "@/lib/searchCache";
+import { useTranslations, useLocale } from "next-intl";
 
 // Selection type for idol dropdown
-type Selection = { type: 'bias'; id: string } | { type: 'group'; id: string } | null
+type Selection =
+  | { type: "bias"; id: string }
+  | { type: "group"; id: string }
+  | null;
 
-type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue'
+type Platform = "youtube" | "twitter" | "heye" | "kgirls" | "kgirls-issue";
 
 interface YouTubeResult {
-  videoId: string
-  title: string
-  thumbnailUrl: string
-  channelTitle: string
-  publishedAt: string
+  videoId: string;
+  title: string;
+  thumbnailUrl: string;
+  channelTitle: string;
+  publishedAt: string;
 }
 
 interface TwitterResult {
-  link: string
-  title: string
-  snippet: string
-  thumbnailUrl?: string
-  authorName?: string
+  link: string;
+  title: string;
+  snippet: string;
+  thumbnailUrl?: string;
+  authorName?: string;
 }
 
 interface HeyeResult {
-  url: string
-  title: string
-  thumbnailUrl: string | null
-  author: string
+  url: string;
+  title: string;
+  thumbnailUrl: string | null;
+  author: string;
 }
 
 interface KgirlsResult {
-  url: string
-  title: string
-  thumbnailUrl: string | null
-  author: string
+  url: string;
+  title: string;
+  thumbnailUrl: string | null;
+  author: string;
 }
 
 interface EnrichedResult {
-  url: string
-  title: string
-  thumbnailUrl: string | null
-  author: string
-  platform: Platform
-  publishedAt?: string
-  isSaved: boolean
-  isSaving: boolean
+  url: string;
+  title: string;
+  thumbnailUrl: string | null;
+  author: string;
+  platform: Platform;
+  publishedAt?: string;
+  isSaved: boolean;
+  isSaving: boolean;
 }
 
 interface PlatformResults {
-  platform: Platform
-  results: EnrichedResult[]
-  hasMore: boolean
-  isLoading: boolean
-  isLoadingMore: boolean
-  error: string | null
-  currentPage: number
-  currentOffset: number // For heye/kgirls pagination within page
-  nextPageToken?: string // For YouTube pagination
-  nextCursor?: string // For Twitter (ScrapeBadger) pagination
+  platform: Platform;
+  results: EnrichedResult[];
+  hasMore: boolean;
+  isLoading: boolean;
+  isLoadingMore: boolean;
+  error: string | null;
+  currentPage: number;
+  currentOffset: number; // For heye/kgirls pagination within page
+  nextPageToken?: string; // For YouTube pagination
+  nextCursor?: string; // For Twitter (ScrapeBadger) pagination
 }
 
 interface UnifiedSearchProps {
-  isOpen: boolean
-  onClose: () => void
-  savedUrls: string[]
-  onSave?: () => void
-  biases: Bias[]
-  groups: Group[]
+  isOpen: boolean;
+  onClose: () => void;
+  savedUrls: string[];
+  onSave?: () => void;
+  biases: Bias[];
+  groups: Group[];
 }
 
 // Platform configuration
-const PLATFORMS: { id: Platform; label: string; color: string; bgColor: string; ringColor: string }[] = [
-  { id: 'youtube', label: 'YouTube', color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/50', ringColor: 'ring-red-500/20' },
-  { id: 'twitter', label: 'Twitter', color: 'text-twitter', bgColor: 'bg-twitter/10', ringColor: 'ring-twitter/20' },
-  { id: 'heye', label: 'heye.kr', color: 'text-orange-600 dark:text-orange-400', bgColor: 'bg-orange-100 dark:bg-orange-900/50', ringColor: 'ring-orange-500/20' },
-  { id: 'kgirls', label: 'kgirls', color: 'text-pink-600 dark:text-pink-400', bgColor: 'bg-pink-100 dark:bg-pink-900/50', ringColor: 'ring-pink-500/20' },
-  { id: 'kgirls-issue', label: 'kgirls issue', color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-100 dark:bg-purple-900/50', ringColor: 'ring-purple-500/20' },
-]
+const PLATFORMS: {
+  id: Platform;
+  label: string;
+  color: string;
+  bgColor: string;
+  ringColor: string;
+}[] = [
+  {
+    id: "youtube",
+    label: "YouTube",
+    color: "text-red-600 dark:text-red-400",
+    bgColor: "bg-red-100 dark:bg-red-900/50",
+    ringColor: "ring-red-500/20",
+  },
+  {
+    id: "twitter",
+    label: "Twitter",
+    color: "text-twitter",
+    bgColor: "bg-twitter/10",
+    ringColor: "ring-twitter/20",
+  },
+  {
+    id: "heye",
+    label: "heye.kr",
+    color: "text-orange-600 dark:text-orange-400",
+    bgColor: "bg-orange-100 dark:bg-orange-900/50",
+    ringColor: "ring-orange-500/20",
+  },
+  {
+    id: "kgirls",
+    label: "kgirls",
+    color: "text-pink-600 dark:text-pink-400",
+    bgColor: "bg-pink-100 dark:bg-pink-900/50",
+    ringColor: "ring-pink-500/20",
+  },
+  {
+    id: "kgirls-issue",
+    label: "kgirls issue",
+    color: "text-purple-600 dark:text-purple-400",
+    bgColor: "bg-purple-100 dark:bg-purple-900/50",
+    ringColor: "ring-purple-500/20",
+  },
+];
 
-const RESULTS_PER_PLATFORM = 6      // 화면에 표시할 개수
-const API_FETCH_COUNT = 20          // API에서 가져올 개수 (캐시용)
+const RESULTS_PER_PLATFORM = 6; // 화면에 표시할 개수
+const API_FETCH_COUNT = 20; // API에서 가져올 개수 (캐시용)
 
-export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, groups }: UnifiedSearchProps) {
-  const { getDisplayName } = useNameLanguage()
-  const t = useTranslations('unifiedSearch')
-  const locale = useLocale()
+export function UnifiedSearch({
+  isOpen,
+  onClose,
+  savedUrls,
+  onSave,
+  biases,
+  groups,
+}: UnifiedSearchProps) {
+  const { getDisplayName } = useNameLanguage();
+  const t = useTranslations("unifiedSearch");
+  const locale = useLocale();
 
   // Helper to get group name based on current locale
-  const getGroupDisplayName = useCallback((group: Group): string => {
-    if (locale === 'ko') {
-      return group.name_ko || group.name
-    }
-    return group.name_en || group.name
-  }, [locale])
+  const getGroupDisplayName = useCallback(
+    (group: Group): string => {
+      if (locale === "ko") {
+        return group.name_ko || group.name;
+      }
+      return group.name_en || group.name;
+    },
+    [locale]
+  );
 
   // Korean top 100 surnames for detecting real names vs stage names
-  const KOREAN_SURNAMES = useMemo(() => new Set([
-    '김', '이', '박', '최', '정', '강', '조', '윤', '장', '임',
-    '한', '오', '서', '신', '권', '황', '안', '송', '전', '홍',
-    '유', '고', '문', '양', '손', '배', '백', '허', '노', '심',
-    '하', '주', '구', '곽', '성', '차', '우', '민', '류', '나',
-    '진', '지', '엄', '채', '원', '천', '방', '공', '현', '함',
-    '변', '염', '여', '추', '도', '소', '석', '선', '설', '마',
-    '길', '연', '위', '표', '명', '기', '반', '피', '왕', '금',
-    '옥', '육', '인', '맹', '남', '탁', '국', '어', '경', '은',
-    '편', '제', '빈', '봉', '사', '부',
-  ]), [])
+  const KOREAN_SURNAMES = useMemo(
+    () =>
+      new Set([
+        "김",
+        "이",
+        "박",
+        "최",
+        "정",
+        "강",
+        "조",
+        "윤",
+        "장",
+        "임",
+        "한",
+        "오",
+        "서",
+        "신",
+        "권",
+        "황",
+        "안",
+        "송",
+        "전",
+        "홍",
+        "유",
+        "고",
+        "문",
+        "양",
+        "손",
+        "배",
+        "백",
+        "허",
+        "노",
+        "심",
+        "하",
+        "주",
+        "구",
+        "곽",
+        "성",
+        "차",
+        "우",
+        "민",
+        "류",
+        "나",
+        "진",
+        "지",
+        "엄",
+        "채",
+        "원",
+        "천",
+        "방",
+        "공",
+        "현",
+        "함",
+        "변",
+        "염",
+        "여",
+        "추",
+        "도",
+        "소",
+        "석",
+        "선",
+        "설",
+        "마",
+        "길",
+        "연",
+        "위",
+        "표",
+        "명",
+        "기",
+        "반",
+        "피",
+        "왕",
+        "금",
+        "옥",
+        "육",
+        "인",
+        "맹",
+        "남",
+        "탁",
+        "국",
+        "어",
+        "경",
+        "은",
+        "편",
+        "제",
+        "빈",
+        "봉",
+        "사",
+        "부",
+      ]),
+    []
+  );
 
   // Helper to remove Korean surname for better search results
   // Only applies to real Korean names (exactly 3 chars + first char is a surname)
   // Stage names like "윈터", "카리나" are kept as-is
-  const removeKoreanSurname = useCallback((name: string): string => {
-    // Condition: exactly 3 Korean characters + first char is a Korean surname
-    const isThreeCharKorean = /^[가-힣]{3}$/.test(name)
-    const firstCharIsSurname = KOREAN_SURNAMES.has(name.charAt(0))
+  const removeKoreanSurname = useCallback(
+    (name: string): string => {
+      // Condition: exactly 3 Korean characters + first char is a Korean surname
+      const isThreeCharKorean = /^[가-힣]{3}$/.test(name);
+      const firstCharIsSurname = KOREAN_SURNAMES.has(name.charAt(0));
 
-    if (isThreeCharKorean && firstCharIsSurname) {
-      return name.slice(1) // e.g., "장원영" → "원영", "안유진" → "유진"
-    }
-    return name // e.g., "윈터" → "윈터", "카리나" → "카리나"
-  }, [KOREAN_SURNAMES])
+      if (isThreeCharKorean && firstCharIsSurname) {
+        return name.slice(1); // e.g., "장원영" → "원영", "안유진" → "유진"
+      }
+      return name; // e.g., "윈터" → "윈터", "카리나" → "카리나"
+    },
+    [KOREAN_SURNAMES]
+  );
 
-  const [query, setQuery] = useState('')
-  const [selection, setSelection] = useState<Selection>(null)
-  const [isIdolDropdownOpen, setIsIdolDropdownOpen] = useState(false)
-  const [collapsedDropdownGroups, setCollapsedDropdownGroups] = useState<Set<string>>(new Set())
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const dropdownButtonRef = useRef<HTMLButtonElement>(null)
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
-  const [enabledPlatforms, setEnabledPlatforms] = useState<Set<Platform>>(new Set(['youtube', 'twitter', 'heye', 'kgirls', 'kgirls-issue']))
+  const [query, setQuery] = useState("");
+  const [selection, setSelection] = useState<Selection>(null);
+  const [isIdolDropdownOpen, setIsIdolDropdownOpen] = useState(false);
+  const [collapsedDropdownGroups, setCollapsedDropdownGroups] = useState<
+    Set<string>
+  >(new Set());
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownButtonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
+  const [enabledPlatforms, setEnabledPlatforms] = useState<Set<Platform>>(
+    new Set(["youtube", "twitter", "heye", "kgirls", "kgirls-issue"])
+  );
 
-  const [platformResults, setPlatformResults] = useState<Map<Platform, PlatformResults>>(new Map())
-  const [isSearching, setIsSearching] = useState(false)
+  const [platformResults, setPlatformResults] = useState<
+    Map<Platform, PlatformResults>
+  >(new Map());
+  const [isSearching, setIsSearching] = useState(false);
 
   // Multi-select state
-  const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set())
-  const [isBatchSaving, setIsBatchSaving] = useState(false)
+  const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set());
+  const [isBatchSaving, setIsBatchSaving] = useState(false);
 
   // Cache state - 이전에 본 결과
-  const [cachedResults, setCachedResults] = useState<Map<Platform, CachedPlatformResult>>(new Map())
-  const [showCached, setShowCached] = useState<Map<Platform, boolean>>(new Map())
+  const [cachedResults, setCachedResults] = useState<
+    Map<Platform, CachedPlatformResult>
+  >(new Map());
+  const [showCached, setShowCached] = useState<Map<Platform, boolean>>(
+    new Map()
+  );
 
   // Toggle cached results visibility
   const toggleShowCached = (platform: Platform) => {
-    setShowCached(prev => {
-      const next = new Map(prev)
-      next.set(platform, !prev.get(platform))
-      return next
-    })
-  }
+    setShowCached((prev) => {
+      const next = new Map(prev);
+      next.set(platform, !prev.get(platform));
+      return next;
+    });
+  };
 
   // 컴포넌트 마운트 시 만료된 캐시 정리
   useEffect(() => {
-    clearExpiredCache()
-  }, [])
+    clearExpiredCache();
+  }, []);
 
   // Group biases by group for dropdown
   const biasesWithGroups = useMemo((): BiasWithGroup[] => {
-    const groupMap = new Map<string, Group>()
+    const groupMap = new Map<string, Group>();
     for (const group of groups) {
-      groupMap.set(group.id, group)
+      groupMap.set(group.id, group);
     }
     return biases.map((bias) => ({
       ...bias,
       group: bias.group_id ? groupMap.get(bias.group_id) ?? null : null,
-    }))
-  }, [biases, groups])
+    }));
+  }, [biases, groups]);
 
   // Group biases by group_id for dropdown display, sorted by group sort_order
   const groupedBiases = useMemo(() => {
-    const grouped = new Map<string | null, BiasWithGroup[]>()
+    const grouped = new Map<string | null, BiasWithGroup[]>();
 
     // Sort groups by sort_order first
-    const sortedGroups = [...groups].sort((a, b) =>
-      (a.sort_order ?? 0) - (b.sort_order ?? 0)
-    )
+    const sortedGroups = [...groups].sort(
+      (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+    );
 
     // Add groups in sorted order
     for (const group of sortedGroups) {
-      const biasesInGroup = biasesWithGroups.filter(b => b.group_id === group.id)
+      const biasesInGroup = biasesWithGroups.filter(
+        (b) => b.group_id === group.id
+      );
       if (biasesInGroup.length > 0) {
-        grouped.set(group.id, biasesInGroup)
+        grouped.set(group.id, biasesInGroup);
       }
     }
 
     // Add ungrouped biases at the end
-    const ungrouped = biasesWithGroups.filter(b => !b.group_id)
+    const ungrouped = biasesWithGroups.filter((b) => !b.group_id);
     if (ungrouped.length > 0) {
-      grouped.set(null, ungrouped)
+      grouped.set(null, ungrouped);
     }
 
-    return grouped
-  }, [biasesWithGroups, groups])
+    return grouped;
+  }, [biasesWithGroups, groups]);
 
   // Toggle dropdown group collapse
   const toggleDropdownGroupCollapse = (groupId: string) => {
-    setCollapsedDropdownGroups(prev => {
-      const next = new Set(prev)
+    setCollapsedDropdownGroups((prev) => {
+      const next = new Set(prev);
       if (next.has(groupId)) {
-        next.delete(groupId)
+        next.delete(groupId);
       } else {
-        next.add(groupId)
+        next.add(groupId);
       }
-      return next
-    })
-  }
+      return next;
+    });
+  };
 
   // Get selected display name
   const getSelectionDisplayName = useCallback((): string => {
-    if (!selection) return t('selectIdol')
-    if (selection.type === 'group') {
-      const group = groups.find(g => g.id === selection.id)
+    if (!selection) return t("selectIdol");
+    if (selection.type === "group") {
+      const group = groups.find((g) => g.id === selection.id);
       if (group) {
-        return getGroupDisplayName(group)
+        return getGroupDisplayName(group);
       }
     } else {
-      const bias = biases.find(b => b.id === selection.id)
+      const bias = biases.find((b) => b.id === selection.id);
       if (bias) {
-        return getDisplayName(bias)
+        return getDisplayName(bias);
       }
     }
-    return t('selectIdol')
-  }, [selection, groups, biases, getDisplayName, getGroupDisplayName, t])
+    return t("selectIdol");
+  }, [selection, groups, biases, getDisplayName, getGroupDisplayName, t]);
 
   // ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose()
+      if (e.key === "Escape" && isOpen) {
+        onClose();
       }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsIdolDropdownOpen(false)
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsIdolDropdownOpen(false);
       }
-    }
+    };
     if (isIdolDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isIdolDropdownOpen])
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isIdolDropdownOpen]);
 
   // Initialize all groups as collapsed and calculate dropdown position when dropdown opens
   useEffect(() => {
     if (isIdolDropdownOpen) {
       const allGroupIds = new Set(
         biasesWithGroups
-          .map(b => b.group_id)
+          .map((b) => b.group_id)
           .filter((id): id is string => id !== null)
-      )
-      setCollapsedDropdownGroups(allGroupIds)
+      );
+      setCollapsedDropdownGroups(allGroupIds);
 
       // Calculate dropdown position based on button
       if (dropdownButtonRef.current) {
-        const rect = dropdownButtonRef.current.getBoundingClientRect()
+        const rect = dropdownButtonRef.current.getBoundingClientRect();
         setDropdownPosition({
           top: rect.bottom + 4,
           left: rect.left,
           width: rect.width,
-        })
+        });
       }
     }
-  }, [isIdolDropdownOpen, biasesWithGroups])
+  }, [isIdolDropdownOpen, biasesWithGroups]);
 
   // Prevent body scroll when modal is open and reset state when closing
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden'
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = ''
+      document.body.style.overflow = "";
       // Reset state when modal closes
-      setQuery('')
-      setSelection(null)
-      setIsIdolDropdownOpen(false)
-      setCollapsedDropdownGroups(new Set())
-      setPlatformResults(new Map())
-      setSelectedUrls(new Set())
-      setCachedResults(new Map())
-      setShowCached(new Map())
+      setQuery("");
+      setSelection(null);
+      setIsIdolDropdownOpen(false);
+      setCollapsedDropdownGroups(new Set());
+      setPlatformResults(new Map());
+      setSelectedUrls(new Set());
+      setCachedResults(new Map());
+      setShowCached(new Map());
     }
     return () => {
-      document.body.style.overflow = ''
-    }
-  }, [isOpen])
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
   // When selection changes, update query
   useEffect(() => {
-    if (!selection) return
+    if (!selection) return;
 
-    if (selection.type === 'group') {
-      const group = groups.find(g => g.id === selection.id)
+    if (selection.type === "group") {
+      const group = groups.find((g) => g.id === selection.id);
       if (group) {
         // Use locale-appropriate group name for search
-        setQuery(getGroupDisplayName(group))
+        setQuery(getGroupDisplayName(group));
       }
     } else {
-      const selectedBias = biases.find(b => b.id === selection.id)
+      const selectedBias = biases.find((b) => b.id === selection.id);
       if (selectedBias) {
         // Use Korean name with surname removed for better search results
         // e.g., "장원영" → "원영" gets more results than full name
-        const koreanName = selectedBias.name_ko || selectedBias.name
-        setQuery(removeKoreanSurname(koreanName))
+        const koreanName = selectedBias.name_ko || selectedBias.name;
+        setQuery(removeKoreanSurname(koreanName));
       }
     }
-  }, [selection, groups, biases, getGroupDisplayName, removeKoreanSurname])
+  }, [selection, groups, biases, getGroupDisplayName, removeKoreanSurname]);
 
-  const checkIfSaved = useCallback((url: string): boolean => {
-    const normalizedUrl = url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
-    return savedUrls.some(savedUrl => {
-      const normalizedSaved = savedUrl.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
-      return normalizedSaved === normalizedUrl
-    })
-  }, [savedUrls])
+  const checkIfSaved = useCallback(
+    (url: string): boolean => {
+      const normalizedUrl = url
+        .replace(/^https?:\/\/(www\.)?/, "")
+        .replace(/\/$/, "");
+      return savedUrls.some((savedUrl) => {
+        const normalizedSaved = savedUrl
+          .replace(/^https?:\/\/(www\.)?/, "")
+          .replace(/\/$/, "");
+        return normalizedSaved === normalizedUrl;
+      });
+    },
+    [savedUrls]
+  );
 
   // Toggle platform
   const togglePlatform = (platform: Platform) => {
-    setEnabledPlatforms(prev => {
-      const next = new Set(prev)
+    setEnabledPlatforms((prev) => {
+      const next = new Set(prev);
       if (next.has(platform)) {
         // Don't allow disabling all platforms
         if (next.size > 1) {
-          next.delete(platform)
+          next.delete(platform);
         }
       } else {
-        next.add(platform)
+        next.add(platform);
       }
-      return next
-    })
-  }
+      return next;
+    });
+  };
 
   // Search functions for each platform
-  const searchYouTube = async (searchQuery: string, pageToken?: string): Promise<{ results: EnrichedResult[], hasMore: boolean, nextPageToken?: string }> => {
+  const searchYouTube = async (
+    searchQuery: string,
+    pageToken?: string
+  ): Promise<{
+    results: EnrichedResult[];
+    hasMore: boolean;
+    nextPageToken?: string;
+  }> => {
     const params = new URLSearchParams({
       q: searchQuery,
       max: String(API_FETCH_COUNT),
-      order: 'relevance',
-      period: 'month', // Default to this month for more recent results
-    })
+      order: "relevance",
+      period: "month", // Default to this month for more recent results
+    });
     if (pageToken) {
-      params.set('pageToken', pageToken)
+      params.set("pageToken", pageToken);
     }
 
-    const response = await fetch(`/api/youtube/search?${params}`)
-    const data = await response.json()
+    const response = await fetch(`/api/youtube/search?${params}`);
+    const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'YouTube 검색 실패')
+      throw new Error(data.error || "YouTube 검색 실패");
     }
 
-    const results = (data.results as YouTubeResult[]).map(item => ({
+    const results = (data.results as YouTubeResult[]).map((item) => ({
       url: `https://www.youtube.com/watch?v=${item.videoId}`,
       title: item.title,
       thumbnailUrl: item.thumbnailUrl,
       author: item.channelTitle,
-      platform: 'youtube' as Platform,
+      platform: "youtube" as Platform,
       publishedAt: item.publishedAt,
       isSaved: checkIfSaved(`https://www.youtube.com/watch?v=${item.videoId}`),
       isSaving: false,
-    }))
+    }));
 
     return {
       results,
       hasMore: data.hasMore ?? false,
       nextPageToken: data.nextPageToken,
-    }
-  }
+    };
+  };
 
-  const searchTwitter = async (searchQuery: string, cursor?: string): Promise<{ results: EnrichedResult[], hasMore: boolean, nextCursor?: string }> => {
+  const searchTwitter = async (
+    searchQuery: string,
+    cursor?: string
+  ): Promise<{
+    results: EnrichedResult[];
+    hasMore: boolean;
+    nextCursor?: string;
+  }> => {
     // Remove # prefix if present - Google CSE handles hashtags better without the # symbol
     // The site:twitter.com filter in the API will find relevant tweets
-    const cleanQuery = searchQuery.startsWith('#') ? searchQuery.slice(1) : searchQuery
+    const cleanQuery = searchQuery.startsWith("#")
+      ? searchQuery.slice(1)
+      : searchQuery;
 
-    console.log('[searchTwitter] query:', cleanQuery, 'cursor:', cursor)
+    console.log("[searchTwitter] query:", cleanQuery, "cursor:", cursor);
 
     const params = new URLSearchParams({
       q: cleanQuery,
       count: String(API_FETCH_COUNT),
-    })
+    });
 
     // Add cursor for ScrapeBadger pagination
     if (cursor) {
-      params.set('cursor', cursor)
+      params.set("cursor", cursor);
     }
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-    let data
+    let data;
     try {
       const response = await fetch(`/api/search/twitter?${params}`, {
         signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-      data = await response.json()
+      });
+      clearTimeout(timeoutId);
+      data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Twitter 검색 실패')
+        throw new Error(data.error || "Twitter 검색 실패");
       }
 
-      console.log('[Twitter Search] provider:', data.provider, 'results:', data.results?.length)
+      console.log(
+        "[Twitter Search] provider:",
+        data.provider,
+        "results:",
+        data.results?.length
+      );
     } catch (error) {
-      clearTimeout(timeoutId)
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('요청 시간이 초과되었습니다')
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("요청 시간이 초과되었습니다");
       }
-      throw error
+      throw error;
     }
 
-    const twitterResults = data.results as TwitterResult[]
+    const twitterResults = data.results as TwitterResult[];
 
     // ScrapeBadger already returns thumbnailUrl and authorName, so we can use them directly
     // Only fetch metadata for results without thumbnailUrl (likely from Google CSE fallback)
     const results: EnrichedResult[] = await Promise.all(
       twitterResults.map(async (item): Promise<EnrichedResult> => {
-        const isSaved = checkIfSaved(item.link)
+        const isSaved = checkIfSaved(item.link);
 
         // If we already have thumbnail from ScrapeBadger, use it directly
         if (item.thumbnailUrl) {
@@ -447,41 +627,41 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             url: item.link,
             title: item.title,
             thumbnailUrl: item.thumbnailUrl,
-            author: item.authorName || '',
-            platform: 'twitter',
+            author: item.authorName || "",
+            platform: "twitter",
             isSaved,
             isSaving: false,
-          }
+          };
         }
 
         // Fallback: fetch metadata for Google CSE results
-        const metaController = new AbortController()
-        const metaTimeoutId = setTimeout(() => metaController.abort(), 5000)
+        const metaController = new AbortController();
+        const metaTimeoutId = setTimeout(() => metaController.abort(), 5000);
 
         try {
-          const metaResponse = await fetch('/api/metadata', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          const metaResponse = await fetch("/api/metadata", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url: item.link }),
             signal: metaController.signal,
-          })
+          });
 
-          clearTimeout(metaTimeoutId)
+          clearTimeout(metaTimeoutId);
 
           if (metaResponse.ok) {
-            const metadata = await metaResponse.json()
+            const metadata = await metaResponse.json();
             return {
               url: item.link,
               title: metadata.title || item.title,
               thumbnailUrl: metadata.thumbnailUrl || null,
-              author: metadata.authorName || '',
-              platform: 'twitter',
+              author: metadata.authorName || "",
+              platform: "twitter",
               isSaved,
               isSaving: false,
-            }
+            };
           }
         } catch {
-          clearTimeout(metaTimeoutId)
+          clearTimeout(metaTimeoutId);
         }
 
         // Fallback result if metadata fetch fails
@@ -489,186 +669,213 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           url: item.link,
           title: item.title,
           thumbnailUrl: null,
-          author: '',
-          platform: 'twitter',
+          author: "",
+          platform: "twitter",
           isSaved,
           isSaving: false,
-        }
+        };
       })
-    )
+    );
 
     return {
       results,
       hasMore: data.hasMore ?? false,
       nextCursor: data.nextCursor,
-    }
-  }
+    };
+  };
 
-  const searchHeye = async (searchQuery: string, page: number = 1, offset: number = 0): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
+  const searchHeye = async (
+    searchQuery: string,
+    page: number = 1,
+    offset: number = 0
+  ): Promise<{ results: EnrichedResult[]; hasMore: boolean }> => {
     const params = new URLSearchParams({
       q: searchQuery,
       page: String(page),
       limit: String(API_FETCH_COUNT),
       offset: String(offset),
-    })
+    });
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
     try {
       const response = await fetch(`/api/search/heye?${params}`, {
         signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-      const data = await response.json()
+      });
+      clearTimeout(timeoutId);
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'heye.kr 검색 실패')
+        throw new Error(data.error || "heye.kr 검색 실패");
       }
 
-      const results = (data.results as HeyeResult[]).map(item => ({
+      const results = (data.results as HeyeResult[]).map((item) => ({
         url: item.url,
         title: item.title,
-        thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
+        thumbnailUrl: item.thumbnailUrl
+          ? getProxiedImageUrl(item.thumbnailUrl)
+          : null,
         author: item.author,
-        platform: 'heye' as Platform,
+        platform: "heye" as Platform,
         isSaved: checkIfSaved(item.url),
         isSaving: false,
-      }))
+      }));
 
       return {
         results,
         hasMore: data.hasMore ?? false,
-      }
+      };
     } catch (error) {
-      clearTimeout(timeoutId)
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('요청 시간이 초과되었습니다')
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("요청 시간이 초과되었습니다");
       }
-      throw error
+      throw error;
     }
-  }
+  };
 
-  const searchKgirls = async (searchQuery: string, page: number = 1, offset: number = 0): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
+  const searchKgirls = async (
+    searchQuery: string,
+    page: number = 1,
+    offset: number = 0
+  ): Promise<{ results: EnrichedResult[]; hasMore: boolean }> => {
     const params = new URLSearchParams({
       q: searchQuery,
       page: String(page),
-      board: 'mgall',
+      board: "mgall",
       limit: String(API_FETCH_COUNT),
       offset: String(offset),
-    })
+    });
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
     try {
       const response = await fetch(`/api/search/kgirls?${params}`, {
         signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-      const data = await response.json()
+      });
+      clearTimeout(timeoutId);
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'kgirls.net 검색 실패')
+        throw new Error(data.error || "kgirls.net 검색 실패");
       }
 
-      const results = (data.results as KgirlsResult[]).map(item => ({
+      const results = (data.results as KgirlsResult[]).map((item) => ({
         url: item.url,
         title: item.title,
-        thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
+        thumbnailUrl: item.thumbnailUrl
+          ? getProxiedImageUrl(item.thumbnailUrl)
+          : null,
         author: item.author,
-        platform: 'kgirls' as Platform,
+        platform: "kgirls" as Platform,
         isSaved: checkIfSaved(item.url),
         isSaving: false,
-      }))
+      }));
 
       return {
         results,
         hasMore: data.hasMore ?? false,
-      }
+      };
     } catch (error) {
-      clearTimeout(timeoutId)
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('요청 시간이 초과되었습니다')
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("요청 시간이 초과되었습니다");
       }
-      throw error
+      throw error;
     }
-  }
+  };
 
-  const searchKgirlsIssue = async (searchQuery: string, page: number = 1, offset: number = 0): Promise<{ results: EnrichedResult[], hasMore: boolean }> => {
+  const searchKgirlsIssue = async (
+    searchQuery: string,
+    page: number = 1,
+    offset: number = 0
+  ): Promise<{ results: EnrichedResult[]; hasMore: boolean }> => {
     const params = new URLSearchParams({
       q: searchQuery,
       page: String(page),
-      board: 'issue',
+      board: "issue",
       limit: String(API_FETCH_COUNT),
       offset: String(offset),
-    })
+    });
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
     try {
       const response = await fetch(`/api/search/kgirls?${params}`, {
         signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-      const data = await response.json()
+      });
+      clearTimeout(timeoutId);
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'kgirls.net issue 검색 실패')
+        throw new Error(data.error || "kgirls.net issue 검색 실패");
       }
 
-      const results = (data.results as KgirlsResult[]).map(item => ({
+      const results = (data.results as KgirlsResult[]).map((item) => ({
         url: item.url,
         title: item.title,
-        thumbnailUrl: item.thumbnailUrl ? getProxiedImageUrl(item.thumbnailUrl) : null,
+        thumbnailUrl: item.thumbnailUrl
+          ? getProxiedImageUrl(item.thumbnailUrl)
+          : null,
         author: item.author,
-        platform: 'kgirls-issue' as Platform,
+        platform: "kgirls-issue" as Platform,
         isSaved: checkIfSaved(item.url),
         isSaving: false,
-      }))
+      }));
 
       return {
         results,
         hasMore: data.hasMore ?? false,
-      }
+      };
     } catch (error) {
-      clearTimeout(timeoutId)
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('요청 시간이 초과되었습니다')
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("요청 시간이 초과되었습니다");
       }
-      throw error
+      throw error;
     }
-  }
+  };
 
   // 플랫폼별 검색 처리 헬퍼 함수
   const processPlatformSearch = async (
     platform: Platform,
     cachedData: CachedPlatformResult | undefined,
-    searchFn: () => Promise<{ results: EnrichedResult[], hasMore: boolean, nextPageToken?: string, nextCursor?: string }>,
+    searchFn: () => Promise<{
+      results: EnrichedResult[];
+      hasMore: boolean;
+      nextPageToken?: string;
+      nextCursor?: string;
+    }>,
     newCachedResults: Map<Platform, CachedPlatformResult>
   ) => {
-    const displayedIndex = cachedData?.displayedIndex ?? 0
-    const cachedResultsList = cachedData?.results ?? []
-    const remainingInCache = cachedResultsList.length - displayedIndex
+    const displayedIndex = cachedData?.displayedIndex ?? 0;
+    const cachedResultsList = cachedData?.results ?? [];
+    const remainingInCache = cachedResultsList.length - displayedIndex;
 
     // 캐시에 충분한 미표시 결과가 있으면 API 호출 없이 캐시에서 표시
     if (remainingInCache >= RESULTS_PER_PLATFORM) {
-      const toDisplay = cachedResultsList.slice(displayedIndex, displayedIndex + RESULTS_PER_PLATFORM)
-      const alreadyDisplayed = cachedResultsList.slice(0, displayedIndex)
-      const newDisplayedIndex = displayedIndex + RESULTS_PER_PLATFORM
-      const hasMoreInCache = cachedResultsList.length > newDisplayedIndex || cachedData?.hasMore
+      const toDisplay = cachedResultsList.slice(
+        displayedIndex,
+        displayedIndex + RESULTS_PER_PLATFORM
+      );
+      const alreadyDisplayed = cachedResultsList.slice(0, displayedIndex);
+      const newDisplayedIndex = displayedIndex + RESULTS_PER_PLATFORM;
+      const hasMoreInCache =
+        cachedResultsList.length > newDisplayedIndex || cachedData?.hasMore;
 
       // "오늘 본 결과"에 이전에 표시했던 결과 저장
       if (alreadyDisplayed.length > 0) {
         newCachedResults.set(platform, {
           ...cachedData!,
           results: alreadyDisplayed,
-        })
+        });
       }
 
-      setPlatformResults(prev => {
-        const next = new Map(prev)
+      setPlatformResults((prev) => {
+        const next = new Map(prev);
         next.set(platform, {
           platform,
           results: toDisplay,
@@ -680,36 +887,41 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           currentOffset: cachedData?.currentOffset ?? 0,
           nextPageToken: cachedData?.nextPageToken,
           nextCursor: cachedData?.nextCursor,
-        })
-        return next
-      })
+        });
+        return next;
+      });
 
       // 캐시의 displayedIndex 업데이트 (비동기, await 불필요)
       void updatePlatformCache(query, platform, {
         ...cachedData!,
         displayedIndex: newDisplayedIndex,
-      })
+      });
 
-      return
+      return;
     }
 
     // 캐시가 부족하면 API 호출
     try {
-      const { results: apiResults, hasMore, nextPageToken, nextCursor } = await searchFn()
+      const {
+        results: apiResults,
+        hasMore,
+        nextPageToken,
+        nextCursor,
+      } = await searchFn();
 
       // 캐시에서 가져올 부분 (미표시 부분)
-      const fromCache = cachedResultsList.slice(displayedIndex)
+      const fromCache = cachedResultsList.slice(displayedIndex);
       // 이미 표시한 부분 (오늘 본 결과)
-      const alreadyDisplayed = cachedResultsList.slice(0, displayedIndex)
+      const alreadyDisplayed = cachedResultsList.slice(0, displayedIndex);
 
       // API 결과에서 중복 제거
-      const existingUrls = new Set(cachedResultsList.map(r => r.url))
-      const newApiResults = apiResults.filter(r => !existingUrls.has(r.url))
+      const existingUrls = new Set(cachedResultsList.map((r) => r.url));
+      const newApiResults = apiResults.filter((r) => !existingUrls.has(r.url));
 
       // 캐시 잔여 + 새 API 결과 합치기
-      const combined = [...fromCache, ...newApiResults]
-      const toDisplay = combined.slice(0, RESULTS_PER_PLATFORM)
-      const toSaveInCache = combined.slice(RESULTS_PER_PLATFORM)
+      const combined = [...fromCache, ...newApiResults];
+      const toDisplay = combined.slice(0, RESULTS_PER_PLATFORM);
+      const toSaveInCache = combined.slice(RESULTS_PER_PLATFORM);
 
       // "오늘 본 결과"에 이전에 표시했던 결과 저장
       if (alreadyDisplayed.length > 0) {
@@ -721,11 +933,11 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           hasMore: false,
           nextPageToken: cachedData?.nextPageToken,
           nextCursor: cachedData?.nextCursor,
-        })
+        });
       }
 
-      setPlatformResults(prev => {
-        const next = new Map(prev)
+      setPlatformResults((prev) => {
+        const next = new Map(prev);
         next.set(platform, {
           platform,
           results: toDisplay,
@@ -737,12 +949,16 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           currentOffset: 0,
           nextPageToken,
           nextCursor,
-        })
-        return next
-      })
+        });
+        return next;
+      });
 
       // 전체 캐시 업데이트 (표시한 것 + 남은 것) - 비동기, await 불필요
-      const allCachedResults = [...alreadyDisplayed, ...toDisplay, ...toSaveInCache]
+      const allCachedResults = [
+        ...alreadyDisplayed,
+        ...toDisplay,
+        ...toSaveInCache,
+      ];
       void updatePlatformCache(query, platform, {
         results: allCachedResults,
         displayedIndex: alreadyDisplayed.length + toDisplay.length,
@@ -751,39 +967,40 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
         currentPage: 1,
         currentOffset: 0,
         hasMore,
-      })
+      });
     } catch (error) {
-      console.error(`[UnifiedSearch] ${platform} error:`, error)
-      setPlatformResults(prev => {
-        const next = new Map(prev)
+      console.error(`[UnifiedSearch] ${platform} error:`, error);
+      setPlatformResults((prev) => {
+        const next = new Map(prev);
         next.set(platform, {
           platform,
           results: [],
           hasMore: false,
           isLoading: false,
           isLoadingMore: false,
-          error: error instanceof Error ? error.message : `${platform} 검색 실패`,
+          error:
+            error instanceof Error ? error.message : `${platform} 검색 실패`,
           currentPage: 1,
           currentOffset: 0,
-        })
-        return next
-      })
+        });
+        return next;
+      });
     }
-  }
+  };
 
   // Unified search - search all enabled platforms in parallel
   const handleSearch = async () => {
-    if (!query.trim()) return
+    if (!query.trim()) return;
 
-    setIsSearching(true)
-    setSelectedUrls(new Set())
+    setIsSearching(true);
+    setSelectedUrls(new Set());
 
     // 캐시 확인 (서버에서 가져오기)
-    const cached = await getSearchCache(query)
-    const newCachedResults = new Map<Platform, CachedPlatformResult>()
+    const cached = await getSearchCache(query);
+    const newCachedResults = new Map<Platform, CachedPlatformResult>();
 
     // Initialize results for each enabled platform
-    const initialResults = new Map<Platform, PlatformResults>()
+    const initialResults = new Map<Platform, PlatformResults>();
     for (const platform of enabledPlatforms) {
       initialResults.set(platform, {
         platform,
@@ -794,417 +1011,556 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
         error: null,
         currentPage: 1,
         currentOffset: 0,
-      })
+      });
     }
-    setPlatformResults(initialResults)
+    setPlatformResults(initialResults);
 
     // Search all platforms in parallel
-    const searchPromises: Promise<void>[] = []
+    const searchPromises: Promise<void>[] = [];
 
-    if (enabledPlatforms.has('youtube')) {
-      const cachedYoutube = cached?.platforms.youtube
+    if (enabledPlatforms.has("youtube")) {
+      const cachedYoutube = cached?.platforms.youtube;
       searchPromises.push(
         processPlatformSearch(
-          'youtube',
+          "youtube",
           cachedYoutube,
           () => searchYouTube(query, cachedYoutube?.nextPageToken),
           newCachedResults
         )
-      )
+      );
     }
 
-    if (enabledPlatforms.has('twitter')) {
-      const cachedTwitter = cached?.platforms.twitter
+    if (enabledPlatforms.has("twitter")) {
+      const cachedTwitter = cached?.platforms.twitter;
       searchPromises.push(
         processPlatformSearch(
-          'twitter',
+          "twitter",
           cachedTwitter,
           () => searchTwitter(query, cachedTwitter?.nextCursor),
           newCachedResults
         )
-      )
+      );
     }
 
-    if (enabledPlatforms.has('heye')) {
-      const cachedHeye = cached?.platforms.heye
-      const startPage = cachedHeye?.currentPage ?? 1
-      const startOffset = cachedHeye?.currentOffset ?? 0
+    if (enabledPlatforms.has("heye")) {
+      const cachedHeye = cached?.platforms.heye;
+      const startPage = cachedHeye?.currentPage ?? 1;
+      const startOffset = cachedHeye?.currentOffset ?? 0;
       searchPromises.push(
         processPlatformSearch(
-          'heye',
+          "heye",
           cachedHeye,
           () => searchHeye(query, startPage, startOffset),
           newCachedResults
         )
-      )
+      );
     }
 
-    if (enabledPlatforms.has('kgirls')) {
-      const cachedKgirls = cached?.platforms.kgirls
-      const startPage = cachedKgirls?.currentPage ?? 1
-      const startOffset = cachedKgirls?.currentOffset ?? 0
+    if (enabledPlatforms.has("kgirls")) {
+      const cachedKgirls = cached?.platforms.kgirls;
+      const startPage = cachedKgirls?.currentPage ?? 1;
+      const startOffset = cachedKgirls?.currentOffset ?? 0;
       searchPromises.push(
         processPlatformSearch(
-          'kgirls',
+          "kgirls",
           cachedKgirls,
           () => searchKgirls(query, startPage, startOffset),
           newCachedResults
         )
-      )
+      );
     }
 
-    if (enabledPlatforms.has('kgirls-issue')) {
-      const cachedKgirlsIssue = cached?.platforms['kgirls-issue']
-      const startPage = cachedKgirlsIssue?.currentPage ?? 1
-      const startOffset = cachedKgirlsIssue?.currentOffset ?? 0
+    if (enabledPlatforms.has("kgirls-issue")) {
+      const cachedKgirlsIssue = cached?.platforms["kgirls-issue"];
+      const startPage = cachedKgirlsIssue?.currentPage ?? 1;
+      const startOffset = cachedKgirlsIssue?.currentOffset ?? 0;
       searchPromises.push(
         processPlatformSearch(
-          'kgirls-issue',
+          "kgirls-issue",
           cachedKgirlsIssue,
           () => searchKgirlsIssue(query, startPage, startOffset),
           newCachedResults
         )
-      )
+      );
     }
 
-    await Promise.allSettled(searchPromises)
+    await Promise.allSettled(searchPromises);
 
     // 캐시된 결과 상태 설정
-    setCachedResults(newCachedResults)
+    setCachedResults(newCachedResults);
     // 캐시된 결과는 기본적으로 접힌 상태
-    setShowCached(new Map())
+    setShowCached(new Map());
 
-    setIsSearching(false)
-  }
+    setIsSearching(false);
+  };
 
   // Load more results for a specific platform
   const handleLoadMore = async (platform: Platform) => {
-    const currentData = platformResults.get(platform)
-    console.log('[handleLoadMore] platform:', platform, 'currentData:', currentData)
+    const currentData = platformResults.get(platform);
+    console.log(
+      "[handleLoadMore] platform:",
+      platform,
+      "currentData:",
+      currentData
+    );
     if (!currentData || currentData.isLoadingMore || !currentData.hasMore) {
-      console.log('[handleLoadMore] early return - currentData:', !!currentData, 'isLoadingMore:', currentData?.isLoadingMore, 'hasMore:', currentData?.hasMore)
-      return
+      console.log(
+        "[handleLoadMore] early return - currentData:",
+        !!currentData,
+        "isLoadingMore:",
+        currentData?.isLoadingMore,
+        "hasMore:",
+        currentData?.hasMore
+      );
+      return;
     }
 
     // Set loading more state
-    setPlatformResults(prev => {
-      const next = new Map(prev)
-      const data = next.get(platform)
+    setPlatformResults((prev) => {
+      const next = new Map(prev);
+      const data = next.get(platform);
       if (data) {
-        next.set(platform, { ...data, isLoadingMore: true })
+        next.set(platform, { ...data, isLoadingMore: true });
       }
-      return next
-    })
+      return next;
+    });
 
     try {
-      let searchResult: { results: EnrichedResult[], hasMore: boolean, nextPageToken?: string, nextCursor?: string }
-      let newPage = currentData.currentPage
-      const newOffset = currentData.currentOffset
+      let searchResult: {
+        results: EnrichedResult[];
+        hasMore: boolean;
+        nextPageToken?: string;
+        nextCursor?: string;
+      };
+      let newPage = currentData.currentPage;
+      const newOffset = currentData.currentOffset;
 
       // 로컬 상태 기준 displayedIndex (서버 캐시 타이밍 이슈 방지)
-      const localDisplayedCount = currentData.results.length
+      const localDisplayedCount = currentData.results.length;
 
       switch (platform) {
-        case 'youtube': {
+        case "youtube": {
           // Check cache first
-          const ytCacheEntry = await getSearchCache(query)
-          const ytCache = ytCacheEntry?.platforms.youtube
-          const ytCachedResults = ytCache?.results ?? []
+          const ytCacheEntry = await getSearchCache(query);
+          const ytCache = ytCacheEntry?.platforms.youtube;
+          const ytCachedResults = ytCache?.results ?? [];
 
           // 현재 화면에 표시된 URL들
-          const ytDisplayedUrls = new Set(currentData.results.map(r => r.url))
+          const ytDisplayedUrls = new Set(
+            currentData.results.map((r) => r.url)
+          );
           // 캐시에서 아직 표시되지 않은 결과만 필터링
-          const ytUnshownInCache = ytCachedResults.filter(r => !ytDisplayedUrls.has(r.url))
+          const ytUnshownInCache = ytCachedResults.filter(
+            (r) => !ytDisplayedUrls.has(r.url)
+          );
 
           if (ytUnshownInCache.length >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = ytUnshownInCache.slice(0, RESULTS_PER_PLATFORM)
+            const toDisplay = ytUnshownInCache.slice(0, RESULTS_PER_PLATFORM);
             searchResult = {
-              results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: ytUnshownInCache.length > RESULTS_PER_PLATFORM || ytCache?.hasMore || false,
+              results: toDisplay.map((r) => ({
+                ...r,
+                isSaved: checkIfSaved(r.url),
+                isSaving: false,
+              })),
+              hasMore:
+                ytUnshownInCache.length > RESULTS_PER_PLATFORM ||
+                ytCache?.hasMore ||
+                false,
               nextPageToken: ytCache?.nextPageToken,
-            }
+            };
             // Update cache displayedIndex
-            void updatePlatformCache(query, 'youtube', {
+            void updatePlatformCache(query, "youtube", {
               ...ytCache!,
               displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM,
-            })
+            });
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = ytUnshownInCache
-            const needed = RESULTS_PER_PLATFORM - fromCache.length
-            const apiResult = await searchYouTube(query, ytCache?.nextPageToken || currentData.nextPageToken)
+            const fromCache = ytUnshownInCache;
+            const needed = RESULTS_PER_PLATFORM - fromCache.length;
+            const apiResult = await searchYouTube(
+              query,
+              ytCache?.nextPageToken || currentData.nextPageToken
+            );
 
             // API 결과에서도 이미 표시된 URL 제외
-            const newApiResults = apiResult.results.filter(r => !ytDisplayedUrls.has(r.url))
-            const fromApi = newApiResults.slice(0, needed)
-            const leftoverApi = newApiResults.slice(needed)
+            const newApiResults = apiResult.results.filter(
+              (r) => !ytDisplayedUrls.has(r.url)
+            );
+            const fromApi = newApiResults.slice(0, needed);
+            const leftoverApi = newApiResults.slice(needed);
 
             searchResult = {
               results: [
-                ...fromCache.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+                ...fromCache.map((r) => ({
+                  ...r,
+                  isSaved: checkIfSaved(r.url),
+                  isSaving: false,
+                })),
                 ...fromApi,
               ],
               hasMore: leftoverApi.length > 0 || apiResult.hasMore,
               nextPageToken: apiResult.nextPageToken,
-            }
+            };
 
             // Update cache with new API results
             if (leftoverApi.length > 0 || apiResult.hasMore) {
-              void updatePlatformCache(query, 'youtube', {
+              void updatePlatformCache(query, "youtube", {
                 results: [...ytCachedResults, ...apiResult.results],
-                displayedIndex: localDisplayedCount + fromCache.length + fromApi.length,
+                displayedIndex:
+                  localDisplayedCount + fromCache.length + fromApi.length,
                 currentPage: 1,
                 currentOffset: 0,
                 hasMore: apiResult.hasMore,
                 nextPageToken: apiResult.nextPageToken,
-              })
+              });
             }
           }
-          break
+          break;
         }
-        case 'twitter': {
+        case "twitter": {
           // Check cache first
-          const twCacheEntry = await getSearchCache(query)
-          const twCache = twCacheEntry?.platforms.twitter
-          const twCachedResults = twCache?.results ?? []
+          const twCacheEntry = await getSearchCache(query);
+          const twCache = twCacheEntry?.platforms.twitter;
+          const twCachedResults = twCache?.results ?? [];
 
           // 현재 화면에 표시된 URL들
-          const displayedUrls = new Set(currentData.results.map(r => r.url))
+          const displayedUrls = new Set(currentData.results.map((r) => r.url));
           // 캐시에서 아직 표시되지 않은 결과만 필터링
-          const twUnshownInCache = twCachedResults.filter(r => !displayedUrls.has(r.url))
+          const twUnshownInCache = twCachedResults.filter(
+            (r) => !displayedUrls.has(r.url)
+          );
 
-          console.log('[Twitter LoadMore] cache:', twCachedResults.length, 'displayed:', displayedUrls.size, 'unshown:', twUnshownInCache.length, 'nextCursor:', twCache?.nextCursor || currentData.nextCursor)
+          console.log(
+            "[Twitter LoadMore] cache:",
+            twCachedResults.length,
+            "displayed:",
+            displayedUrls.size,
+            "unshown:",
+            twUnshownInCache.length,
+            "nextCursor:",
+            twCache?.nextCursor || currentData.nextCursor
+          );
 
           if (twUnshownInCache.length >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = twUnshownInCache.slice(0, RESULTS_PER_PLATFORM)
+            const toDisplay = twUnshownInCache.slice(0, RESULTS_PER_PLATFORM);
             searchResult = {
-              results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: twUnshownInCache.length > RESULTS_PER_PLATFORM || twCache?.hasMore || false,
+              results: toDisplay.map((r) => ({
+                ...r,
+                isSaved: checkIfSaved(r.url),
+                isSaving: false,
+              })),
+              hasMore:
+                twUnshownInCache.length > RESULTS_PER_PLATFORM ||
+                twCache?.hasMore ||
+                false,
               nextCursor: twCache?.nextCursor,
-            }
+            };
             // Update cache displayedIndex
-            void updatePlatformCache(query, 'twitter', {
+            void updatePlatformCache(query, "twitter", {
               ...twCache!,
               displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM,
-            })
+            });
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = twUnshownInCache
-            const needed = RESULTS_PER_PLATFORM - fromCache.length
-            const cursor = twCache?.nextCursor || currentData.nextCursor
-            console.log('[Twitter LoadMore] fetching with cursor:', cursor)
-            const apiResult = await searchTwitter(query, cursor)
+            const fromCache = twUnshownInCache;
+            const needed = RESULTS_PER_PLATFORM - fromCache.length;
+            const cursor = twCache?.nextCursor || currentData.nextCursor;
+            console.log("[Twitter LoadMore] fetching with cursor:", cursor);
+            const apiResult = await searchTwitter(query, cursor);
 
             // API 결과에서도 이미 표시된 URL 제외
-            const newApiResults = apiResult.results.filter(r => !displayedUrls.has(r.url))
-            const fromApi = newApiResults.slice(0, needed)
-            const leftoverApi = newApiResults.slice(needed)
+            const newApiResults = apiResult.results.filter(
+              (r) => !displayedUrls.has(r.url)
+            );
+            const fromApi = newApiResults.slice(0, needed);
+            const leftoverApi = newApiResults.slice(needed);
 
             searchResult = {
               results: [
-                ...fromCache.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+                ...fromCache.map((r) => ({
+                  ...r,
+                  isSaved: checkIfSaved(r.url),
+                  isSaving: false,
+                })),
                 ...fromApi,
               ],
               hasMore: leftoverApi.length > 0 || apiResult.hasMore,
               nextCursor: apiResult.nextCursor,
-            }
+            };
 
             // Update cache with new API results
             if (leftoverApi.length > 0 || apiResult.hasMore) {
-              void updatePlatformCache(query, 'twitter', {
+              void updatePlatformCache(query, "twitter", {
                 results: [...twCachedResults, ...apiResult.results],
-                displayedIndex: localDisplayedCount + fromCache.length + fromApi.length,
+                displayedIndex:
+                  localDisplayedCount + fromCache.length + fromApi.length,
                 currentPage: 1,
                 currentOffset: 0,
                 hasMore: apiResult.hasMore,
                 nextCursor: apiResult.nextCursor,
-              })
+              });
             }
           }
-          break
+          break;
         }
-        case 'heye': {
+        case "heye": {
           // Check cache first
-          const heyeCacheEntry = await getSearchCache(query)
-          const heyeCache = heyeCacheEntry?.platforms.heye
-          const heyeCachedResults = heyeCache?.results ?? []
+          const heyeCacheEntry = await getSearchCache(query);
+          const heyeCache = heyeCacheEntry?.platforms.heye;
+          const heyeCachedResults = heyeCache?.results ?? [];
 
           // 현재 화면에 표시된 URL들
-          const heyeDisplayedUrls = new Set(currentData.results.map(r => r.url))
+          const heyeDisplayedUrls = new Set(
+            currentData.results.map((r) => r.url)
+          );
           // 캐시에서 아직 표시되지 않은 결과만 필터링
-          const heyeUnshownInCache = heyeCachedResults.filter(r => !heyeDisplayedUrls.has(r.url))
+          const heyeUnshownInCache = heyeCachedResults.filter(
+            (r) => !heyeDisplayedUrls.has(r.url)
+          );
 
           if (heyeUnshownInCache.length >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = heyeUnshownInCache.slice(0, RESULTS_PER_PLATFORM)
+            const toDisplay = heyeUnshownInCache.slice(0, RESULTS_PER_PLATFORM);
             searchResult = {
-              results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: heyeUnshownInCache.length > RESULTS_PER_PLATFORM || heyeCache?.hasMore || false,
-            }
+              results: toDisplay.map((r) => ({
+                ...r,
+                isSaved: checkIfSaved(r.url),
+                isSaving: false,
+              })),
+              hasMore:
+                heyeUnshownInCache.length > RESULTS_PER_PLATFORM ||
+                heyeCache?.hasMore ||
+                false,
+            };
             // Update cache displayedIndex
-            void updatePlatformCache(query, 'heye', {
+            void updatePlatformCache(query, "heye", {
               ...heyeCache!,
               displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM,
-            })
+            });
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = heyeUnshownInCache
-            const needed = RESULTS_PER_PLATFORM - fromCache.length
-            newPage = currentData.currentPage + 1
-            const apiResult = await searchHeye(query, newPage, 0)
+            const fromCache = heyeUnshownInCache;
+            const needed = RESULTS_PER_PLATFORM - fromCache.length;
+            newPage = currentData.currentPage + 1;
+            const apiResult = await searchHeye(query, newPage, 0);
 
             // API 결과에서도 이미 표시된 URL 제외
-            const newApiResults = apiResult.results.filter(r => !heyeDisplayedUrls.has(r.url))
-            const fromApi = newApiResults.slice(0, needed)
-            const leftoverApi = newApiResults.slice(needed)
+            const newApiResults = apiResult.results.filter(
+              (r) => !heyeDisplayedUrls.has(r.url)
+            );
+            const fromApi = newApiResults.slice(0, needed);
+            const leftoverApi = newApiResults.slice(needed);
 
             searchResult = {
               results: [
-                ...fromCache.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+                ...fromCache.map((r) => ({
+                  ...r,
+                  isSaved: checkIfSaved(r.url),
+                  isSaving: false,
+                })),
                 ...fromApi,
               ],
               hasMore: leftoverApi.length > 0 || apiResult.hasMore,
-            }
+            };
 
             // Update cache with new API results
             if (leftoverApi.length > 0 || apiResult.hasMore) {
-              void updatePlatformCache(query, 'heye', {
+              void updatePlatformCache(query, "heye", {
                 results: [...heyeCachedResults, ...apiResult.results],
-                displayedIndex: localDisplayedCount + fromCache.length + fromApi.length,
+                displayedIndex:
+                  localDisplayedCount + fromCache.length + fromApi.length,
                 currentPage: newPage,
                 currentOffset: 0,
                 hasMore: apiResult.hasMore,
-              })
+              });
             }
           }
-          break
+          break;
         }
-        case 'kgirls': {
+        case "kgirls": {
           // Check cache first
-          const kgirlsCacheEntry = await getSearchCache(query)
-          const kgirlsCache = kgirlsCacheEntry?.platforms.kgirls
-          const kgirlsCachedResults = kgirlsCache?.results ?? []
+          const kgirlsCacheEntry = await getSearchCache(query);
+          const kgirlsCache = kgirlsCacheEntry?.platforms.kgirls;
+          const kgirlsCachedResults = kgirlsCache?.results ?? [];
 
           // 현재 화면에 표시된 URL들
-          const kgirlsDisplayedUrls = new Set(currentData.results.map(r => r.url))
+          const kgirlsDisplayedUrls = new Set(
+            currentData.results.map((r) => r.url)
+          );
           // 캐시에서 아직 표시되지 않은 결과만 필터링
-          const kgirlsUnshownInCache = kgirlsCachedResults.filter(r => !kgirlsDisplayedUrls.has(r.url))
+          const kgirlsUnshownInCache = kgirlsCachedResults.filter(
+            (r) => !kgirlsDisplayedUrls.has(r.url)
+          );
 
           if (kgirlsUnshownInCache.length >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = kgirlsUnshownInCache.slice(0, RESULTS_PER_PLATFORM)
+            const toDisplay = kgirlsUnshownInCache.slice(
+              0,
+              RESULTS_PER_PLATFORM
+            );
             searchResult = {
-              results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: kgirlsUnshownInCache.length > RESULTS_PER_PLATFORM || kgirlsCache?.hasMore || false,
-            }
+              results: toDisplay.map((r) => ({
+                ...r,
+                isSaved: checkIfSaved(r.url),
+                isSaving: false,
+              })),
+              hasMore:
+                kgirlsUnshownInCache.length > RESULTS_PER_PLATFORM ||
+                kgirlsCache?.hasMore ||
+                false,
+            };
             // Update cache displayedIndex
-            void updatePlatformCache(query, 'kgirls', {
+            void updatePlatformCache(query, "kgirls", {
               ...kgirlsCache!,
               displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM,
-            })
+            });
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = kgirlsUnshownInCache
-            const needed = RESULTS_PER_PLATFORM - fromCache.length
-            newPage = currentData.currentPage + 1
-            const apiResult = await searchKgirls(query, newPage, 0)
+            const fromCache = kgirlsUnshownInCache;
+            const needed = RESULTS_PER_PLATFORM - fromCache.length;
+            newPage = currentData.currentPage + 1;
+            const apiResult = await searchKgirls(query, newPage, 0);
 
             // API 결과에서도 이미 표시된 URL 제외
-            const newApiResults = apiResult.results.filter(r => !kgirlsDisplayedUrls.has(r.url))
-            const fromApi = newApiResults.slice(0, needed)
-            const leftoverApi = newApiResults.slice(needed)
+            const newApiResults = apiResult.results.filter(
+              (r) => !kgirlsDisplayedUrls.has(r.url)
+            );
+            const fromApi = newApiResults.slice(0, needed);
+            const leftoverApi = newApiResults.slice(needed);
 
             searchResult = {
               results: [
-                ...fromCache.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+                ...fromCache.map((r) => ({
+                  ...r,
+                  isSaved: checkIfSaved(r.url),
+                  isSaving: false,
+                })),
                 ...fromApi,
               ],
               hasMore: leftoverApi.length > 0 || apiResult.hasMore,
-            }
+            };
 
             // Update cache with new API results
             if (leftoverApi.length > 0 || apiResult.hasMore) {
-              void updatePlatformCache(query, 'kgirls', {
+              void updatePlatformCache(query, "kgirls", {
                 results: [...kgirlsCachedResults, ...apiResult.results],
-                displayedIndex: localDisplayedCount + fromCache.length + fromApi.length,
+                displayedIndex:
+                  localDisplayedCount + fromCache.length + fromApi.length,
                 currentPage: newPage,
                 currentOffset: 0,
                 hasMore: apiResult.hasMore,
-              })
+              });
             }
           }
-          break
+          break;
         }
-        case 'kgirls-issue': {
+        case "kgirls-issue": {
           // Check cache first
-          const kgirlsIssueCacheEntry = await getSearchCache(query)
-          const kgirlsIssueCache = kgirlsIssueCacheEntry?.platforms['kgirls-issue']
-          const kgirlsIssueCachedResults = kgirlsIssueCache?.results ?? []
+          const kgirlsIssueCacheEntry = await getSearchCache(query);
+          const kgirlsIssueCache =
+            kgirlsIssueCacheEntry?.platforms["kgirls-issue"];
+          const kgirlsIssueCachedResults = kgirlsIssueCache?.results ?? [];
 
           // 현재 화면에 표시된 URL들
-          const kgirlsIssueDisplayedUrls = new Set(currentData.results.map(r => r.url))
+          const kgirlsIssueDisplayedUrls = new Set(
+            currentData.results.map((r) => r.url)
+          );
           // 캐시에서 아직 표시되지 않은 결과만 필터링
-          const kgirlsIssueUnshownInCache = kgirlsIssueCachedResults.filter(r => !kgirlsIssueDisplayedUrls.has(r.url))
+          const kgirlsIssueUnshownInCache = kgirlsIssueCachedResults.filter(
+            (r) => !kgirlsIssueDisplayedUrls.has(r.url)
+          );
 
           if (kgirlsIssueUnshownInCache.length >= RESULTS_PER_PLATFORM) {
             // Use cached results only
-            const toDisplay = kgirlsIssueUnshownInCache.slice(0, RESULTS_PER_PLATFORM)
+            const toDisplay = kgirlsIssueUnshownInCache.slice(
+              0,
+              RESULTS_PER_PLATFORM
+            );
             searchResult = {
-              results: toDisplay.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
-              hasMore: kgirlsIssueUnshownInCache.length > RESULTS_PER_PLATFORM || kgirlsIssueCache?.hasMore || false,
-            }
+              results: toDisplay.map((r) => ({
+                ...r,
+                isSaved: checkIfSaved(r.url),
+                isSaving: false,
+              })),
+              hasMore:
+                kgirlsIssueUnshownInCache.length > RESULTS_PER_PLATFORM ||
+                kgirlsIssueCache?.hasMore ||
+                false,
+            };
             // Update cache displayedIndex
-            void updatePlatformCache(query, 'kgirls-issue', {
+            void updatePlatformCache(query, "kgirls-issue", {
               ...kgirlsIssueCache!,
               displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM,
-            })
+            });
           } else {
             // Combine remaining cache + fetch next page
-            const fromCache = kgirlsIssueUnshownInCache
-            const needed = RESULTS_PER_PLATFORM - fromCache.length
-            newPage = currentData.currentPage + 1
-            const apiResult = await searchKgirlsIssue(query, newPage, 0)
+            const fromCache = kgirlsIssueUnshownInCache;
+            const needed = RESULTS_PER_PLATFORM - fromCache.length;
+            newPage = currentData.currentPage + 1;
+            const apiResult = await searchKgirlsIssue(query, newPage, 0);
 
             // API 결과에서도 이미 표시된 URL 제외
-            const newApiResults = apiResult.results.filter(r => !kgirlsIssueDisplayedUrls.has(r.url))
-            const fromApi = newApiResults.slice(0, needed)
-            const leftoverApi = newApiResults.slice(needed)
+            const newApiResults = apiResult.results.filter(
+              (r) => !kgirlsIssueDisplayedUrls.has(r.url)
+            );
+            const fromApi = newApiResults.slice(0, needed);
+            const leftoverApi = newApiResults.slice(needed);
 
             searchResult = {
               results: [
-                ...fromCache.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })),
+                ...fromCache.map((r) => ({
+                  ...r,
+                  isSaved: checkIfSaved(r.url),
+                  isSaving: false,
+                })),
                 ...fromApi,
               ],
               hasMore: leftoverApi.length > 0 || apiResult.hasMore,
-            }
+            };
 
             // Update cache with new API results
             if (leftoverApi.length > 0 || apiResult.hasMore) {
-              void updatePlatformCache(query, 'kgirls-issue', {
+              void updatePlatformCache(query, "kgirls-issue", {
                 results: [...kgirlsIssueCachedResults, ...apiResult.results],
-                displayedIndex: localDisplayedCount + fromCache.length + fromApi.length,
+                displayedIndex:
+                  localDisplayedCount + fromCache.length + fromApi.length,
                 currentPage: newPage,
                 currentOffset: 0,
                 hasMore: apiResult.hasMore,
-              })
+              });
             }
           }
-          break
+          break;
         }
         default:
-          return
+          return;
       }
 
-      setPlatformResults(prev => {
-        const next = new Map(prev)
-        const data = next.get(platform)
+      setPlatformResults((prev) => {
+        const next = new Map(prev);
+        const data = next.get(platform);
         if (data) {
           // Filter out duplicates by URL
-          const existingUrls = new Set(data.results.map(r => r.url))
-          const newResults = searchResult.results.filter(r => !existingUrls.has(r.url))
-          console.log('[LoadMore setPlatformResults]', platform, 'searchResult.results:', searchResult.results.length, 'existingUrls:', existingUrls.size, 'newResults:', newResults.length, 'duplicates:', searchResult.results.filter(r => existingUrls.has(r.url)).map(r => r.url))
+          const existingUrls = new Set(data.results.map((r) => r.url));
+          const newResults = searchResult.results.filter(
+            (r) => !existingUrls.has(r.url)
+          );
+          console.log(
+            "[LoadMore setPlatformResults]",
+            platform,
+            "searchResult.results:",
+            searchResult.results.length,
+            "existingUrls:",
+            existingUrls.size,
+            "newResults:",
+            newResults.length,
+            "duplicates:",
+            searchResult.results
+              .filter((r) => existingUrls.has(r.url))
+              .map((r) => r.url)
+          );
 
           next.set(platform, {
             ...data,
@@ -1215,85 +1571,88 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             currentOffset: newOffset,
             nextPageToken: searchResult.nextPageToken,
             nextCursor: searchResult.nextCursor,
-          })
+          });
         }
-        return next
-      })
+        return next;
+      });
     } catch (error) {
-      setPlatformResults(prev => {
-        const next = new Map(prev)
-        const data = next.get(platform)
+      setPlatformResults((prev) => {
+        const next = new Map(prev);
+        const data = next.get(platform);
         if (data) {
           next.set(platform, {
             ...data,
             isLoadingMore: false,
-            error: error instanceof Error ? error.message : '더 보기 실패',
-          })
+            error: error instanceof Error ? error.message : "더 보기 실패",
+          });
         }
-        return next
-      })
+        return next;
+      });
     }
-  }
+  };
 
   // Get all results combined
   const allResults = useMemo(() => {
-    const results: EnrichedResult[] = []
+    const results: EnrichedResult[] = [];
     for (const [, data] of platformResults) {
-      results.push(...data.results)
+      results.push(...data.results);
     }
-    return results
-  }, [platformResults])
+    return results;
+  }, [platformResults]);
 
   // Selection helpers
   const toggleSelection = (url: string) => {
-    setSelectedUrls(prev => {
-      const next = new Set(prev)
+    setSelectedUrls((prev) => {
+      const next = new Set(prev);
       if (next.has(url)) {
-        next.delete(url)
+        next.delete(url);
       } else {
-        next.add(url)
+        next.add(url);
       }
-      return next
-    })
-  }
+      return next;
+    });
+  };
 
-  const selectableResults = allResults.filter(r => !r.isSaved)
-  const selectableCount = selectableResults.length
-  const selectedCount = selectedUrls.size
+  const selectableResults = allResults.filter((r) => !r.isSaved);
+  const selectableCount = selectableResults.length;
+  const selectedCount = selectedUrls.size;
 
   const selectAll = () => {
-    setSelectedUrls(new Set(selectableResults.map(r => r.url)))
-  }
+    setSelectedUrls(new Set(selectableResults.map((r) => r.url)));
+  };
 
   const clearSelection = () => {
-    setSelectedUrls(new Set())
-  }
+    setSelectedUrls(new Set());
+  };
 
   // Save functions
-  const handleSaveCachedResult = async (platform: Platform, result: EnrichedResult) => {
-    if (result.isSaved || result.isSaving) return
+  const handleSaveCachedResult = async (
+    platform: Platform,
+    result: EnrichedResult
+  ) => {
+    if (result.isSaved || result.isSaving) return;
 
     // Update isSaving state in cachedResults
-    setCachedResults(prev => {
-      const next = new Map(prev)
-      const platformData = next.get(platform)
+    setCachedResults((prev) => {
+      const next = new Map(prev);
+      const platformData = next.get(platform);
       if (platformData) {
         next.set(platform, {
           ...platformData,
-          results: platformData.results.map(r =>
+          results: platformData.results.map((r) =>
             r.url === result.url ? { ...r, isSaving: true } : r
           ),
-        })
+        });
       }
-      return next
-    })
+      return next;
+    });
 
     try {
-      const metaResponse = await fetch('/api/metadata', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const metaResponse = await fetch("/api/metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: result.url }),
-      })
+      });
 
       let metadata = {
         title: result.title,
@@ -1301,22 +1660,22 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
         platform: result.platform,
         authorName: result.author,
         media: undefined as { type: string; url: string }[] | undefined,
-      }
+      };
 
       if (metaResponse.ok) {
-        const fullMetadata = await metaResponse.json()
+        const fullMetadata = await metaResponse.json();
         metadata = {
           title: fullMetadata.title || result.title,
           thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
           platform: fullMetadata.platform || result.platform,
           authorName: fullMetadata.authorName || result.author,
           media: fullMetadata.media,
-        }
+        };
       }
 
-      const saveResponse = await fetch('/api/links', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const saveResponse = await fetch("/api/links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: result.url,
           title: metadata.title,
@@ -1326,68 +1685,70 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           searchQuery: query,
           media: metadata.media,
         }),
-      })
+      });
 
       if (saveResponse.ok || saveResponse.status === 409) {
-        setCachedResults(prev => {
-          const next = new Map(prev)
-          const platformData = next.get(platform)
+        setCachedResults((prev) => {
+          const next = new Map(prev);
+          const platformData = next.get(platform);
           if (platformData) {
             next.set(platform, {
               ...platformData,
-              results: platformData.results.map(r =>
-                r.url === result.url ? { ...r, isSaved: true, isSaving: false } : r
+              results: platformData.results.map((r) =>
+                r.url === result.url
+                  ? { ...r, isSaved: true, isSaving: false }
+                  : r
               ),
-            })
+            });
           }
-          return next
-        })
-        onSave?.()
+          return next;
+        });
+        onSave?.();
       } else {
-        throw new Error('저장 실패')
+        throw new Error("저장 실패");
       }
     } catch (err) {
-      console.error('Save cached result error:', err)
-      setCachedResults(prev => {
-        const next = new Map(prev)
-        const platformData = next.get(platform)
+      console.error("Save cached result error:", err);
+      setCachedResults((prev) => {
+        const next = new Map(prev);
+        const platformData = next.get(platform);
         if (platformData) {
           next.set(platform, {
             ...platformData,
-            results: platformData.results.map(r =>
+            results: platformData.results.map((r) =>
               r.url === result.url ? { ...r, isSaving: false } : r
             ),
-          })
+          });
         }
-        return next
-      })
+        return next;
+      });
     }
-  }
+  };
 
   const handleSave = async (result: EnrichedResult) => {
-    if (result.isSaved || result.isSaving) return
+    if (result.isSaved || result.isSaving) return;
 
     // Update isSaving state
-    setPlatformResults(prev => {
-      const next = new Map(prev)
-      const platformData = next.get(result.platform)
+    setPlatformResults((prev) => {
+      const next = new Map(prev);
+      const platformData = next.get(result.platform);
       if (platformData) {
         next.set(result.platform, {
           ...platformData,
-          results: platformData.results.map(r =>
+          results: platformData.results.map((r) =>
             r.url === result.url ? { ...r, isSaving: true } : r
           ),
-        })
+        });
       }
-      return next
-    })
+      return next;
+    });
 
     try {
-      const metaResponse = await fetch('/api/metadata', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const metaResponse = await fetch("/api/metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: result.url }),
-      })
+      });
 
       let metadata = {
         title: result.title,
@@ -1395,22 +1756,22 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
         platform: result.platform,
         authorName: result.author,
         media: undefined as { type: string; url: string }[] | undefined,
-      }
+      };
 
       if (metaResponse.ok) {
-        const fullMetadata = await metaResponse.json()
+        const fullMetadata = await metaResponse.json();
         metadata = {
           title: fullMetadata.title || result.title,
           thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
           platform: fullMetadata.platform || result.platform,
           authorName: fullMetadata.authorName || result.author,
           media: fullMetadata.media,
-        }
+        };
       }
 
-      const saveResponse = await fetch('/api/links', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const saveResponse = await fetch("/api/links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: result.url,
           title: metadata.title,
@@ -1420,75 +1781,77 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           searchQuery: query,
           media: metadata.media,
         }),
-      })
+      });
 
       if (saveResponse.ok || saveResponse.status === 409) {
-        setPlatformResults(prev => {
-          const next = new Map(prev)
-          const platformData = next.get(result.platform)
+        setPlatformResults((prev) => {
+          const next = new Map(prev);
+          const platformData = next.get(result.platform);
           if (platformData) {
             next.set(result.platform, {
               ...platformData,
-              results: platformData.results.map(r =>
-                r.url === result.url ? { ...r, isSaved: true, isSaving: false } : r
+              results: platformData.results.map((r) =>
+                r.url === result.url
+                  ? { ...r, isSaved: true, isSaving: false }
+                  : r
               ),
-            })
+            });
           }
-          return next
-        })
-        onSave?.()
+          return next;
+        });
+        onSave?.();
       } else {
-        throw new Error('저장 실패')
+        throw new Error("저장 실패");
       }
     } catch (err) {
-      console.error('Save error:', err)
-      setPlatformResults(prev => {
-        const next = new Map(prev)
-        const platformData = next.get(result.platform)
+      console.error("Save error:", err);
+      setPlatformResults((prev) => {
+        const next = new Map(prev);
+        const platformData = next.get(result.platform);
         if (platformData) {
           next.set(result.platform, {
             ...platformData,
-            results: platformData.results.map(r =>
+            results: platformData.results.map((r) =>
               r.url === result.url ? { ...r, isSaving: false } : r
             ),
-          })
+          });
         }
-        return next
-      })
+        return next;
+      });
     }
-  }
+  };
 
   const handleBatchSave = async () => {
-    if (selectedUrls.size === 0 || isBatchSaving) return
+    if (selectedUrls.size === 0 || isBatchSaving) return;
 
-    setIsBatchSaving(true)
-    let savedCount = 0
-    let errorCount = 0
+    setIsBatchSaving(true);
+    let savedCount = 0;
+    let errorCount = 0;
 
     // Mark all selected as saving
-    setPlatformResults(prev => {
-      const next = new Map(prev)
+    setPlatformResults((prev) => {
+      const next = new Map(prev);
       for (const [platform, data] of next) {
         next.set(platform, {
           ...data,
-          results: data.results.map(r =>
+          results: data.results.map((r) =>
             selectedUrls.has(r.url) ? { ...r, isSaving: true } : r
           ),
-        })
+        });
       }
-      return next
-    })
+      return next;
+    });
 
     for (const url of selectedUrls) {
-      const result = allResults.find(r => r.url === url)
-      if (!result || result.isSaved) continue
+      const result = allResults.find((r) => r.url === url);
+      if (!result || result.isSaved) continue;
 
       try {
-        const metaResponse = await fetch('/api/metadata', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const metaResponse = await fetch("/api/metadata", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url }),
-        })
+        });
 
         let metadata = {
           title: result.title,
@@ -1496,22 +1859,22 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           platform: result.platform,
           authorName: result.author,
           media: undefined as { type: string; url: string }[] | undefined,
-        }
+        };
 
         if (metaResponse.ok) {
-          const fullMetadata = await metaResponse.json()
+          const fullMetadata = await metaResponse.json();
           metadata = {
             title: fullMetadata.title || result.title,
             thumbnailUrl: fullMetadata.thumbnailUrl || result.thumbnailUrl,
             platform: fullMetadata.platform || result.platform,
             authorName: fullMetadata.authorName || result.author,
             media: fullMetadata.media,
-          }
+          };
         }
 
-        const saveResponse = await fetch('/api/links', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const saveResponse = await fetch("/api/links", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             url,
             title: metadata.title,
@@ -1521,74 +1884,76 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
             searchQuery: query,
             media: metadata.media,
           }),
-        })
+        });
 
         if (saveResponse.ok || saveResponse.status === 409) {
-          setPlatformResults(prev => {
-            const next = new Map(prev)
-            const platformData = next.get(result.platform)
+          setPlatformResults((prev) => {
+            const next = new Map(prev);
+            const platformData = next.get(result.platform);
             if (platformData) {
               next.set(result.platform, {
                 ...platformData,
-                results: platformData.results.map(r =>
+                results: platformData.results.map((r) =>
                   r.url === url ? { ...r, isSaved: true, isSaving: false } : r
                 ),
-              })
+              });
             }
-            return next
-          })
-          savedCount++
+            return next;
+          });
+          savedCount++;
         } else {
-          throw new Error('저장 실패')
+          throw new Error("저장 실패");
         }
       } catch {
-        setPlatformResults(prev => {
-          const next = new Map(prev)
-          const platformData = next.get(result.platform)
+        setPlatformResults((prev) => {
+          const next = new Map(prev);
+          const platformData = next.get(result.platform);
           if (platformData) {
             next.set(result.platform, {
               ...platformData,
-              results: platformData.results.map(r =>
+              results: platformData.results.map((r) =>
                 r.url === url ? { ...r, isSaving: false } : r
               ),
-            })
+            });
           }
-          return next
-        })
-        errorCount++
+          return next;
+        });
+        errorCount++;
       }
     }
 
-    setSelectedUrls(new Set())
-    setIsBatchSaving(false)
+    setSelectedUrls(new Set());
+    setIsBatchSaving(false);
 
     if (savedCount > 0) {
-      onSave?.()
+      onSave?.();
     }
 
     if (errorCount > 0) {
-      alert(`${savedCount}개 저장 완료, ${errorCount}개 실패`)
+      alert(`${savedCount}개 저장 완료, ${errorCount}개 실패`);
     }
-  }
+  };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return ''
+    if (!dateString) return "";
     try {
-      return new Date(dateString).toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
+      return new Date(dateString).toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
     } catch {
-      return ''
+      return "";
     }
-  }
+  };
 
   // Check if any platform is still loading
-  const anyLoading = Array.from(platformResults.values()).some(p => p.isLoading)
+  const anyLoading = Array.from(platformResults.values()).some(
+    (p) => p.isLoading
+  );
 
   // Total results count
-  const totalResults = allResults.length
+  const totalResults = allResults.length;
 
   return (
     <AnimatePresence>
@@ -1628,38 +1993,64 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 whileTap={{ scale: 0.9 }}
                 transition={quickSpring}
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </motion.button>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
-              {/* Search Row: Idol Dropdown + Search Input */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              {/* Search Row: Idol Dropdown + Search Input - overflow-visible for dropdown to extend beyond */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 overflow-visible relative z-10">
                 {/* Custom Idol Dropdown */}
-                <div className="w-full sm:w-56 flex-shrink-0 relative" ref={dropdownRef}>
+                <div
+                  className="w-full sm:w-56 flex-shrink-0 relative"
+                  ref={dropdownRef}
+                >
                   <motion.button
                     ref={dropdownButtonRef}
                     onClick={() => setIsIdolDropdownOpen(!isIdolDropdownOpen)}
                     className={`w-full px-3 py-2 sm:py-2.5 text-sm border rounded-lg bg-white dark:bg-zinc-800 text-left flex items-center justify-between transition-colors ${
                       isIdolDropdownOpen
-                        ? 'border-primary ring-2 ring-primary/30'
-                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                        ? "border-primary ring-2 ring-primary/30"
+                        : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
                     }`}
                     {...pressScale}
                   >
-                    <span className={selection ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'}>
+                    <span
+                      className={
+                        selection
+                          ? "text-zinc-900 dark:text-zinc-100"
+                          : "text-zinc-400 dark:text-zinc-500"
+                      }
+                    >
                       {getSelectionDisplayName()}
                     </span>
                     <svg
-                      className={`w-4 h-4 text-zinc-400 transition-transform ${isIdolDropdownOpen ? 'rotate-180' : ''}`}
+                      className={`w-4 h-4 text-zinc-400 transition-transform ${
+                        isIdolDropdownOpen ? "rotate-180" : ""
+                      }`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </motion.button>
 
@@ -1672,109 +2063,139 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                         exit={{ opacity: 0, y: -8 }}
                         transition={{ duration: 0.15 }}
                         className="fixed z-[100] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg max-h-80 overflow-y-auto"
-                        style={{ top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width }}
+                        style={{
+                          top: dropdownPosition.top,
+                          left: dropdownPosition.left,
+                          width: dropdownPosition.width,
+                        }}
                       >
                         {/* No Selection option */}
                         <button
                           onClick={() => {
-                            setSelection(null)
-                            setIsIdolDropdownOpen(false)
+                            setSelection(null);
+                            setIsIdolDropdownOpen(false);
                           }}
                           className="w-full px-3 py-2 text-sm text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
                         >
-                          {t('noSelection')}
+                          {t("noSelection")}
                         </button>
 
                         {/* Groups with members */}
-                        {Array.from(groupedBiases.entries()).map(([groupId, biasesInGroup]) => {
-                          const group = groupId ? groups.find(g => g.id === groupId) : null
-                          const isCollapsed = groupId ? collapsedDropdownGroups.has(groupId) : false
+                        {Array.from(groupedBiases.entries()).map(
+                          ([groupId, biasesInGroup]) => {
+                            const group = groupId
+                              ? groups.find((g) => g.id === groupId)
+                              : null;
+                            const isCollapsed = groupId
+                              ? collapsedDropdownGroups.has(groupId)
+                              : false;
 
-                          if (group) {
-                            // Grouped biases
-                            return (
-                              <div key={groupId}>
-                                {/* Group Header */}
-                                <div className="flex items-center border-t border-zinc-100 dark:border-zinc-700/50">
-                                  {/* Collapse Toggle */}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      toggleDropdownGroupCollapse(groupId!)
-                                    }}
-                                    className="px-2 py-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
-                                  >
-                                    <svg
-                                      className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                                      fill="none"
-                                      viewBox="0 0 24 24"
-                                      stroke="currentColor"
+                            if (group) {
+                              // Grouped biases
+                              return (
+                                <div key={groupId}>
+                                  {/* Group Header */}
+                                  <div className="flex items-center border-t border-zinc-100 dark:border-zinc-700/50">
+                                    {/* Collapse Toggle */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleDropdownGroupCollapse(groupId!);
+                                      }}
+                                      className="px-2 py-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
                                     >
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                  </button>
-
-                                  {/* Group Name (clickable for group selection) */}
-                                  <button
-                                    onClick={() => {
-                                      setSelection({ type: 'group', id: groupId! })
-                                      setIsIdolDropdownOpen(false)
-                                    }}
-                                    className={`flex-1 px-2 py-2 text-sm font-medium text-left transition-colors ${
-                                      selection?.type === 'group' && selection.id === groupId
-                                        ? 'text-primary bg-primary/5'
-                                        : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
-                                    }`}
-                                  >
-                                    {getGroupDisplayName(group)}
-                                    <span className="ml-1 text-xs text-zinc-400">({biasesInGroup.length})</span>
-                                  </button>
-                                </div>
-
-                                {/* Group Members */}
-                                {!isCollapsed && (
-                                  <div className="pl-6 border-l-2 border-zinc-100 dark:border-zinc-700/50 ml-4">
-                                    {biasesInGroup.map((bias) => (
-                                      <button
-                                        key={bias.id}
-                                        onClick={() => {
-                                          setSelection({ type: 'bias', id: bias.id })
-                                          setIsIdolDropdownOpen(false)
-                                        }}
-                                        className={`w-full px-3 py-1.5 text-sm text-left transition-colors flex items-center gap-2 ${
-                                          selection?.type === 'bias' && selection.id === bias.id
-                                            ? 'text-primary bg-primary/5'
-                                            : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
+                                      <svg
+                                        className={`w-3.5 h-3.5 transition-transform ${
+                                          isCollapsed ? "" : "rotate-90"
                                         }`}
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
                                       >
-                                        <span className="text-zinc-300 dark:text-zinc-600">•</span>
-                                        {getDisplayName(bias)}
-                                      </button>
-                                    ))}
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M9 5l7 7-7 7"
+                                        />
+                                      </svg>
+                                    </button>
+
+                                    {/* Group Name (clickable for group selection) */}
+                                    <button
+                                      onClick={() => {
+                                        setSelection({
+                                          type: "group",
+                                          id: groupId!,
+                                        });
+                                        setIsIdolDropdownOpen(false);
+                                      }}
+                                      className={`flex-1 px-2 py-2 text-sm font-medium text-left transition-colors ${
+                                        selection?.type === "group" &&
+                                        selection.id === groupId
+                                          ? "text-primary bg-primary/5"
+                                          : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
+                                      }`}
+                                    >
+                                      {getGroupDisplayName(group)}
+                                      <span className="ml-1 text-xs text-zinc-400">
+                                        ({biasesInGroup.length})
+                                      </span>
+                                    </button>
                                   </div>
-                                )}
-                              </div>
-                            )
-                          } else {
-                            // Ungrouped biases
-                            return biasesInGroup.map((bias) => (
-                              <button
-                                key={bias.id}
-                                onClick={() => {
-                                  setSelection({ type: 'bias', id: bias.id })
-                                  setIsIdolDropdownOpen(false)
-                                }}
-                                className={`w-full px-3 py-2 text-sm text-left border-t border-zinc-100 dark:border-zinc-700/50 transition-colors ${
-                                  selection?.type === 'bias' && selection.id === bias.id
-                                    ? 'text-primary bg-primary/5'
-                                    : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
-                                }`}
-                              >
-                                {getDisplayName(bias)}
-                              </button>
-                            ))
+
+                                  {/* Group Members */}
+                                  {!isCollapsed && (
+                                    <div className="pl-6 border-l-2 border-zinc-100 dark:border-zinc-700/50 ml-4">
+                                      {biasesInGroup.map((bias) => (
+                                        <button
+                                          key={bias.id}
+                                          onClick={() => {
+                                            setSelection({
+                                              type: "bias",
+                                              id: bias.id,
+                                            });
+                                            setIsIdolDropdownOpen(false);
+                                          }}
+                                          className={`w-full px-3 py-1.5 text-sm text-left transition-colors flex items-center gap-2 ${
+                                            selection?.type === "bias" &&
+                                            selection.id === bias.id
+                                              ? "text-primary bg-primary/5"
+                                              : "text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
+                                          }`}
+                                        >
+                                          <span className="text-zinc-300 dark:text-zinc-600">
+                                            •
+                                          </span>
+                                          {getDisplayName(bias)}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            } else {
+                              // Ungrouped biases
+                              return biasesInGroup.map((bias) => (
+                                <button
+                                  key={bias.id}
+                                  onClick={() => {
+                                    setSelection({ type: "bias", id: bias.id });
+                                    setIsIdolDropdownOpen(false);
+                                  }}
+                                  className={`w-full px-3 py-2 text-sm text-left border-t border-zinc-100 dark:border-zinc-700/50 transition-colors ${
+                                    selection?.type === "bias" &&
+                                    selection.id === bias.id
+                                      ? "text-primary bg-primary/5"
+                                      : "text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
+                                  }`}
+                                >
+                                  {getDisplayName(bias)}
+                                </button>
+                              ));
+                            }
                           }
-                        })}
+                        )}
 
                         {/* Empty state */}
                         {biases.length === 0 && (
@@ -1793,8 +2214,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    placeholder={t('searchPlaceholder')}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    placeholder={t("searchPlaceholder")}
                     autoFocus
                     className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
@@ -1804,16 +2225,18 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                     className="px-4 sm:px-6 py-2 sm:py-2.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-smooth"
                     {...pressScale}
                   >
-                    {isSearching ? t('searching') : t('searchButton')}
+                    {isSearching ? t("searching") : t("searchButton")}
                   </motion.button>
                 </div>
               </div>
 
               {/* Platform Filter */}
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mr-0.5 sm:mr-1">{t('platform')}:</span>
+                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mr-0.5 sm:mr-1">
+                  {t("platform")}:
+                </span>
                 {PLATFORMS.map((platform) => {
-                  const isEnabled = enabledPlatforms.has(platform.id)
+                  const isEnabled = enabledPlatforms.has(platform.id);
                   return (
                     <motion.button
                       key={platform.id}
@@ -1821,13 +2244,13 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                       className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
                         isEnabled
                           ? `${platform.bgColor} ${platform.color} ring-2 ${platform.ringColor}`
-                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500'
+                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500"
                       }`}
                       {...pressScale}
                     >
                       {platform.label}
                     </motion.button>
-                  )
+                  );
                 })}
               </div>
 
@@ -1837,7 +2260,9 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                   {/* Results header with selection controls */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                      {anyLoading ? '검색 중...' : `총 ${totalResults}개의 결과`}
+                      {anyLoading
+                        ? "검색 중..."
+                        : `총 ${totalResults}개의 결과`}
                     </p>
 
                     {/* Selection controls */}
@@ -1849,11 +2274,17 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                           </span>
                         )}
                         <motion.button
-                          onClick={selectedCount === selectableCount ? clearSelection : selectAll}
+                          onClick={
+                            selectedCount === selectableCount
+                              ? clearSelection
+                              : selectAll
+                          }
                           className="px-2 sm:px-3 py-1 text-xs font-medium rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
                           {...pressScale}
                         >
-                          {selectedCount === selectableCount ? '선택 해제' : '전체 선택'}
+                          {selectedCount === selectableCount
+                            ? "선택 해제"
+                            : "전체 선택"}
                         </motion.button>
                         {selectedCount > 0 && (
                           <motion.button
@@ -1862,7 +2293,9 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                             className="px-3 sm:px-4 py-1 text-xs font-medium rounded-lg bg-primary text-white hover:bg-primary-dark disabled:opacity-50 transition-colors"
                             {...pressScale}
                           >
-                            {isBatchSaving ? '저장 중...' : `${selectedCount}개 저장`}
+                            {isBatchSaving
+                              ? "저장 중..."
+                              : `${selectedCount}개 저장`}
                           </motion.button>
                         )}
                       </div>
@@ -1871,259 +2304,404 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
                   {/* Results Grid - Grouped by Platform */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                    {PLATFORMS.filter(p => enabledPlatforms.has(p.id)).map((platformConfig) => {
-                      const platformData = platformResults.get(platformConfig.id)
-                      if (!platformData) return null
+                    {PLATFORMS.filter((p) => enabledPlatforms.has(p.id)).map(
+                      (platformConfig) => {
+                        const platformData = platformResults.get(
+                          platformConfig.id
+                        );
+                        if (!platformData) return null;
 
-                      return (
-                        <div key={platformConfig.id} className="space-y-2">
-                          {/* Platform Header */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-xs sm:text-sm font-medium ${platformConfig.color}`}>
-                                {platformConfig.label}
-                              </span>
-                              {platformData.isLoading && (
-                                <svg className="w-4 h-4 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                </svg>
-                              )}
-                              {!platformData.isLoading && (
-                                <span className="text-xs text-zinc-400">
-                                  ({platformData.results.length}개)
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Platform Error */}
-                          {platformData.error && (
-                            <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">
-                              {platformData.error}
-                            </p>
-                          )}
-
-                          {/* Cached Results - 오늘 본 결과 */}
-                          {cachedResults.get(platformConfig.id) && cachedResults.get(platformConfig.id)!.results.length > 0 && (
-                            <div className="space-y-1.5">
-                              <button
-                                onClick={() => toggleShowCached(platformConfig.id)}
-                                className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
-                              >
-                                <svg
-                                  className={`w-3 h-3 transition-transform ${showCached.get(platformConfig.id) ? 'rotate-90' : ''}`}
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
+                        return (
+                          <div key={platformConfig.id} className="space-y-2">
+                            {/* Platform Header */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`text-xs sm:text-sm font-medium ${platformConfig.color}`}
                                 >
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                                <span>오늘 본 결과 ({cachedResults.get(platformConfig.id)!.results.length}개)</span>
-                              </button>
+                                  {platformConfig.label}
+                                </span>
+                                {platformData.isLoading && (
+                                  <svg
+                                    className="w-4 h-4 animate-spin text-zinc-400"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                  >
+                                    <circle
+                                      className="opacity-25"
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="currentColor"
+                                      strokeWidth="4"
+                                    />
+                                    <path
+                                      className="opacity-75"
+                                      fill="currentColor"
+                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    />
+                                  </svg>
+                                )}
+                                {!platformData.isLoading && (
+                                  <span className="text-xs text-zinc-400">
+                                    ({platformData.results.length}개)
+                                  </span>
+                                )}
+                              </div>
+                            </div>
 
-                              {showCached.get(platformConfig.id) && (
-                                <div className="space-y-1.5 sm:space-y-2 opacity-60">
-                                  {cachedResults.get(platformConfig.id)!.results.map((result) => (
-                                    <div
-                                      key={`cached-${result.url}`}
-                                      className="flex gap-2 sm:gap-3 p-2 sm:p-3 bg-zinc-100 dark:bg-zinc-800/30 rounded-lg border border-zinc-200 dark:border-zinc-700"
+                            {/* Platform Error */}
+                            {platformData.error && (
+                              <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">
+                                {platformData.error}
+                              </p>
+                            )}
+
+                            {/* Cached Results - 오늘 본 결과 */}
+                            {cachedResults.get(platformConfig.id) &&
+                              cachedResults.get(platformConfig.id)!.results
+                                .length > 0 && (
+                                <div className="space-y-1.5">
+                                  <button
+                                    onClick={() =>
+                                      toggleShowCached(platformConfig.id)
+                                    }
+                                    className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                                  >
+                                    <svg
+                                      className={`w-3 h-3 transition-transform ${
+                                        showCached.get(platformConfig.id)
+                                          ? "rotate-90"
+                                          : ""
+                                      }`}
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
                                     >
-                                      {/* Thumbnail */}
-                                      {result.thumbnailUrl ? (
-                                        // eslint-disable-next-line @next/next/no-img-element -- External thumbnail URLs
-                                        <img
-                                          src={result.thumbnailUrl}
-                                          alt=""
-                                          className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
-                                        />
-                                      ) : (
-                                        <div className="w-16 h-12 sm:w-20 sm:h-14 bg-zinc-200 dark:bg-zinc-700 rounded flex-shrink-0 flex items-center justify-center">
-                                          <span className="text-[10px] sm:text-xs text-zinc-400">No img</span>
-                                        </div>
-                                      )}
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M9 5l7 7-7 7"
+                                      />
+                                    </svg>
+                                    <span>
+                                      오늘 본 결과 (
+                                      {
+                                        cachedResults.get(platformConfig.id)!
+                                          .results.length
+                                      }
+                                      개)
+                                    </span>
+                                  </button>
 
-                                      {/* Info */}
-                                      <div className="flex-1 min-w-0">
-                                        <h4 className="text-[11px] sm:text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2">
-                                          {result.title}
-                                        </h4>
-                                        <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
-                                          {result.author && (
-                                            <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[80px] sm:max-w-[120px]">
-                                              {result.author}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      {/* Status */}
-                                      <div className="flex-shrink-0 flex items-center">
-                                        {result.isSaved ? (
-                                          <span className="text-[10px] sm:text-xs text-green-600 dark:text-green-400">저장됨</span>
-                                        ) : result.isSaving ? (
-                                          <svg className="w-4 h-4 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                          </svg>
-                                        ) : (
-                                          <motion.button
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              handleSaveCachedResult(platformConfig.id, result)
-                                            }}
-                                            className="p-1.5 sm:p-1 text-zinc-400 hover:text-primary transition-colors"
-                                            whileTap={{ scale: 0.9 }}
+                                  {showCached.get(platformConfig.id) && (
+                                    <div className="space-y-1.5 sm:space-y-2 opacity-60">
+                                      {cachedResults
+                                        .get(platformConfig.id)!
+                                        .results.map((result) => (
+                                          <div
+                                            key={`cached-${result.url}`}
+                                            className="flex gap-2 sm:gap-3 p-2 sm:p-3 bg-zinc-100 dark:bg-zinc-800/30 rounded-lg border border-zinc-200 dark:border-zinc-700"
                                           >
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                            </svg>
-                                          </motion.button>
+                                            {/* Thumbnail */}
+                                            {result.thumbnailUrl ? (
+                                              // eslint-disable-next-line @next/next/no-img-element -- External thumbnail URLs
+                                              <img
+                                                src={result.thumbnailUrl}
+                                                alt=""
+                                                className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
+                                              />
+                                            ) : (
+                                              <div className="w-16 h-12 sm:w-20 sm:h-14 bg-zinc-200 dark:bg-zinc-700 rounded flex-shrink-0 flex items-center justify-center">
+                                                <span className="text-[10px] sm:text-xs text-zinc-400">
+                                                  No img
+                                                </span>
+                                              </div>
+                                            )}
+
+                                            {/* Info */}
+                                            <div className="flex-1 min-w-0">
+                                              <h4 className="text-[11px] sm:text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2">
+                                                {result.title}
+                                              </h4>
+                                              <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
+                                                {result.author && (
+                                                  <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[80px] sm:max-w-[120px]">
+                                                    {result.author}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+
+                                            {/* Status */}
+                                            <div className="flex-shrink-0 flex items-center">
+                                              {result.isSaved ? (
+                                                <span className="text-[10px] sm:text-xs text-green-600 dark:text-green-400">
+                                                  저장됨
+                                                </span>
+                                              ) : result.isSaving ? (
+                                                <svg
+                                                  className="w-4 h-4 animate-spin text-zinc-400"
+                                                  viewBox="0 0 24 24"
+                                                  fill="none"
+                                                >
+                                                  <circle
+                                                    className="opacity-25"
+                                                    cx="12"
+                                                    cy="12"
+                                                    r="10"
+                                                    stroke="currentColor"
+                                                    strokeWidth="4"
+                                                  />
+                                                  <path
+                                                    className="opacity-75"
+                                                    fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                  />
+                                                </svg>
+                                              ) : (
+                                                <motion.button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSaveCachedResult(
+                                                      platformConfig.id,
+                                                      result
+                                                    );
+                                                  }}
+                                                  className="p-1.5 sm:p-1 text-zinc-400 hover:text-primary transition-colors"
+                                                  whileTap={{ scale: 0.9 }}
+                                                >
+                                                  <svg
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                  >
+                                                    <path
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeWidth={2}
+                                                      d="M12 4v16m8-8H4"
+                                                    />
+                                                  </svg>
+                                                </motion.button>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                            {/* Platform Results */}
+                            {platformData.results.length > 0 && (
+                              <div className="space-y-1.5 sm:space-y-2">
+                                {platformData.results.map((result) => (
+                                  <div
+                                    key={result.url}
+                                    className={`flex gap-2 sm:gap-3 p-2 sm:p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border transition-colors cursor-pointer ${
+                                      selectedUrls.has(result.url)
+                                        ? "border-primary ring-2 ring-primary/20"
+                                        : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                    }`}
+                                    onClick={() =>
+                                      !result.isSaved &&
+                                      toggleSelection(result.url)
+                                    }
+                                  >
+                                    {/* Checkbox */}
+                                    <div className="flex-shrink-0 flex items-start pt-0.5 sm:pt-1">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedUrls.has(result.url)}
+                                        onChange={() =>
+                                          toggleSelection(result.url)
+                                        }
+                                        disabled={result.isSaved}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-primary focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                      />
+                                    </div>
+
+                                    {/* Thumbnail */}
+                                    {result.thumbnailUrl ? (
+                                      // eslint-disable-next-line @next/next/no-img-element -- External thumbnail URLs
+                                      <img
+                                        src={result.thumbnailUrl}
+                                        alt=""
+                                        className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="w-16 h-12 sm:w-20 sm:h-14 bg-zinc-200 dark:bg-zinc-700 rounded flex-shrink-0 flex items-center justify-center">
+                                        <span className="text-[10px] sm:text-xs text-zinc-400">
+                                          No img
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="text-[11px] sm:text-xs font-medium text-zinc-900 dark:text-zinc-100 line-clamp-2">
+                                        {result.title}
+                                      </h4>
+                                      <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
+                                        {result.author && (
+                                          <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[80px] sm:max-w-[120px]">
+                                            {result.author}
+                                          </span>
+                                        )}
+                                        {result.publishedAt && (
+                                          <span className="text-[10px] sm:text-xs text-zinc-400 dark:text-zinc-500 hidden sm:inline">
+                                            {formatDate(result.publishedAt)}
+                                          </span>
                                         )}
                                       </div>
                                     </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
 
-                          {/* Platform Results */}
-                          {platformData.results.length > 0 && (
-                            <div className="space-y-1.5 sm:space-y-2">
-                              {platformData.results.map((result) => (
-                                <div
-                                  key={result.url}
-                                  className={`flex gap-2 sm:gap-3 p-2 sm:p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border transition-colors cursor-pointer ${
-                                    selectedUrls.has(result.url)
-                                      ? 'border-primary ring-2 ring-primary/20'
-                                      : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                                  }`}
-                                  onClick={() => !result.isSaved && toggleSelection(result.url)}
-                                >
-                                  {/* Checkbox */}
-                                  <div className="flex-shrink-0 flex items-start pt-0.5 sm:pt-1">
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedUrls.has(result.url)}
-                                      onChange={() => toggleSelection(result.url)}
-                                      disabled={result.isSaved}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-primary focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                                    />
-                                  </div>
-
-                                  {/* Thumbnail */}
-                                  {result.thumbnailUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element -- External thumbnail URLs
-                                    <img
-                                      src={result.thumbnailUrl}
-                                      alt=""
-                                      className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
-                                    />
-                                  ) : (
-                                    <div className="w-16 h-12 sm:w-20 sm:h-14 bg-zinc-200 dark:bg-zinc-700 rounded flex-shrink-0 flex items-center justify-center">
-                                      <span className="text-[10px] sm:text-xs text-zinc-400">No img</span>
-                                    </div>
-                                  )}
-
-                                  {/* Info */}
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="text-[11px] sm:text-xs font-medium text-zinc-900 dark:text-zinc-100 line-clamp-2">
-                                      {result.title}
-                                    </h4>
-                                    <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
-                                      {result.author && (
-                                        <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[80px] sm:max-w-[120px]">
-                                          {result.author}
+                                    {/* Status */}
+                                    <div className="flex-shrink-0 flex items-center">
+                                      {result.isSaved ? (
+                                        <span className="text-[10px] sm:text-xs text-green-600 dark:text-green-400">
+                                          저장됨
                                         </span>
-                                      )}
-                                      {result.publishedAt && (
-                                        <span className="text-[10px] sm:text-xs text-zinc-400 dark:text-zinc-500 hidden sm:inline">
-                                          {formatDate(result.publishedAt)}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Status */}
-                                  <div className="flex-shrink-0 flex items-center">
-                                    {result.isSaved ? (
-                                      <span className="text-[10px] sm:text-xs text-green-600 dark:text-green-400">저장됨</span>
-                                    ) : result.isSaving ? (
-                                      <svg className="w-4 h-4 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                      </svg>
-                                    ) : (
-                                      <motion.button
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleSave(result)
-                                        }}
-                                        className="p-1.5 sm:p-1 text-zinc-400 hover:text-primary transition-colors"
-                                        whileTap={{ scale: 0.9 }}
-                                      >
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                      ) : result.isSaving ? (
+                                        <svg
+                                          className="w-4 h-4 animate-spin text-zinc-400"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                        >
+                                          <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                          />
+                                          <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                          />
                                         </svg>
-                                      </motion.button>
-                                    )}
+                                      ) : (
+                                        <motion.button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSave(result);
+                                          }}
+                                          className="p-1.5 sm:p-1 text-zinc-400 hover:text-primary transition-colors"
+                                          whileTap={{ scale: 0.9 }}
+                                        >
+                                          <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M12 4v16m8-8H4"
+                                            />
+                                          </svg>
+                                        </motion.button>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                                ))}
+                              </div>
+                            )}
 
-                          {/* Empty state for platform */}
-                          {!platformData.isLoading && !platformData.error && platformData.results.length === 0 && (
-                            <p className="text-xs text-zinc-400 text-center py-4">
-                              검색 결과 없음
-                            </p>
-                          )}
-
-                          {/* Load More Button */}
-                          {platformData.hasMore && !platformData.isLoading && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                console.log('[LoadMore] clicked for platform:', platformConfig.id, 'hasMore:', platformData.hasMore)
-                                handleLoadMore(platformConfig.id)
-                              }}
-                              onTouchEnd={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                console.log('[LoadMore] touch for platform:', platformConfig.id)
-                                if (!platformData.isLoadingMore) {
-                                  handleLoadMore(platformConfig.id)
-                                }
-                              }}
-                              disabled={platformData.isLoadingMore}
-                              className="w-full py-3 sm:py-2 text-xs font-medium text-primary hover:text-primary-dark hover:bg-primary/5 active:bg-primary/10 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
-                            >
-                              {platformData.isLoadingMore ? (
-                                <>
-                                  <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                  </svg>
-                                  <span>불러오는 중...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                  <span>더 보기</span>
-                                </>
+                            {/* Empty state for platform */}
+                            {!platformData.isLoading &&
+                              !platformData.error &&
+                              platformData.results.length === 0 && (
+                                <p className="text-xs text-zinc-400 text-center py-4">
+                                  검색 결과 없음
+                                </p>
                               )}
-                            </button>
-                          )}
-                        </div>
-                      )
-                    })}
+
+                            {/* Load More Button */}
+                            {platformData.hasMore &&
+                              !platformData.isLoading && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log(
+                                      "[LoadMore] clicked for platform:",
+                                      platformConfig.id,
+                                      "hasMore:",
+                                      platformData.hasMore
+                                    );
+                                    handleLoadMore(platformConfig.id);
+                                  }}
+                                  onTouchEnd={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log(
+                                      "[LoadMore] touch for platform:",
+                                      platformConfig.id
+                                    );
+                                    if (!platformData.isLoadingMore) {
+                                      handleLoadMore(platformConfig.id);
+                                    }
+                                  }}
+                                  disabled={platformData.isLoadingMore}
+                                  className="w-full py-3 sm:py-2 text-xs font-medium text-primary hover:text-primary-dark hover:bg-primary/5 active:bg-primary/10 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                                >
+                                  {platformData.isLoadingMore ? (
+                                    <>
+                                      <svg
+                                        className="w-3 h-3 animate-spin"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                      >
+                                        <circle
+                                          className="opacity-25"
+                                          cx="12"
+                                          cy="12"
+                                          r="10"
+                                          stroke="currentColor"
+                                          strokeWidth="4"
+                                        />
+                                        <path
+                                          className="opacity-75"
+                                          fill="currentColor"
+                                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        />
+                                      </svg>
+                                      <span>불러오는 중...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg
+                                        className="w-3 h-3"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 9l-7 7-7-7"
+                                        />
+                                      </svg>
+                                      <span>더 보기</span>
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                          </div>
+                        );
+                      }
+                    )}
                   </div>
                 </div>
               )}
@@ -2141,11 +2719,15 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
               )}
 
               {/* Empty Results State */}
-              {!isSearching && !anyLoading && totalResults === 0 && query && platformResults.size > 0 && (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center py-8">
-                  검색 결과가 없습니다
-                </p>
-              )}
+              {!isSearching &&
+                !anyLoading &&
+                totalResults === 0 &&
+                query &&
+                platformResults.size > 0 && (
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center py-8">
+                    검색 결과가 없습니다
+                  </p>
+                )}
             </div>
 
             {/* Footer */}
@@ -2158,5 +2740,5 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
         </motion.div>
       )}
     </AnimatePresence>
-  )
+  );
 }
