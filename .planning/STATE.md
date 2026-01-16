@@ -5,19 +5,19 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 29-01 완료 - selca 코드 리팩토링 (타입 통합, 중복 제거, 플랫폼 타입 수정)
+**Current focus:** Phase 30-01 완료 - selca 무한 스크롤 페이지네이션 (max_time_id 기반)
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 29 of 30 (Selca Refactoring)
+Phase: 30 of 30 (Selca Infinite Scroll)
 Plan: 1 of 1 completed
 Status: Complete
-Last activity: 2026-01-16 — Completed 29-01-PLAN.md
+Last activity: 2026-01-16 — Completed 30-01-PLAN.md
 
-Progress: ███████████████████████████░ 96.7% (29/30 phases complete)
+Progress: ████████████████████████████ 100% (30/30 phases complete)
 
-**Next Phase:** Phase 30 - Selca Infinite Scroll
+**Milestone Complete!**
 
 ## Performance Metrics
 
@@ -61,11 +61,12 @@ Progress: ███████████████████████�
 | 27. Selca External Search | 1 | ~30 min | 30 min |
 | 28. Selca Search UX | 2 | ~11 min | 6 min |
 | 29. Selca Refactoring | 1 | 9 min | 9 min |
+| 30. Selca Infinite Scroll | 1 | 5 min | 5 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 26-01 (~5m), 27-01 (~30m), 28-01 (failed), 28-02 (~11m), 29-01 (9m)
-- Trend: Phase 29-01 완료! selca 코드 리팩토링. 공통 타입 파일 생성, 중복 코드 제거, 플랫폼 타입 누락 수정.
+- Last 5 plans: 27-01 (~30m), 28-01 (failed), 28-02 (~11m), 29-01 (9m), 30-01 (5m)
+- Trend: Phase 30-01 완료! selca 무한 스크롤 페이지네이션 구현. max_time_id 기반 페이지네이션.
 
 ## Accumulated Context
 
@@ -118,6 +119,8 @@ Progress: ███████████████████████�
 - selca 공통 타입 파일 분리 (src/lib/selca-types.ts)
 - fetchHtmlFromSelca 함수 공유 (selca.ts에서 export)
 - searchMembers @deprecated (타임아웃 문제, Bias.selca_slug 사용 권장)
+- selca max_time_id 기반 페이지네이션 (단방향, 다음 페이지만 가능)
+- extractMediaId로 미디어 ID 추출 (/original/, /thumb/ 패턴)
 
 ### Roadmap Evolution
 
@@ -142,7 +145,7 @@ Progress: ███████████████████████�
 - Phase 27 added: Selca External Search (selca.kastden.org 외부 검색 플랫폼 추가) ✓
 - Phase 28 added: Selca Search UX (Bias 기반 즉시 검색, selca_slug 저장) ✓
 - Phase 29 added: Selca Refactoring (selca 관련 코드 리팩토링, 꼬인 로직 정리) ✓
-- Phase 30 added: Selca Infinite Scroll (selca.kastden.org 무한 스크롤 페이지네이션 구현) - Phase 29 리팩토링 후 실행
+- Phase 30 added: Selca Infinite Scroll (selca.kastden.org 무한 스크롤 페이지네이션 구현) ✓
 
 ### Deferred Issues
 
@@ -163,7 +166,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-16
-Stopped at: Phase 29-01 completed (selca 코드 리팩토링)
+Stopped at: Phase 30-01 completed (selca 무한 스크롤 페이지네이션)
 Resume file: None
 
-**Next recommended action:** Phase 30 계획 또는 배포 검토
+**Next recommended action:** 마일스톤 완료 또는 새 기능 추가

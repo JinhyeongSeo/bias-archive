@@ -49,7 +49,7 @@ None
 - [x] **Phase 26: Bias List UX Fixes** - 그룹 순서 변경 시 통합검색 실시간 반영, 최애/그룹 추가 시 아래에 추가 ✓
 - [x] **Phase 27: Selca External Search** - selca.kastden.org 외부 검색 기능 추가 (셀카/영상 콘텐츠) ✓
 - [x] **Phase 29: Selca Refactoring** - selca 관련 코드 리팩토링 (타입 통합, 중복 제거) ✓
-- [ ] **Phase 30: Selca Infinite Scroll** - selca.kastden.org 무한 스크롤 페이지네이션 구현
+- [x] **Phase 30: Selca Infinite Scroll** - selca.kastden.org 무한 스크롤 페이지네이션 구현 ✓
 
 ## Phase Details
 
@@ -569,7 +569,7 @@ Plans:
 
 Plans:
 
-- [ ] TBD (run /gsd:plan-phase 30 to break down)
+- [x] 30-01: selca max_time_id 기반 무한 스크롤 페이지네이션 구현 ✓
 
 **Details:**
 [To be added during planning]
@@ -610,3 +610,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 27. Selca External Search | - | 1/1 | Complete | 2026-01-16 |
 | 28. Selca Search UX | - | 2/2 | Complete | 2026-01-16 |
 | 29. Selca Refactoring | - | 1/1 | Complete | 2026-01-16 |
+| 30. Selca Infinite Scroll | - | 1/1 | Complete | 2026-01-16 |
