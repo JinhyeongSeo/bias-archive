@@ -1701,7 +1701,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
                                 {/* Group Members */}
                                 {!isCollapsed && (
-                                  <div className="pl-4">
+                                  <div className="pl-6 border-l-2 border-zinc-100 dark:border-zinc-700/50 ml-4">
                                     {biasesInGroup.map((bias) => (
                                       <button
                                         key={bias.id}
@@ -1709,12 +1709,13 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                                           setSelection({ type: 'bias', id: bias.id })
                                           setIsIdolDropdownOpen(false)
                                         }}
-                                        className={`w-full px-3 py-1.5 text-sm text-left transition-colors ${
+                                        className={`w-full px-3 py-1.5 text-sm text-left transition-colors flex items-center gap-2 ${
                                           selection?.type === 'bias' && selection.id === bias.id
                                             ? 'text-primary bg-primary/5'
                                             : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
                                         }`}
                                       >
+                                        <span className="text-zinc-300 dark:text-zinc-600">•</span>
                                         {getDisplayName(bias)}
                                       </button>
                                     ))}
