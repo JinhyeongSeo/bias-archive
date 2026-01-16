@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 30-01 완료 - selca 무한 스크롤 페이지네이션 (max_time_id 기반)
+**Current focus:** Phase 31-01 완료 - heye/kgirls/kgirls-issue 외부 검색 페이지네이션 수정
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 30 of 30 (Selca Infinite Scroll)
+Phase: 31 of 31 (External Search Pagination)
 Plan: 1 of 1 completed
 Status: Complete
-Last activity: 2026-01-16 — Completed 30-01-PLAN.md
+Last activity: 2026-01-16 — Completed 31-01-PLAN.md
 
-Progress: ████████████████████████████ 100% (30/30 phases complete)
+Progress: ████████████████████████████ 100% (31/31 phases complete)
 
 **Milestone Complete!**
 
@@ -23,9 +23,9 @@ Progress: ███████████████████████�
 
 **Velocity:**
 
-- Total plans completed: 46
+- Total plans completed: 47
 - Average duration: ~8 min
-- Total execution time: ~370 min
+- Total execution time: ~372 min
 
 **By Phase:**
 
@@ -62,11 +62,12 @@ Progress: ███████████████████████�
 | 28. Selca Search UX | 2 | ~11 min | 6 min |
 | 29. Selca Refactoring | 1 | 9 min | 9 min |
 | 30. Selca Infinite Scroll | 1 | 5 min | 5 min |
+| 31. External Search Pagination | 1 | 2 min | 2 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 27-01 (~30m), 28-01 (failed), 28-02 (~11m), 29-01 (9m), 30-01 (5m)
-- Trend: Phase 30-01 완료! selca 무한 스크롤 페이지네이션 구현. max_time_id 기반 페이지네이션.
+- Last 5 plans: 28-02 (~11m), 29-01 (9m), 30-01 (5m), 31-01 (2m)
+- Trend: Phase 31-01 완료! heye/kgirls/kgirls-issue 외부 검색 페이지네이션 수정.
 
 ## Accumulated Context
 
@@ -121,6 +122,7 @@ Progress: ███████████████████████�
 - searchMembers @deprecated (타임아웃 문제, Bias.selca_slug 사용 권장)
 - selca max_time_id 기반 페이지네이션 (단방향, 다음 페이지만 가능)
 - extractMediaId로 미디어 ID 추출 (/original/, /thumb/ 패턴)
+- heye/kgirls/kgirls-issue 외부 검색: 캐시의 currentPage를 우선 사용하여 다음 페이지 계산
 
 ### Roadmap Evolution
 
@@ -146,6 +148,7 @@ Progress: ███████████████████████�
 - Phase 28 added: Selca Search UX (Bias 기반 즉시 검색, selca_slug 저장) ✓
 - Phase 29 added: Selca Refactoring (selca 관련 코드 리팩토링, 꼬인 로직 정리) ✓
 - Phase 30 added: Selca Infinite Scroll (selca.kastden.org 무한 스크롤 페이지네이션 구현) ✓
+- Phase 31 added: External Search Pagination (heye, kgirls, kgirls-issue 외부 검색 페이지네이션) ✓
 
 ### Deferred Issues
 
@@ -166,7 +169,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-16
-Stopped at: Phase 30-01 completed (selca 무한 스크롤 페이지네이션)
+Stopped at: Phase 31-01 completed (heye/kgirls/kgirls-issue 외부 검색 페이지네이션)
 Resume file: None
 
 **Next recommended action:** 마일스톤 완료 또는 새 기능 추가

@@ -50,6 +50,7 @@ None
 - [x] **Phase 27: Selca External Search** - selca.kastden.org 외부 검색 기능 추가 (셀카/영상 콘텐츠) ✓
 - [x] **Phase 29: Selca Refactoring** - selca 관련 코드 리팩토링 (타입 통합, 중복 제거) ✓
 - [x] **Phase 30: Selca Infinite Scroll** - selca.kastden.org 무한 스크롤 페이지네이션 구현 ✓
+- [x] **Phase 31: External Search Pagination** - heye, kgirls, kgirls-issue 외부 검색 페이지네이션 (캐시 20개 제한 해결) ✓
 
 ## Phase Details
 
@@ -574,6 +575,33 @@ Plans:
 **Details:**
 [To be added during planning]
 
+### Phase 31: External Search Pagination
+
+**Goal**: heye, kgirls, kgirls-issue 외부 검색에서 캐시 20개 이후에도 자연스럽게 추가 결과 로딩
+**Depends on**: Phase 30
+**Research**: Unlikely (기존 패턴 활용)
+**Plans**: TBD
+
+**배경:**
+
+- 현재 외부 검색 결과는 캐시에 20개만 저장됨
+- 20개 초과 시 "결과 0"으로 표시되고 "더보기" 버튼을 눌러야 다음 페이지 로드
+- 사용자 경험 개선을 위해 페이지네이션 UI/UX 개선 필요
+
+**기능 설명:**
+
+- heye, kgirls, kgirls-issue 검색에 페이지네이션 버튼 추가
+- 캐시 20개 제한 해결 또는 다음 페이지 자연스럽게 로딩
+- 현재 페이지/전체 결과 수 표시
+- "더보기" 또는 페이지 번호 네비게이션
+
+Plans:
+
+- [x] 31-01: heye/kgirls/kgirls-issue 외부 검색 페이지네이션 수정 ✓
+
+**Details:**
+Phase complete - currentPage 계산 수정 및 페이지 정보 UI 추가
+
 ## Progress
 
 **Execution Order:**
@@ -611,3 +639,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 28. Selca Search UX | - | 2/2 | Complete | 2026-01-16 |
 | 29. Selca Refactoring | - | 1/1 | Complete | 2026-01-16 |
 | 30. Selca Infinite Scroll | - | 1/1 | Complete | 2026-01-16 |
+| 31. External Search Pagination | - | 1/1 | Complete | 2026-01-16 |
