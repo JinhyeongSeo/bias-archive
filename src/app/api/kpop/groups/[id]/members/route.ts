@@ -1,33 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getGroupMembers } from '@/lib/kpop-data'
-import kpopData from 'kpopnet.json'
+import { getGroupMembers } from '@/lib/parsers/selca'
 
 /**
  * GET /api/kpop/groups/[id]/members
- * Get all members of a K-pop group by group ID
+ * Get all members of a K-pop group by group slug
+ * Uses selca.kastden.org for real-time data
  */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id: groupSlug } = await params
 
-    // Find the group to get its name
-    const group = kpopData.groups.find((g) => g.id === id)
-    if (!group) {
+    const result = await getGroupMembers(groupSlug)
+
+    // If no group name found, group doesn't exist
+    if (!result.groupName) {
       return NextResponse.json(
         { error: '그룹을 찾을 수 없습니다' },
         { status: 404 }
       )
     }
 
-    const members = getGroupMembers(id)
-
     return NextResponse.json({
-      groupName: group.name,
-      groupNameOriginal: group.name_original,
-      members,
+      groupName: result.groupName,
+      groupNameOriginal: result.groupNameOriginal,
+      members: result.members,
     })
   } catch (error) {
     console.error('Error fetching group members:', error)

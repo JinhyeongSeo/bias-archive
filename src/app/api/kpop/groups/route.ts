@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { searchGroups } from '@/lib/kpop-data'
+import { searchGroups } from '@/lib/parsers/selca'
 
 /**
  * GET /api/kpop/groups?q=검색어
  * Search for K-pop groups by name (English or Korean)
+ * Uses selca.kastden.org for real-time data
  */
 export async function GET(request: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const groups = searchGroups(query.trim())
+    const groups = await searchGroups(query.trim())
     return NextResponse.json({ groups })
   } catch (error) {
     console.error('Error searching K-pop groups:', error)

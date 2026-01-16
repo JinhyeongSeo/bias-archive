@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { searchMembers } from '@/lib/kpop-data'
+import { searchMembers } from '@/lib/parsers/selca'
 
 /**
  * GET /api/kpop/members?q=검색어
  * Search for K-pop idols by name (English or Korean)
  * Returns members with their group info
+ * Uses selca.kastden.org for real-time data
  */
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const members = searchMembers(query.trim())
+    const members = await searchMembers(query.trim())
     return NextResponse.json({ members })
   } catch (error) {
     console.error('Error searching K-pop members:', error)
