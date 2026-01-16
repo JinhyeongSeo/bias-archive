@@ -160,11 +160,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Step 4: Check for next page
-    let hasNextPage = false
-    const nextPageLink = root.querySelector('a:contains("Next page")')
-    if (nextPageLink) {
-      hasNextPage = true
-    }
+    // Note: Pagination is not implemented yet (requires tracking max_time_id across requests)
+    // For now, we only show the first page
+    const hasNextPage = false
 
     // Limit results per page
     const pageSize = 20
