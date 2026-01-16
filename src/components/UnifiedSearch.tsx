@@ -234,6 +234,18 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isIdolDropdownOpen])
 
+  // Initialize all groups as collapsed when dropdown opens
+  useEffect(() => {
+    if (isIdolDropdownOpen) {
+      const allGroupIds = new Set(
+        biasesWithGroups
+          .map(b => b.group_id)
+          .filter((id): id is string => id !== null)
+      )
+      setCollapsedDropdownGroups(allGroupIds)
+    }
+  }, [isIdolDropdownOpen, biasesWithGroups])
+
   // Prevent body scroll when modal is open and reset state when closing
   useEffect(() => {
     if (isOpen) {
