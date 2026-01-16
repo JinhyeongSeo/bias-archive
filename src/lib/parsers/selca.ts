@@ -42,10 +42,12 @@ interface CacheEntry<T> {
   timestamp: number
 }
 
-const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes (extended for better performance)
 const groupsCache: CacheEntry<KpopGroup[]> | null = null
 const groupMembersCache = new Map<string, CacheEntry<{ groupName: string; groupNameOriginal: string; members: KpopMember[] }>>()
 let idolsCache: CacheEntry<KpopMemberWithGroup[]> | null = null
+// Cache for individual idol Korean stage names
+const idolStageNameCache = new Map<string, CacheEntry<string>>()
 
 /**
  * Fetch HTML from URL with timeout and User-Agent
@@ -79,6 +81,51 @@ async function fetchHtml(url: string): Promise<string> {
  */
 function getText(element: HTMLElement | null): string {
   return element?.textContent?.trim() ?? ''
+}
+
+/**
+ * Fetch Korean stage name from individual idol page
+ * Looks for "Stage name (original)" field which contains Korean/Japanese stage name
+ */
+async function fetchIdolKoreanStageName(idolSlug: string): Promise<string> {
+  // Check cache
+  const cached = idolStageNameCache.get(idolSlug)
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data
+  }
+
+  try {
+    const html = await fetchHtml(`${BASE_URL}/noona/idol/${idolSlug}/`)
+    const root = parse(html)
+
+    // Find "Stage name (original)" row in the info table
+    const rows = root.querySelectorAll('tr')
+    let koreanStageName = ''
+
+    for (const row of rows) {
+      const cells = row.querySelectorAll('td')
+      if (cells.length >= 2) {
+        const label = getText(cells[0])
+        const value = getText(cells[1])
+
+        if (label === 'Stage name (original)') {
+          koreanStageName = value
+          break
+        }
+      }
+    }
+
+    // Cache the result (even if empty, to avoid repeated requests)
+    idolStageNameCache.set(idolSlug, {
+      data: koreanStageName,
+      timestamp: Date.now(),
+    })
+
+    return koreanStageName
+  } catch (error) {
+    console.error(`[Selca Parser] Error fetching Korean stage name for ${idolSlug}:`, error)
+    return ''
+  }
 }
 
 /**
@@ -154,6 +201,7 @@ async function fetchAllGroups(): Promise<KpopGroup[]> {
 /**
  * Search for K-pop groups by name (English or Korean)
  * Returns top 10 matches, case-insensitive partial matching
+ * Fetches member count for each matched group (cached for performance)
  */
 export async function searchGroups(query: string): Promise<KpopGroup[]> {
   const normalizedQuery = query.toLowerCase().trim()
@@ -172,7 +220,20 @@ export async function searchGroups(query: string): Promise<KpopGroup[]> {
       })
       .slice(0, 10)
 
-    return matches
+    // Fetch member counts in parallel for matched groups
+    // Uses cache so subsequent requests are fast
+    const groupsWithCounts = await Promise.all(
+      matches.map(async (group) => {
+        try {
+          const { members } = await getGroupMembers(group.id)
+          return { ...group, memberCount: members.length }
+        } catch {
+          return group // Keep memberCount as 0 on error
+        }
+      })
+    )
+
+    return groupsWithCounts
   } catch (error) {
     console.error('[Selca Parser] Error searching groups:', error)
     return []
@@ -226,8 +287,12 @@ export async function getGroupMembers(
       groupNameOriginal = groupName
     }
 
-    // Get members from the member table
-    const members: KpopMember[] = []
+    // Get members from the member table (basic info first)
+    interface BasicMember {
+      id: string
+      name: string
+    }
+    const basicMembers: BasicMember[] = []
     const memberLinks = root.querySelectorAll('a[href^="/noona/idol/"]')
 
     for (const link of memberLinks) {
@@ -238,37 +303,30 @@ export async function getGroupMembers(
       const idolSlug = match[1] // e.g., "ive_gaeul"
       const stageName = getText(link)
 
-      // Get real name (Korean) from the same row
+      // Skip if not in a table row (could be other links)
       const row = link.closest('tr')
       if (!row) continue
 
-      // Real name is in the second <td> with format: "Kim Gaeul (김가을)"
-      const realNameTd = row.querySelectorAll('td')[1]
-      if (!realNameTd) continue
-
-      let nameOriginal = ''
-      const realNameSpans = realNameTd.querySelectorAll('span.nobr')
-      for (const span of realNameSpans) {
-        const text = getText(span)
-        if (text.startsWith('(') && text.endsWith(')')) {
-          nameOriginal = text.slice(1, -1)
-          break
-        }
-      }
-
-      // If no Korean name found, use stage name
-      if (!nameOriginal) {
-        nameOriginal = stageName
-      }
-
-      members.push({
+      basicMembers.push({
         id: idolSlug,
         name: stageName,
-        name_original: nameOriginal,
       })
     }
 
-    const result = { groupName, groupNameOriginal, members }
+    // Fetch Korean stage names for all members in parallel
+    const membersWithKoreanNames = await Promise.all(
+      basicMembers.map(async (member) => {
+        const koreanStageName = await fetchIdolKoreanStageName(member.id)
+        return {
+          id: member.id,
+          name: member.name,
+          // Use Korean stage name if available, otherwise fall back to English stage name
+          name_original: koreanStageName || member.name,
+        }
+      })
+    )
+
+    const result = { groupName, groupNameOriginal, members: membersWithKoreanNames }
 
     // Update cache
     groupMembersCache.set(groupSlug, {

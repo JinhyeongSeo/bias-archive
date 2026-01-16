@@ -98,6 +98,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   const memberDropdownRef = useRef<HTMLDivElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const memberSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const searchAbortRef = useRef<AbortController | null>(null)
 
   // Load collapsed groups from localStorage
   // Default: all groups collapsed (stored value tracks which are EXPANDED)
@@ -329,7 +330,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     }
   }, [groupedBiases, localBiases, localGroups, biases, groups, onBiasReordered])
 
-  // Debounced group search
+  // Debounced group search with abort controller to prevent race conditions
   const searchGroups = useCallback(async (query: string) => {
     if (!query.trim()) {
       setGroupResults([])
@@ -337,25 +338,53 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       return
     }
 
+    // Abort any previous request
+    if (searchAbortRef.current) {
+      searchAbortRef.current.abort()
+    }
+
+    // Create new abort controller for this request
+    const abortController = new AbortController()
+    searchAbortRef.current = abortController
+
     setIsSearching(true)
     try {
-      const response = await fetch(`/api/kpop/groups?q=${encodeURIComponent(query.trim())}`)
+      const response = await fetch(`/api/kpop/groups?q=${encodeURIComponent(query.trim())}`, {
+        signal: abortController.signal,
+      })
       if (response.ok) {
         const data = await response.json()
-        setGroupResults(data.groups || [])
-        setShowDropdown(true)
+        // Only update if this request wasn't aborted
+        if (!abortController.signal.aborted) {
+          setGroupResults(data.groups || [])
+          setShowDropdown(true)
+        }
       }
     } catch (error) {
+      // Ignore abort errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        return
+      }
       console.error('Error searching groups:', error)
     } finally {
-      setIsSearching(false)
+      // Only update isSearching if this request wasn't aborted
+      if (!abortController.signal.aborted) {
+        setIsSearching(false)
+      }
     }
   }, [])
 
   // Handle group query change with debounce
   useEffect(() => {
+    // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
+    }
+
+    // Abort any in-flight request when query changes
+    if (searchAbortRef.current) {
+      searchAbortRef.current.abort()
+      searchAbortRef.current = null
     }
 
     if (groupQuery.trim()) {
@@ -365,11 +394,16 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     } else {
       setGroupResults([])
       setShowDropdown(false)
+      setIsSearching(false)
     }
 
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current)
+      }
+      // Also abort on cleanup
+      if (searchAbortRef.current) {
+        searchAbortRef.current.abort()
       }
     }
   }, [groupQuery, searchGroups])
