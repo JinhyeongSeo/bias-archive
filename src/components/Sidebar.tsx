@@ -404,6 +404,7 @@ export function Sidebar({
             groups={groups}
             onBiasAdded={handleBiasChange}
             onBiasDeleted={handleBiasChange}
+            onBiasReordered={handleBiasChange}
           />
         )}
       </section>
