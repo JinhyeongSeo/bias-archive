@@ -70,7 +70,10 @@ export async function GET(request: NextRequest) {
 
     if (idols.length === 0) {
       return NextResponse.json(
-        { error: '매칭되는 아이돌을 찾을 수 없습니다' },
+        {
+          error: '매칭되는 아이돌을 찾을 수 없습니다',
+          hint: '영문 이름이나 아이돌 드롭다운을 사용해보세요',
+        },
         { status: 404 }
       )
     }
