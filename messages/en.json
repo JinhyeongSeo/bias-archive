@@ -199,6 +199,18 @@
     "confirmDeleteTitle": "Confirm Batch Delete",
     "confirmDeleteDescription": "Delete {count} links? This action cannot be undone."
   },
+  "unifiedSearch": {
+    "selectIdol": "Select Idol",
+    "noSelection": "No selection",
+    "searchPlaceholder": "Enter search query...",
+    "searchButton": "Search",
+    "searching": "Searching...",
+    "platform": "Platform",
+    "results": "results",
+    "selected": "selected",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All"
+  },
   "auth": {
     "login": "Login",
     "signup": "Sign Up",

@@ -199,6 +199,18 @@
     "confirmDeleteTitle": "일괄 삭제 확인",
     "confirmDeleteDescription": "{count}개의 링크를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
   },
+  "unifiedSearch": {
+    "selectIdol": "아이돌 선택",
+    "noSelection": "선택 안함",
+    "searchPlaceholder": "검색어 입력...",
+    "searchButton": "검색",
+    "searching": "검색 중...",
+    "platform": "플랫폼",
+    "results": "개의 결과",
+    "selected": "개 선택",
+    "selectAll": "전체 선택",
+    "deselectAll": "선택 해제"
+  },
   "auth": {
     "login": "로그인",
     "signup": "회원가입",
