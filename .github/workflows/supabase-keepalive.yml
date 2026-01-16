@@ -11,15 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           response=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+            "${SUPABASE_URL}/rest/v1/health" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
 
-          if [ "$response" -eq 200 ]; then
-            echo "✅ Supabase ping successful (HTTP $response)"
+          echo "HTTP Response: $response"
+
+          if [ "$response" -ge 200 ] && [ "$response" -lt 400 ]; then
+            echo "✅ Supabase ping successful"
           else
-            echo "⚠️ Supabase ping returned HTTP $response"
+            echo "⚠️ Supabase ping failed"
             exit 1
           fi
