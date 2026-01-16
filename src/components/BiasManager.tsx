@@ -55,6 +55,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   const [groupName, setGroupName] = useState('')
   const [nameEn, setNameEn] = useState('')
   const [nameKo, setNameKo] = useState('')
+  const [selcaSlug, setSelcaSlug] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null)
@@ -474,6 +475,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     setName(member.name_original) // Korean name as display name
     setNameEn(member.name) // English name
     setNameKo(member.name_original) // Korean name
+    setSelcaSlug(member.id) // selca.kastden.org slug
     if (member.group) {
       setGroupName(member.group.name_original) // Korean group name
       setSelectedGroupInfo({
@@ -549,6 +551,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
           groupName: selectedGroup.nameOriginal,
           nameEn: m.name, // English name from kpopnet
           nameKo: m.name_original, // Korean name from kpopnet
+          selcaSlug: m.id, // selca.kastden.org slug (e.g., aespa_winter)
         }))
 
       const response = await fetch('/api/biases/batch', {
@@ -615,6 +618,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
           groupName: groupName.trim() || null,
           nameEn: nameEn.trim() || null,
           nameKo: nameKo.trim() || null,
+          selcaSlug: selcaSlug || null,
           group: selectedGroupInfo,
         }),
       })
@@ -629,6 +633,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         setGroupName('')
         setNameEn('')
         setNameKo('')
+        setSelcaSlug(null)
         setSelectedGroupInfo(null)
         setIsFormOpen(false)
         onBiasAdded()

@@ -13,6 +13,7 @@ interface BatchMember {
   groupName: string
   nameEn?: string
   nameKo?: string
+  selcaSlug?: string
 }
 
 interface BatchRequest {
@@ -125,6 +126,7 @@ export async function POST(request: NextRequest) {
       group_id: groupId,
       name_en: member.nameEn || null,
       name_ko: member.nameKo || null,
+      selca_slug: member.selcaSlug || null,
       sort_order: nextSortOrder + index,
       user_id: user.id,
     }))

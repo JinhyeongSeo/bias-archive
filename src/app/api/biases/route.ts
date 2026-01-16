@@ -50,11 +50,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, groupName, nameEn, nameKo, group } = body as {
+    const { name, groupName, nameEn, nameKo, selcaSlug, group } = body as {
       name: string
       groupName?: string
       nameEn?: string
       nameKo?: string
+      selcaSlug?: string
       group?: GroupInfo
     }
 
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
       group_name: groupName?.trim() || null,
       name_en: nameEn?.trim() || null,
       name_ko: nameKo?.trim() || null,
+      selca_slug: selcaSlug?.trim() || null,
       group_id: groupId,
       sort_order: nextSortOrder,
       user_id: user.id,
