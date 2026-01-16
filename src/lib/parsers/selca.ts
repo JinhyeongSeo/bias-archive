@@ -18,12 +18,14 @@ export interface KpopMember {
   id: string
   name: string
   name_original: string
+  name_stage_ko?: string
 }
 
 export interface KpopMemberWithGroup {
   id: string
   name: string
   name_original: string
+  name_stage_ko?: string
   group: {
     id: string
     name: string
@@ -322,6 +324,7 @@ export async function getGroupMembers(
           name: member.name,
           // Use Korean stage name if available, otherwise fall back to English stage name
           name_original: koreanStageName || member.name,
+          name_stage_ko: koreanStageName || undefined,
         }
       })
     )
@@ -354,7 +357,13 @@ async function fetchAllIdols(): Promise<KpopMemberWithGroup[]> {
     const html = await fetchHtml(`${BASE_URL}/noona/idol/`)
     const root = parse(html)
 
-    const idols: KpopMemberWithGroup[] = []
+    // Step 1: Collect basic info from listing page
+    const basicIdols: Array<{
+      id: string
+      stageName: string
+      realName: string
+      group: KpopMemberWithGroup['group']
+    }> = []
     const rows = root.querySelectorAll('tbody tr')
 
     for (const row of rows) {
@@ -408,21 +417,35 @@ async function fetchAllIdols(): Promise<KpopMemberWithGroup[]> {
         nameOriginal = stageName
       }
 
-      idols.push({
+      basicIdols.push({
         id: idolSlug,
-        name: stageName,
-        name_original: nameOriginal,
+        stageName,
+        realName: nameOriginal,
         group,
       })
     }
 
+    // Step 2: Fetch Korean stage names in parallel
+    const idolsWithKoreanNames = await Promise.all(
+      basicIdols.map(async (idol) => {
+        const koreanStageName = await fetchIdolKoreanStageName(idol.id)
+        return {
+          id: idol.id,
+          name: idol.stageName,
+          name_original: idol.realName,
+          name_stage_ko: koreanStageName || undefined,
+          group: idol.group,
+        }
+      })
+    )
+
     // Update cache
     idolsCache = {
-      data: idols,
+      data: idolsWithKoreanNames,
       timestamp: Date.now(),
     }
 
-    return idols
+    return idolsWithKoreanNames
   } catch (error) {
     console.error('[Selca Parser] Error fetching idols:', error)
     return []
@@ -446,7 +469,8 @@ export async function searchMembers(query: string): Promise<KpopMemberWithGroup[
       .filter((idol) => {
         const nameMatch = idol.name.toLowerCase().includes(normalizedQuery)
         const originalMatch = idol.name_original.toLowerCase().includes(normalizedQuery)
-        return nameMatch || originalMatch
+        const stageKoMatch = idol.name_stage_ko?.toLowerCase().includes(normalizedQuery) || false
+        return nameMatch || originalMatch || stageKoMatch
       })
       .slice(0, 10)
 

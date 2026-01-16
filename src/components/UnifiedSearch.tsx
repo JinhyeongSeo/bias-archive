@@ -874,7 +874,11 @@ export function UnifiedSearch({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "selca.kastden.org 검색 실패");
+        const errorMessage = data.error || "selca.kastden.org 검색 실패";
+        const fullMessage = data.hint
+          ? `${errorMessage}\n${data.hint}`
+          : errorMessage;
+        throw new Error(fullMessage);
       }
 
       const results = (data.results as SelcaResult[]).map((item) => ({
@@ -2327,6 +2331,13 @@ export function UnifiedSearch({
                   );
                 })}
               </div>
+
+              {/* Platform Notice - Selca */}
+              {enabledPlatforms.has("selca") && (
+                <div className="h-auto flex items-center text-sm text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-4 py-2 rounded-lg">
+                  💡 아이돌을 선택하거나 영문 이름으로 검색하세요
+                </div>
+              )}
 
               {/* Results */}
               {platformResults.size > 0 && (
