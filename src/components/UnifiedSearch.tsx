@@ -146,6 +146,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
   const [isIdolDropdownOpen, setIsIdolDropdownOpen] = useState(false)
   const [collapsedDropdownGroups, setCollapsedDropdownGroups] = useState<Set<string>>(new Set())
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const dropdownButtonRef = useRef<HTMLButtonElement>(null)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
   const [enabledPlatforms, setEnabledPlatforms] = useState<Set<Platform>>(new Set(['youtube', 'twitter', 'heye', 'kgirls', 'kgirls-issue']))
 
   const [platformResults, setPlatformResults] = useState<Map<Platform, PlatformResults>>(new Map())
@@ -265,7 +267,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isIdolDropdownOpen])
 
-  // Initialize all groups as collapsed when dropdown opens
+  // Initialize all groups as collapsed and calculate dropdown position when dropdown opens
   useEffect(() => {
     if (isIdolDropdownOpen) {
       const allGroupIds = new Set(
@@ -274,6 +276,16 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
           .filter((id): id is string => id !== null)
       )
       setCollapsedDropdownGroups(allGroupIds)
+
+      // Calculate dropdown position based on button
+      if (dropdownButtonRef.current) {
+        const rect = dropdownButtonRef.current.getBoundingClientRect()
+        setDropdownPosition({
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width,
+        })
+      }
     }
   }, [isIdolDropdownOpen, biasesWithGroups])
 
@@ -1629,6 +1641,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                 {/* Custom Idol Dropdown */}
                 <div className="w-full sm:w-56 flex-shrink-0 relative" ref={dropdownRef}>
                   <motion.button
+                    ref={dropdownButtonRef}
                     onClick={() => setIsIdolDropdownOpen(!isIdolDropdownOpen)}
                     className={`w-full px-3 py-2 sm:py-2.5 text-sm border rounded-lg bg-white dark:bg-zinc-800 text-left flex items-center justify-between transition-colors ${
                       isIdolDropdownOpen
@@ -1658,7 +1671,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg max-h-80 overflow-y-auto"
+                        className="fixed z-[100] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg max-h-80 overflow-y-auto"
+                        style={{ top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width }}
                       >
                         {/* No Selection option */}
                         <button
