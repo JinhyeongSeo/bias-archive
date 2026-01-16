@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
       results,
       nextCursor,
       nextPageToken,
+      nextMaxTimeId,
       currentPage = 1,
       currentOffset = 0,
       hasMore = true,
@@ -88,6 +89,7 @@ export async function POST(request: NextRequest) {
       results: unknown[]
       nextCursor?: string
       nextPageToken?: string
+      nextMaxTimeId?: string
       currentPage?: number
       currentOffset?: number
       hasMore?: boolean
@@ -112,6 +114,7 @@ export async function POST(request: NextRequest) {
           results,
           next_cursor: nextCursor || null,
           next_page_token: nextPageToken || null,
+          next_max_time_id: nextMaxTimeId || null,
           current_page: currentPage,
           current_offset: currentOffset,
           has_more: hasMore,

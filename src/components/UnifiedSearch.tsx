@@ -1723,15 +1723,17 @@ export function UnifiedSearch({
           const selcaCacheEntry = await getSearchCache(query);
           const selcaCache = selcaCacheEntry?.platforms.selca;
           const selcaCachedResults = selcaCache?.results ?? [];
+          const cacheDisplayedIndex = selcaCache?.displayedIndex ?? 0;
 
-          // 현재 화면에 표시된 URL들
+          // 현재 화면에 표시된 URL들 (현재 세션)
           const selcaDisplayedUrls = new Set(
             currentData.results.map((r) => r.url)
           );
-          // 캐시에서 아직 표시되지 않은 결과만 필터링
-          const selcaUnshownInCache = selcaCachedResults.filter(
-            (r) => !selcaDisplayedUrls.has(r.url)
-          );
+
+          // 캐시에서 displayedIndex 이후의 결과 중, 현재 세션에서 표시되지 않은 것만 필터링
+          const selcaUnshownInCache = selcaCachedResults
+            .slice(cacheDisplayedIndex) // 캐시의 displayedIndex 이후부터
+            .filter((r) => !selcaDisplayedUrls.has(r.url));
 
           if (selcaUnshownInCache.length >= RESULTS_PER_PLATFORM) {
             // Use cached results only
@@ -1751,7 +1753,7 @@ export function UnifiedSearch({
             // Update cache displayedIndex
             void updatePlatformCache(query, "selca", {
               ...selcaCache!,
-              displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM,
+              displayedIndex: cacheDisplayedIndex + localDisplayedCount + RESULTS_PER_PLATFORM,
             });
           } else {
             // Combine remaining cache + fetch next page using nextMaxTimeId
@@ -1785,7 +1787,7 @@ export function UnifiedSearch({
               void updatePlatformCache(query, "selca", {
                 results: [...selcaCachedResults, ...apiResult.results],
                 displayedIndex:
-                  localDisplayedCount + fromCache.length + fromApi.length,
+                  cacheDisplayedIndex + localDisplayedCount + fromCache.length + fromApi.length,
                 currentPage: newPage,
                 currentOffset: 0,
                 hasMore: apiResult.hasMore,

@@ -42,6 +42,7 @@ interface ServerCacheEntry {
   results: EnrichedResult[]
   next_cursor: string | null
   next_page_token: string | null
+  next_max_time_id: string | null  // selca pagination
   current_page: number
   current_offset: number
   has_more: boolean
@@ -92,6 +93,7 @@ export async function saveServerCache(
   options: {
     nextCursor?: string
     nextPageToken?: string
+    nextMaxTimeId?: string  // selca pagination
     currentPage?: number
     currentOffset?: number
     hasMore?: boolean
@@ -165,6 +167,7 @@ export function mergeServerCacheWithViewed(
     results: serverCache.results,
     nextCursor: serverCache.next_cursor || undefined,
     nextPageToken: serverCache.next_page_token || undefined,
+    nextMaxTimeId: serverCache.next_max_time_id || undefined,  // selca pagination
     currentPage: serverCache.current_page,
     currentOffset: serverCache.current_offset,
     hasMore: serverCache.has_more,
@@ -220,6 +223,7 @@ export async function updatePlatformCache(
   await saveServerCache(query, platform, platformResult.results, {
     nextCursor: platformResult.nextCursor,
     nextPageToken: platformResult.nextPageToken,
+    nextMaxTimeId: platformResult.nextMaxTimeId,  // selca pagination
     currentPage: platformResult.currentPage,
     currentOffset: platformResult.currentOffset,
     hasMore: platformResult.hasMore,
