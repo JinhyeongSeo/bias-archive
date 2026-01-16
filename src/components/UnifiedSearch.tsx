@@ -19,7 +19,7 @@ import {
   clearExpiredCache,
   type CachedPlatformResult,
 } from '@/lib/searchCache'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 
 // Selection type for idol dropdown
 type Selection = { type: 'bias'; id: string } | { type: 'group'; id: string } | null
@@ -104,6 +104,15 @@ const API_FETCH_COUNT = 20          // API에서 가져올 개수 (캐시용)
 export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, groups }: UnifiedSearchProps) {
   const { getDisplayName } = useNameLanguage()
   const t = useTranslations('unifiedSearch')
+  const locale = useLocale()
+
+  // Helper to get group name based on current locale
+  const getGroupDisplayName = useCallback((group: Group): string => {
+    if (locale === 'ko') {
+      return group.name_ko || group.name
+    }
+    return group.name_en || group.name
+  }, [locale])
 
   const [query, setQuery] = useState('')
   const [selection, setSelection] = useState<Selection>(null)
@@ -181,7 +190,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     if (selection.type === 'group') {
       const group = groups.find(g => g.id === selection.id)
       if (group) {
-        return group.name
+        return getGroupDisplayName(group)
       }
     } else {
       const bias = biases.find(b => b.id === selection.id)
@@ -190,7 +199,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       }
     }
     return t('selectIdol')
-  }, [selection, groups, biases, getDisplayName, t])
+  }, [selection, groups, biases, getDisplayName, getGroupDisplayName, t])
 
   // ESC key to close modal
   useEffect(() => {
@@ -244,9 +253,8 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     if (selection.type === 'group') {
       const group = groups.find(g => g.id === selection.id)
       if (group) {
-        // Search with "한글명 영어명" format
-        const names = [group.name_ko, group.name_en].filter(Boolean)
-        setQuery(names.join(' ') || group.name)
+        // Use locale-appropriate group name for search
+        setQuery(getGroupDisplayName(group))
       }
     } else {
       const selectedBias = biases.find(b => b.id === selection.id)
@@ -255,7 +263,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
         setQuery(selectedBias.name_ko || selectedBias.name)
       }
     }
-  }, [selection, groups, biases])
+  }, [selection, groups, biases, getGroupDisplayName])
 
   const checkIfSaved = useCallback((url: string): boolean => {
     const normalizedUrl = url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
@@ -1650,7 +1658,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                                         : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
                                     }`}
                                   >
-                                    {group.name}
+                                    {getGroupDisplayName(group)}
                                     <span className="ml-1 text-xs text-zinc-400">({biasesInGroup.length})</span>
                                   </button>
                                 </div>
