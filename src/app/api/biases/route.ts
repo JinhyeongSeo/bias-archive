@@ -103,6 +103,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Get max sort_order for this user to append new bias at the end
+    const { data: maxData } = await supabase
+      .from('biases')
+      .select('sort_order')
+      .order('sort_order', { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle()
+
+    const nextSortOrder = (maxData?.sort_order ?? 0) + 1
+
     // Create bias with authenticated client
     const biasInsert: BiasInsert = {
       name: name.trim(),
@@ -110,6 +120,7 @@ export async function POST(request: NextRequest) {
       name_en: nameEn?.trim() || null,
       name_ko: nameKo?.trim() || null,
       group_id: groupId,
+      sort_order: nextSortOrder,
       user_id: user.id,
     }
 

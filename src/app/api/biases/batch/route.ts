@@ -108,13 +108,24 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Get max sort_order to append new members at the end
+    const { data: maxData } = await supabase
+      .from('biases')
+      .select('sort_order')
+      .order('sort_order', { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle()
+
+    let nextSortOrder = (maxData?.sort_order ?? 0) + 1
+
     // Prepare insert data with group_id and user_id
-    const insertData: BiasInsert[] = newMembers.map((member) => ({
+    const insertData: BiasInsert[] = newMembers.map((member, index) => ({
       name: member.name,
       group_name: member.groupName || null,
       group_id: groupId,
       name_en: member.nameEn || null,
       name_ko: member.nameKo || null,
+      sort_order: nextSortOrder + index,
       user_id: user.id,
     }))
 

@@ -51,10 +51,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get max sort_order to append new group at the end
+    const { data: maxData } = await supabase
+      .from('groups')
+      .select('sort_order')
+      .order('sort_order', { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle()
+
+    const nextSortOrder = (maxData?.sort_order ?? 0) + 1
+
     const groupInsert: GroupInsert = {
       name,
       name_en: nameEn || null,
       name_ko: nameKo || null,
+      sort_order: nextSortOrder,
       user_id: user.id,
     }
 
