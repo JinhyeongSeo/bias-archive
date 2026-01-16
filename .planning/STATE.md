@@ -156,7 +156,7 @@ Progress: ███████████████████████�
 
 ### Pending Todos
 
-- [heye 영상 첫 컨텐츠 썸네일 미표시 버그](.planning/todos/pending/2026-01-16-heye-video-thumbnail-bug.md) (Area: api)
+None.
 
 ### Completed (Recently)
 
