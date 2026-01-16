@@ -43,6 +43,7 @@ None
 - [x] **Phase 20: Authentication** - 사용자 로그인/회원가입 기능 ✓
 - [x] **Phase 21: Design Overhaul** - 토스 스타일 애니메이션 및 트렌디한 디자인 전면 개편 ✓
 - [x] **Phase 22: Selca K-pop Data** - selca.kastden.org에서 최신 아이돌 데이터 가져오기 (kpopnet.json 대체) ✓
+- [ ] **Phase 23: Unified Search UX Improvements** - 통합검색 아이돌 선택 UI 개선 및 실시간 갱신
 
 ## Phase Details
 
@@ -405,6 +406,24 @@ Plans:
 
 - [x] 22-01: Selca 파서 모듈 생성 및 API 라우트 연동 ✓
 - [x] 22-02: kpopnet.json 의존성 제거 및 최종 검증 ✓
+
+### Phase 23: Unified Search UX Improvements
+
+**Goal**: 통합검색 아이돌 선택 UI 개선 - 그룹별 접기/펼치기, 용어 변경, 실시간 갱신
+**Depends on**: Phase 22
+**Research**: Unlikely (UI 개선)
+**Plans**: TBD
+
+**기능 설명:**
+
+- "내 최애" → "아이돌" 용어 변경
+- 그룹별 접기/펼치기 UI (많은 그룹 관리 용이)
+- 최애/그룹 추가 시 통합검색 드롭다운 실시간 갱신
+- 그룹 헤더 클릭으로 전체 그룹 멤버 선택/해제
+
+Plans:
+
+- [ ] 23-01: 커스텀 드롭다운 UI (용어 변경, 그룹별 접기/펼치기, 멀티셀렉트)
 
 ## Progress
 

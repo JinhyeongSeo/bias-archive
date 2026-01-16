@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-13)
 
 ## Current Position
 
-Phase: 22 of 22 (Selca K-pop Data)
-Plan: 2 of 2 in current phase
-Status: Complete
-Last activity: 2026-01-16 — Completed 22-02-PLAN.md
+Phase: 23 of 23 (Unified Search UX Improvements)
+Plan: 0 of 1 in current phase
+Status: Planned, ready for execution
+Last activity: 2026-01-16 — Created 23-01-PLAN.md
 
-Progress: ██████████████████████ 100% (22/22 phases complete)
+Progress: ██████████████████████ 96% (22/23 phases complete)
 
 ## Performance Metrics
 
@@ -115,6 +115,7 @@ Progress: ██████████████████████ 100
 - Phase 21 added: Design Overhaul (토스 스타일 애니메이션, 트렌디한 디자인 전면 개편)
 - Phase 21-05 확장: 모바일 최적화, 이름 언어 auto 고정, 라이트 모드 색상 수정 추가
 - Phase 22 added: Selca K-pop Data (selca.kastden.org에서 최신 아이돌 데이터 가져오기) ✓
+- Phase 23 added: Unified Search UX Improvements (통합검색 아이돌 선택 UI 개선)
 
 ### Deferred Issues
 
