@@ -30,6 +30,7 @@ interface SidebarProps {
   onSelectPlatform?: (platform: string | null) => void
   onOpenExternalSearch?: () => void
   onOpenUnifiedSearch?: () => void
+  onBiasChange?: () => void  // Callback when biases/groups change
   // Mobile drawer
   isOpen?: boolean
   onClose?: () => void
@@ -45,6 +46,7 @@ export function Sidebar({
   onSelectPlatform,
   onOpenExternalSearch,
   onOpenUnifiedSearch,
+  onBiasChange,
   isOpen = false,
   onClose,
 }: SidebarProps) {
@@ -123,6 +125,8 @@ export function Sidebar({
   async function handleBiasChange() {
     await fetchBiases()
     await fetchGroups()
+    // Notify parent component to refresh its biases/groups state
+    onBiasChange?.()
   }
 
   function handleTagClick(tagId: string) {
