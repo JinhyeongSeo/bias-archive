@@ -57,6 +57,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   const [nameKo, setNameKo] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null)
 
   // Collapsed groups state
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
@@ -673,6 +674,36 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     }
   }
 
+  async function handleDeleteGroup(groupId: string, groupName: string) {
+    if (!confirm(`"${groupName}" 그룹을 삭제하시겠습니까? 그룹 내 최애들은 유지됩니다.`)) {
+      return
+    }
+
+    setDeletingGroupId(groupId)
+    try {
+      const response = await fetch(`/api/groups/${groupId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
+
+      if (response.ok) {
+        onBiasDeleted()
+      } else {
+        const error = await response.json()
+        alert(error.error || '그룹 삭제에 실패했습니다')
+      }
+    } catch (error) {
+      console.error('Error deleting group:', error)
+      alert('그룹 삭제에 실패했습니다')
+    } finally {
+      setDeletingGroupId(null)
+    }
+  }
+
   return (
     <div className="space-y-2">
       {/* Grouped bias list with drag and drop */}
@@ -841,6 +872,28 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                               <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">
                                 ({groupBiases.length})
                               </span>
+                            </motion.button>
+                            <motion.button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteGroup(group!.id, groupDisplayName)
+                              }}
+                              disabled={deletingGroupId === group!.id}
+                              className="opacity-0 group-hover/header:opacity-100 p-1 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50 flex-shrink-0"
+                              title="그룹 삭제"
+                              whileTap={{ scale: 0.85 }}
+                              transition={quickSpring}
+                            >
+                              {deletingGroupId === group!.id ? (
+                                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              )}
                             </motion.button>
                           </div>
 
