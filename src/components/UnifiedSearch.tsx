@@ -114,6 +114,15 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     return group.name_en || group.name
   }, [locale])
 
+  // Helper to remove Korean surname for better search results
+  // Korean names are typically 2-4 characters with first character being surname
+  const removeKoreanSurname = useCallback((name: string): string => {
+    if (/^[가-힣]{2,4}$/.test(name)) {
+      return name.slice(1) // e.g., "장원영" → "원영"
+    }
+    return name
+  }, [])
+
   const [query, setQuery] = useState('')
   const [selection, setSelection] = useState<Selection>(null)
   const [isIdolDropdownOpen, setIsIdolDropdownOpen] = useState(false)
@@ -259,11 +268,13 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     } else {
       const selectedBias = biases.find(b => b.id === selection.id)
       if (selectedBias) {
-        // Use Korean name if available for better search results
-        setQuery(selectedBias.name_ko || selectedBias.name)
+        // Use Korean name with surname removed for better search results
+        // e.g., "장원영" → "원영" gets more results than full name
+        const koreanName = selectedBias.name_ko || selectedBias.name
+        setQuery(removeKoreanSurname(koreanName))
       }
     }
-  }, [selection, groups, biases, getGroupDisplayName])
+  }, [selection, groups, biases, getGroupDisplayName, removeKoreanSurname])
 
   const checkIfSaved = useCallback((url: string): boolean => {
     const normalizedUrl = url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
