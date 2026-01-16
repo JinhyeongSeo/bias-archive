@@ -27,7 +27,7 @@ type Selection =
   | { type: "group"; id: string }
   | null;
 
-type Platform = "youtube" | "twitter" | "heye" | "kgirls" | "kgirls-issue";
+type Platform = "youtube" | "twitter" | "heye" | "kgirls" | "kgirls-issue" | "selca";
 
 interface YouTubeResult {
   videoId: string;
@@ -56,6 +56,13 @@ interface KgirlsResult {
   url: string;
   title: string;
   thumbnailUrl: string | null;
+  author: string;
+}
+
+interface SelcaResult {
+  url: string;
+  title: string;
+  thumbnailUrl: string;
   author: string;
 }
 
@@ -132,6 +139,13 @@ const PLATFORMS: {
     id: "kgirls-issue",
     label: "kgirls issue",
     color: "text-purple-600 dark:text-purple-400",
+    bgColor: "bg-purple-100 dark:bg-purple-900/50",
+    ringColor: "ring-purple-500/20",
+  },
+  {
+    id: "selca",
+    label: "Selca",
+    color: "text-purple-700 dark:text-purple-300",
     bgColor: "bg-purple-100 dark:bg-purple-900/50",
     ringColor: "ring-purple-500/20",
   },
@@ -288,7 +302,7 @@ export function UnifiedSearch({
     width: 0,
   });
   const [enabledPlatforms, setEnabledPlatforms] = useState<Set<Platform>>(
-    new Set(["youtube", "twitter", "heye", "kgirls", "kgirls-issue"])
+    new Set(["youtube", "twitter", "heye", "kgirls", "kgirls-issue", "selca"])
   );
 
   const [platformResults, setPlatformResults] = useState<
@@ -839,6 +853,53 @@ export function UnifiedSearch({
     }
   };
 
+  const searchSelca = async (
+    searchQuery: string,
+    page: number = 1
+  ): Promise<{ results: EnrichedResult[]; hasMore: boolean }> => {
+    const params = new URLSearchParams({
+      query: searchQuery,
+      page: String(page),
+      limit: String(API_FETCH_COUNT),
+    });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+    try {
+      const response = await fetch(`/api/search/selca?${params}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "selca.kastden.org 검색 실패");
+      }
+
+      const results = (data.results as SelcaResult[]).map((item) => ({
+        url: item.url,
+        title: item.title,
+        thumbnailUrl: item.thumbnailUrl,
+        author: item.author,
+        platform: "selca" as Platform,
+        isSaved: checkIfSaved(item.url),
+        isSaving: false,
+      }));
+
+      return {
+        results,
+        hasMore: data.hasNextPage ?? false,
+      };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("요청 시간이 초과되었습니다");
+      }
+      throw error;
+    }
+  };
+
   // 플랫폼별 검색 처리 헬퍼 함수
   const processPlatformSearch = async (
     platform: Platform,
@@ -1079,6 +1140,19 @@ export function UnifiedSearch({
           "kgirls-issue",
           cachedKgirlsIssue,
           () => searchKgirlsIssue(query, startPage, startOffset),
+          newCachedResults
+        )
+      );
+    }
+
+    if (enabledPlatforms.has("selca")) {
+      const cachedSelca = cached?.platforms.selca;
+      const startPage = cachedSelca?.currentPage ?? 1;
+      searchPromises.push(
+        processPlatformSearch(
+          "selca",
+          cachedSelca,
+          () => searchSelca(query, startPage),
           newCachedResults
         )
       );

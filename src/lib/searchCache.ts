@@ -5,7 +5,7 @@
  * - 24시간 TTL
  */
 
-type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue'
+type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca'
 
 interface EnrichedResult {
   url: string
