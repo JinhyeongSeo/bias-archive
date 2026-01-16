@@ -11,19 +11,19 @@ See: .planning/PROJECT.md (updated 2026-01-13)
 ## Current Position
 
 Phase: 26 of 26 (Bias List UX Fixes)
-Plan: 0 of 1 in current phase
-Status: Planned, ready for execution
-Last activity: 2026-01-16 — Added Phase 26
+Plan: 1 of 1 in current phase
+Status: Complete
+Last activity: 2026-01-16 — Completed 26-01-PLAN.md
 
-Progress: █████████████████████████ 96% (25/26 phases complete)
+Progress: ██████████████████████████ 100% (26/26 phases complete)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 41
+- Total plans completed: 42
 - Average duration: ~8 min
-- Total execution time: ~319 min
+- Total execution time: ~320 min
 
 **By Phase:**
 
@@ -55,11 +55,12 @@ Progress: ███████████████████████�
 | 23. Unified Search UX | 1 | ~8 min | 8 min |
 | 24. Group Deletion | 1 | ~5 min | 5 min |
 | 25. UI Fixes | 1 | ~1 min | 1 min |
+| 26. Bias List UX Fixes | 1 | ~1 min | 1 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 22-02 (~5m), 23-01 (~8m), 24-01 (~5m), 25-01 (~1m)
-- Trend: Phase 25 완료! 전체 로드맵 100% 달성 (25개 Phase 모두 완료)
+- Last 5 plans: 23-01 (~8m), 24-01 (~5m), 25-01 (~1m), 26-01 (~1m)
+- Trend: Phase 26 완료! 전체 로드맵 100% 달성 (26개 Phase 모두 완료)
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Progress: ███████████████████████�
 - 통합검색 커스텀 드롭다운 (그룹별 접기/펼치기, 그룹 선택 지원)
 - onBiasChange 콜백으로 BiasManager 변경 시 통합검색 드롭다운 실시간 갱신
 - DB FK의 ON DELETE SET NULL 활용으로 그룹 삭제 시 최애는 유지 (group_id만 NULL)
+- 새 bias/group 추가 시 sort_order를 max+1로 자동 설정 (목록 맨 아래에 추가)
+- onBiasReordered를 handleBiasChange에 연결하여 그룹 순서 변경 시 통합검색 실시간 반영
 
 ### Roadmap Evolution
 
@@ -145,5 +148,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-16
-Stopped at: Completed 25-01-PLAN.md (Phase 25 complete)
+Stopped at: Completed 26-01-PLAN.md (Phase 26 complete, all phases done)
 Resume file: None

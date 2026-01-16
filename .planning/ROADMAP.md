@@ -46,7 +46,7 @@ None
 - [x] **Phase 23: Unified Search UX Improvements** - 통합검색 아이돌 선택 UI 개선 및 실시간 갱신 ✓
 - [x] **Phase 24: Group Deletion** - BiasManager에서 그룹 전체 삭제 기능 추가 ✓
 - [x] **Phase 25: UI Fixes** - 태그 구분선 간격 수정, 내보내기 통계 0/0/0 버그 수정 ✓
-- [ ] **Phase 26: Bias List UX Fixes** - 그룹 순서 변경 시 통합검색 실시간 반영, 최애/그룹 추가 시 아래에 추가
+- [x] **Phase 26: Bias List UX Fixes** - 그룹 순서 변경 시 통합검색 실시간 반영, 최애/그룹 추가 시 아래에 추가 ✓
 
 ## Phase Details
 
@@ -482,7 +482,7 @@ Plans:
 
 Plans:
 
-- [ ] 26-01: API sort_order 자동 설정 + Sidebar onBiasReordered 연결
+- [x] 26-01: API sort_order 자동 설정 + Sidebar onBiasReordered 연결 ✓
 
 ## Progress
 
@@ -516,4 +516,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 23. Unified Search UX | - | 1/1 | Complete | 2026-01-16 |
 | 24. Group Deletion | - | 1/1 | Complete | 2026-01-16 |
 | 25. UI Fixes | - | 1/1 | Complete | 2026-01-16 |
-| 26. Bias List UX Fixes | - | 0/1 | Not Started | - |
+| 26. Bias List UX Fixes | - | 1/1 | Complete | 2026-01-16 |
