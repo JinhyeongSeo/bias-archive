@@ -167,18 +167,31 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     }))
   }, [biases, groups])
 
-  // Group biases by group_id for dropdown display
+  // Group biases by group_id for dropdown display, sorted by group sort_order
   const groupedBiases = useMemo(() => {
     const grouped = new Map<string | null, BiasWithGroup[]>()
-    for (const bias of biasesWithGroups) {
-      const groupId = bias.group_id
-      if (!grouped.has(groupId)) {
-        grouped.set(groupId, [])
+
+    // Sort groups by sort_order first
+    const sortedGroups = [...groups].sort((a, b) =>
+      (a.sort_order ?? 0) - (b.sort_order ?? 0)
+    )
+
+    // Add groups in sorted order
+    for (const group of sortedGroups) {
+      const biasesInGroup = biasesWithGroups.filter(b => b.group_id === group.id)
+      if (biasesInGroup.length > 0) {
+        grouped.set(group.id, biasesInGroup)
       }
-      grouped.get(groupId)!.push(bias)
     }
+
+    // Add ungrouped biases at the end
+    const ungrouped = biasesWithGroups.filter(b => !b.group_id)
+    if (ungrouped.length > 0) {
+      grouped.set(null, ungrouped)
+    }
+
     return grouped
-  }, [biasesWithGroups])
+  }, [biasesWithGroups, groups])
 
   // Toggle dropdown group collapse
   const toggleDropdownGroupCollapse = (groupId: string) => {
