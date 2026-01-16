@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .maybeSingle()
 
-    let nextSortOrder = (maxData?.sort_order ?? 0) + 1
+    const nextSortOrder = (maxData?.sort_order ?? 0) + 1
 
     // Prepare insert data with group_id and user_id
     const insertData: BiasInsert[] = newMembers.map((member, index) => ({
