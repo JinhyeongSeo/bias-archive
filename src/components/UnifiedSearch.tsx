@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getProxiedImageUrl } from "@/lib/proxy";
+import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl } from "@/lib/proxy";
 import {
   modalOverlay,
   modalContent,
@@ -797,7 +797,9 @@ export function UnifiedSearch({
         url: item.url,
         title: item.title,
         thumbnailUrl: item.thumbnailUrl
-          ? getProxiedImageUrl(item.thumbnailUrl)
+          ? isVideoUrl(item.thumbnailUrl)
+            ? getProxiedVideoUrl(item.thumbnailUrl)
+            : getProxiedImageUrl(item.thumbnailUrl)
           : null,
         author: item.author,
         platform: "heye" as Platform,
@@ -2718,12 +2720,22 @@ export function UnifiedSearch({
                                           >
                                             {/* Thumbnail */}
                                             {result.thumbnailUrl ? (
-                                              // eslint-disable-next-line @next/next/no-img-element -- External thumbnail URLs
-                                              <img
-                                                src={result.thumbnailUrl}
-                                                alt=""
-                                                className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
-                                              />
+                                              isVideoUrl(result.thumbnailUrl) ? (
+                                                <video
+                                                  src={result.thumbnailUrl}
+                                                  className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
+                                                  muted
+                                                  playsInline
+                                                  preload="metadata"
+                                                />
+                                              ) : (
+                                                // eslint-disable-next-line @next/next/no-img-element -- External thumbnail URLs
+                                                <img
+                                                  src={result.thumbnailUrl}
+                                                  alt=""
+                                                  className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
+                                                />
+                                              )
                                             ) : (
                                               <div className="w-16 h-12 sm:w-20 sm:h-14 bg-zinc-200 dark:bg-zinc-700 rounded flex-shrink-0 flex items-center justify-center">
                                                 <span className="text-[10px] sm:text-xs text-zinc-400">
@@ -2839,12 +2851,22 @@ export function UnifiedSearch({
 
                                     {/* Thumbnail */}
                                     {result.thumbnailUrl ? (
-                                      // eslint-disable-next-line @next/next/no-img-element -- External thumbnail URLs
-                                      <img
-                                        src={result.thumbnailUrl}
-                                        alt=""
-                                        className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
-                                      />
+                                      isVideoUrl(result.thumbnailUrl) ? (
+                                        <video
+                                          src={result.thumbnailUrl}
+                                          className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
+                                          muted
+                                          playsInline
+                                          preload="metadata"
+                                        />
+                                      ) : (
+                                        // eslint-disable-next-line @next/next/no-img-element -- External thumbnail URLs
+                                        <img
+                                          src={result.thumbnailUrl}
+                                          alt=""
+                                          className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
+                                        />
+                                      )
                                     ) : (
                                       <div className="w-16 h-12 sm:w-20 sm:h-14 bg-zinc-200 dark:bg-zinc-700 rounded flex-shrink-0 flex items-center justify-center">
                                         <span className="text-[10px] sm:text-xs text-zinc-400">

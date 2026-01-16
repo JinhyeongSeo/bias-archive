@@ -40,10 +40,31 @@ export function getProxiedImageUrl(url: string): string {
 
 /**
  * Check if URL is a video file
+ * Handles both direct URLs and proxied URLs (wsrv.nl, video-proxy)
  */
 export function isVideoUrl(url: string): boolean {
   const lower = url.toLowerCase()
-  return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov')
+
+  // Direct video URL check
+  if (lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov')) {
+    return true
+  }
+
+  // Check proxied URLs (wsrv.nl or video-proxy with ?url= param)
+  if (lower.includes('?url=')) {
+    try {
+      const urlObj = new URL(url)
+      const encodedOriginal = urlObj.searchParams.get('url')
+      if (encodedOriginal) {
+        const originalUrl = decodeURIComponent(encodedOriginal).toLowerCase()
+        return originalUrl.endsWith('.mp4') || originalUrl.endsWith('.webm') || originalUrl.endsWith('.mov')
+      }
+    } catch {
+      // URL parsing failed, not a video
+    }
+  }
+
+  return false
 }
 
 /**
