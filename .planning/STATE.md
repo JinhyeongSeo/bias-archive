@@ -5,27 +5,27 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 26 추가됨 - Bias List UX Fixes (그룹 순서 실시간 반영 & 추가 위치 수정)
+**Current focus:** Phase 27 완료 - Selca External Search (selca.kastden.org 외부 검색 플랫폼 추가)
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
 Phase: 27 of 27 (Selca External Search)
-Plan: Not planned yet
-Status: Not Started
-Last activity: 2026-01-16 — Phase 27 added to roadmap
+Plan: 1 of 1 in current phase
+Status: Complete
+Last activity: 2026-01-16 — Completed 27-01-PLAN.md
 
-Progress: ████████████████████████░░ 96% (26/27 phases complete)
+Progress: ██████████████████████████ 100% (27/27 phases complete)
 
-**Next Phase:** Phase 27 - Selca External Search
+**All phases complete!**
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 42
+- Total plans completed: 43
 - Average duration: ~8 min
-- Total execution time: ~320 min
+- Total execution time: ~350 min
 
 **By Phase:**
 
@@ -57,12 +57,13 @@ Progress: ███████████████████████�
 | 23. Unified Search UX | 1 | ~8 min | 8 min |
 | 24. Group Deletion | 1 | ~5 min | 5 min |
 | 25. UI Fixes | 1 | ~1 min | 1 min |
-| 26. Bias List UX Fixes | 1 | ~1 min | 1 min |
+| 26. Bias List UX Fixes | 1 | ~5 min | 5 min |
+| 27. Selca External Search | 1 | ~30 min | 30 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 23-01 (~8m), 24-01 (~5m), 25-01 (~1m), 26-01 (~1m)
-- Trend: Phase 26 완료! 전체 로드맵 100% 달성 (26개 Phase 모두 완료)
+- Last 5 plans: 23-01 (~8m), 24-01 (~5m), 25-01 (~1m), 26-01 (~5m), 27-01 (~30m)
+- Trend: Phase 27 완료! 전체 로드맵 100% 달성 (27개 Phase 모두 완료) - selca.kastden.org 외부 검색 통합 완성
 
 ## Accumulated Context
 
@@ -128,9 +129,9 @@ Progress: ███████████████████████�
 - Phase 22 added: Selca K-pop Data (selca.kastden.org에서 최신 아이돌 데이터 가져오기) ✓
 - Phase 23 added: Unified Search UX Improvements (통합검색 아이돌 선택 UI 개선) ✓
 - Phase 24 added: Group Deletion (BiasManager에서 그룹 전체 삭제 기능) ✓
-- Phase 25 added: UI Fixes (태그 구분선 간격 & 내보내기 통계 0/0/0 버그)
-- Phase 26 added: Bias List UX Fixes (그룹 순서 실시간 반영 & 추가 위치 수정)
-- Phase 27 added: Selca External Search (selca.kastden.org 외부 검색 플랫폼 추가)
+- Phase 25 added: UI Fixes (태그 구분선 간격 & 내보내기 통계 0/0/0 버그) ✓
+- Phase 26 added: Bias List UX Fixes (그룹 순서 실시간 반영 & 추가 위치 수정) ✓
+- Phase 27 added: Selca External Search (selca.kastden.org 외부 검색 플랫폼 추가) ✓
 
 ### Deferred Issues
 
