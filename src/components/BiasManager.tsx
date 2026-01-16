@@ -679,9 +679,15 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       return
     }
 
+    // Ask if user wants to delete related links too
+    const deleteLinks = confirm('관련 링크도 함께 삭제하시겠습니까?\n\n"확인" - 이 그룹/멤버로 태그된 링크도 삭제\n"취소" - 그룹/멤버만 삭제 (링크는 유지)')
+
     setDeletingGroupId(groupId)
     try {
-      const response = await fetch(`/api/groups/${groupId}`, {
+      const url = deleteLinks
+        ? `/api/groups/${groupId}?deleteLinks=true`
+        : `/api/groups/${groupId}`
+      const response = await fetch(url, {
         method: 'DELETE',
       })
 

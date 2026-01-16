@@ -125,7 +125,8 @@ export function Sidebar({
   async function handleBiasChange() {
     await fetchBiases()
     await fetchGroups()
-    // Notify parent component to refresh its biases/groups state
+    await fetchTags()  // Also refresh tags in case links were deleted
+    // Notify parent component to refresh its biases/groups state (and link list)
     onBiasChange?.()
   }
 

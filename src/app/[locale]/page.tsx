@@ -122,7 +122,10 @@ function HomeContent() {
         onSelectPlatform={setSelectedPlatform}
         onOpenExternalSearch={() => setIsExternalSearchOpen(true)}
         onOpenUnifiedSearch={() => setIsUnifiedSearchOpen(true)}
-        onBiasChange={fetchBiasesAndGroups}
+        onBiasChange={() => {
+          fetchBiasesAndGroups()
+          setRefreshTrigger((prev) => prev + 1)  // Also refresh link list
+        }}
         isOpen={isMobileMenuOpen}
         onClose={closeMobileMenu}
       />

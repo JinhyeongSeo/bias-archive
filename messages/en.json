@@ -25,7 +25,8 @@
     "selectedTag": "Selected Tag",
     "noTags": "No tags",
     "loading": "Loading...",
-    "dataManagement": "Data Management"
+    "dataManagement": "Data Management",
+    "ungrouped": "Ungrouped"
   },
   "link": {
     "add": "Add Link",

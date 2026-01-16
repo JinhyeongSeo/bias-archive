@@ -25,7 +25,8 @@
     "selectedTag": "선택된 태그",
     "noTags": "태그가 없습니다",
     "loading": "로딩 중...",
-    "dataManagement": "데이터 관리"
+    "dataManagement": "데이터 관리",
+    "ungrouped": "그룹 없음"
   },
   "link": {
     "add": "링크 추가",
