@@ -45,6 +45,7 @@ None
 - [x] **Phase 22: Selca K-pop Data** - selca.kastden.org에서 최신 아이돌 데이터 가져오기 (kpopnet.json 대체) ✓
 - [x] **Phase 23: Unified Search UX Improvements** - 통합검색 아이돌 선택 UI 개선 및 실시간 갱신 ✓
 - [x] **Phase 24: Group Deletion** - BiasManager에서 그룹 전체 삭제 기능 추가 ✓
+- [x] **Phase 25: UI Fixes** - 태그 구분선 간격 수정, 내보내기 통계 0/0/0 버그 수정 ✓
 
 ## Phase Details
 
@@ -444,6 +445,28 @@ Plans:
 
 - [x] 24-01: Groups DELETE API + BiasManager 삭제 UI ✓
 
+### Phase 25: UI Fixes (태그 구분선 간격 & 내보내기 통계)
+
+**Goal**: Sidebar 태그 섹션과 구분선 간격 수정 + 데이터 관리 내보내기 통계 0/0/0 표시 버그 수정
+**Depends on**: Phase 24
+**Research**: Unlikely (UI 수정 및 API 버그 픽스)
+**Plans**: TBD
+
+**기능 설명:**
+
+1. **태그 구분선 간격**:
+   - Tags 섹션 끝과 border-t 구분선이 맞닿아 있음
+   - Tags 섹션에 mb-6 추가하여 여백 확보
+
+2. **내보내기 통계 0/0/0 버그**:
+   - ExportModal에서 링크/태그/최애 수가 모두 0으로 표시됨
+   - export API가 현재 로그인 사용자 데이터를 필터링하지 않음
+   - user_id 기반 필터링 추가 필요
+
+Plans:
+
+- [x] 25-01: UI Fixes (태그 구분선 간격, 내보내기 통계 수정) ✓
+
 ## Progress
 
 **Execution Order:**
@@ -475,3 +498,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 22. Selca K-pop Data | - | 2/2 | Complete | 2026-01-16 |
 | 23. Unified Search UX | - | 1/1 | Complete | 2026-01-16 |
 | 24. Group Deletion | - | 1/1 | Complete | 2026-01-16 |
+| 25. UI Fixes | - | 1/1 | Complete | 2026-01-16 |
