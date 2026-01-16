@@ -65,23 +65,37 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Step 1: Search for matching idol
-    const idols = await searchMembers(query)
+    // Step 1: Determine idol slug
+    let idolSlug: string
+    let idolName: string
 
-    if (idols.length === 0) {
-      return NextResponse.json(
-        {
-          error: '매칭되는 아이돌을 찾을 수 없습니다',
-          hint: '영문 이름이나 아이돌 드롭다운을 사용해보세요',
-        },
-        { status: 404 }
-      )
+    // Check if query is already a slug (e.g., "aespa_winter")
+    if (query.includes('_') && /^[a-z0-9_]+$/.test(query)) {
+      // Query is already a slug - use it directly
+      idolSlug = query
+      // Use slug as fallback name (will be replaced by actual name from page if available)
+      idolName = query.replace(/_/g, ' ')
+      console.log(`[Selca Search API] Using slug directly: "${idolSlug}"`)
+    } else {
+      // Query is not a slug - search for matching idol
+      console.log(`[Selca Search API] Searching for idol: "${query}"`)
+      const idols = await searchMembers(query)
+
+      if (idols.length === 0) {
+        return NextResponse.json(
+          {
+            error: '매칭되는 아이돌을 찾을 수 없습니다',
+            hint: '영문 이름이나 아이돌 드롭다운을 사용해보세요',
+          },
+          { status: 404 }
+        )
+      }
+
+      // Use the first (most relevant) match
+      const idol = idols[0]
+      idolSlug = idol.id // e.g., "ive_yujin"
+      idolName = idol.name_original || idol.name
     }
-
-    // Use the first (most relevant) match
-    const idol = idols[0]
-    const idolSlug = idol.id // e.g., "ive_yujin"
-    const idolName = idol.name_original || idol.name
 
     // Step 2: Fetch idol's owner page with pagination
     let ownerUrl = `${BASE_URL}/owner/${idolSlug}/`
