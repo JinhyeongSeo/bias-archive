@@ -44,7 +44,7 @@ None
 - [x] **Phase 21: Design Overhaul** - 토스 스타일 애니메이션 및 트렌디한 디자인 전면 개편 ✓
 - [x] **Phase 22: Selca K-pop Data** - selca.kastden.org에서 최신 아이돌 데이터 가져오기 (kpopnet.json 대체) ✓
 - [x] **Phase 23: Unified Search UX Improvements** - 통합검색 아이돌 선택 UI 개선 및 실시간 갱신 ✓
-- [ ] **Phase 24: Group Deletion** - BiasManager에서 그룹 전체 삭제 기능 추가
+- [x] **Phase 24: Group Deletion** - BiasManager에서 그룹 전체 삭제 기능 추가 ✓
 
 ## Phase Details
 
@@ -442,7 +442,7 @@ Plans:
 
 Plans:
 
-- [ ] 24-01: Groups DELETE API + BiasManager 삭제 UI
+- [x] 24-01: Groups DELETE API + BiasManager 삭제 UI ✓
 
 ## Progress
 
@@ -474,4 +474,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 21. Design Overhaul | - | 5/5 | Complete | 2026-01-14 |
 | 22. Selca K-pop Data | - | 2/2 | Complete | 2026-01-16 |
 | 23. Unified Search UX | - | 1/1 | Complete | 2026-01-16 |
-| 24. Group Deletion | - | 0/? | Not Started | - |
+| 24. Group Deletion | - | 1/1 | Complete | 2026-01-16 |
