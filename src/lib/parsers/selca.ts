@@ -1,60 +1,39 @@
 /**
  * selca.kastden.org parser module
- * Fetches K-pop idol group and member data from selca.kastden.org
- * (Original source of kpopnet.json data)
+ *
+ * selca.kastden.org에서 K-pop 아이돌 그룹 및 멤버 데이터를 파싱하여 제공
+ * 원본 kpopnet.json 데이터 소스를 대체
+ *
+ * @module selca
  */
 
 import { parse, HTMLElement } from 'node-html-parser'
+import {
+  KpopGroup,
+  KpopMember,
+  KpopMemberWithGroup,
+  CacheEntry,
+  GroupMembersResult,
+} from '@/lib/selca-types'
 
-// Types matching existing API interfaces
-export interface KpopGroup {
-  id: string
-  name: string
-  name_original: string
-  memberCount: number
-}
-
-export interface KpopMember {
-  id: string
-  name: string
-  name_original: string
-  name_stage_ko?: string
-}
-
-export interface KpopMemberWithGroup {
-  id: string
-  name: string
-  name_original: string
-  name_stage_ko?: string
-  group: {
-    id: string
-    name: string
-    name_original: string
-  } | null
-}
+// Re-export types for backwards compatibility
+export type { KpopGroup, KpopMember, KpopMemberWithGroup } from '@/lib/selca-types'
 
 const BASE_URL = 'https://selca.kastden.org'
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 const TIMEOUT_MS = 5000
+const CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
 
-// In-memory cache with TTL
-interface CacheEntry<T> {
-  data: T
-  timestamp: number
-}
-
-const CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes (extended for better performance)
-const groupsCache: CacheEntry<KpopGroup[]> | null = null
-const groupMembersCache = new Map<string, CacheEntry<{ groupName: string; groupNameOriginal: string; members: KpopMember[] }>>()
-let idolsCache: CacheEntry<KpopMemberWithGroup[]> | null = null
-// Cache for individual idol Korean stage names
+// In-memory caches
+let groupsCache: CacheEntry<KpopGroup[]> | undefined = undefined
+const groupMembersCache = new Map<string, CacheEntry<GroupMembersResult>>()
 const idolStageNameCache = new Map<string, CacheEntry<string>>()
 
 /**
- * Fetch HTML from URL with timeout and User-Agent
+ * HTML 페이지를 가져오는 유틸리티 함수 (공유용으로 export)
  */
-async function fetchHtml(url: string): Promise<string> {
+export async function fetchHtmlFromSelca(url: string): Promise<string> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
@@ -78,29 +57,20 @@ async function fetchHtml(url: string): Promise<string> {
   }
 }
 
-/**
- * Extract text content safely from an element
- */
 function getText(element: HTMLElement | null): string {
   return element?.textContent?.trim() ?? ''
 }
 
-/**
- * Fetch Korean stage name from individual idol page
- * Looks for "Stage name (original)" field which contains Korean/Japanese stage name
- */
 async function fetchIdolKoreanStageName(idolSlug: string): Promise<string> {
-  // Check cache
   const cached = idolStageNameCache.get(idolSlug)
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
     return cached.data
   }
 
   try {
-    const html = await fetchHtml(`${BASE_URL}/noona/idol/${idolSlug}/`)
+    const html = await fetchHtmlFromSelca(`${BASE_URL}/noona/idol/${idolSlug}/`)
     const root = parse(html)
 
-    // Find "Stage name (original)" row in the info table
     const rows = root.querySelectorAll('tr')
     let koreanStageName = ''
 
@@ -117,7 +87,6 @@ async function fetchIdolKoreanStageName(idolSlug: string): Promise<string> {
       }
     }
 
-    // Cache the result (even if empty, to avoid repeated requests)
     idolStageNameCache.set(idolSlug, {
       data: koreanStageName,
       timestamp: Date.now(),
@@ -130,24 +99,19 @@ async function fetchIdolKoreanStageName(idolSlug: string): Promise<string> {
   }
 }
 
-/**
- * Parse groups from the group listing page
- */
 async function fetchAllGroups(): Promise<KpopGroup[]> {
-  // Check cache
   if (groupsCache && Date.now() - groupsCache.timestamp < CACHE_TTL_MS) {
     return groupsCache.data
   }
 
   try {
-    const html = await fetchHtml(`${BASE_URL}/noona/group/`)
+    const html = await fetchHtmlFromSelca(`${BASE_URL}/noona/group/`)
     const root = parse(html)
 
     const groups: KpopGroup[] = []
     const rows = root.querySelectorAll('tbody tr')
 
     for (const row of rows) {
-      // Get group link - format: /noona/group/{slug}/
       const link = row.querySelector('a[href^="/noona/group/"]')
       if (!link) continue
 
@@ -158,8 +122,6 @@ async function fetchAllGroups(): Promise<KpopGroup[]> {
       const slug = match[1]
       const nameEnglish = getText(link)
 
-      // Get Korean/original name from the span next to the link
-      // Pattern: <span class="nobr">Name</span> <span class="nobr">(한글)</span>
       const td = link.closest('td')
       if (!td) continue
 
@@ -167,14 +129,12 @@ async function fetchAllGroups(): Promise<KpopGroup[]> {
       let nameOriginal = ''
       for (const span of spans) {
         const text = getText(span)
-        // Check if it's wrapped in parentheses (original name)
         if (text.startsWith('(') && text.endsWith(')')) {
           nameOriginal = text.slice(1, -1)
           break
         }
       }
 
-      // If no original name found, use English name
       if (!nameOriginal) {
         nameOriginal = nameEnglish
       }
@@ -183,15 +143,14 @@ async function fetchAllGroups(): Promise<KpopGroup[]> {
         id: slug,
         name: nameEnglish,
         name_original: nameOriginal,
-        memberCount: 0, // Will be fetched when needed
+        memberCount: 0,
       })
     }
 
-    // Update cache - using object assignment since const
-    Object.assign(groupsCache ?? {}, {
+    groupsCache = {
       data: groups,
       timestamp: Date.now(),
-    })
+    }
 
     return groups
   } catch (error) {
@@ -201,9 +160,7 @@ async function fetchAllGroups(): Promise<KpopGroup[]> {
 }
 
 /**
- * Search for K-pop groups by name (English or Korean)
- * Returns top 10 matches, case-insensitive partial matching
- * Fetches member count for each matched group (cached for performance)
+ * K-pop 그룹 검색
  */
 export async function searchGroups(query: string): Promise<KpopGroup[]> {
   const normalizedQuery = query.toLowerCase().trim()
@@ -222,15 +179,13 @@ export async function searchGroups(query: string): Promise<KpopGroup[]> {
       })
       .slice(0, 10)
 
-    // Fetch member counts in parallel for matched groups
-    // Uses cache so subsequent requests are fast
     const groupsWithCounts = await Promise.all(
       matches.map(async (group) => {
         try {
           const { members } = await getGroupMembers(group.id)
           return { ...group, memberCount: members.length }
         } catch {
-          return group // Keep memberCount as 0 on error
+          return group
         }
       })
     )
@@ -243,23 +198,18 @@ export async function searchGroups(query: string): Promise<KpopGroup[]> {
 }
 
 /**
- * Get all members of a group by group slug
- * Returns group name, original name, and member list
+ * 그룹의 모든 멤버 조회
  */
-export async function getGroupMembers(
-  groupSlug: string
-): Promise<{ groupName: string; groupNameOriginal: string; members: KpopMember[] }> {
-  // Check cache
+export async function getGroupMembers(groupSlug: string): Promise<GroupMembersResult> {
   const cached = groupMembersCache.get(groupSlug)
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
     return cached.data
   }
 
   try {
-    const html = await fetchHtml(`${BASE_URL}/noona/group/${groupSlug}/`)
+    const html = await fetchHtmlFromSelca(`${BASE_URL}/noona/group/${groupSlug}/`)
     const root = parse(html)
 
-    // Get group names from the info table
     let groupName = ''
     let groupNameOriginal = ''
 
@@ -278,18 +228,15 @@ export async function getGroupMembers(
       }
     }
 
-    // If no romanized name found, try h1
     if (!groupName) {
       const h1 = root.querySelector('h1')
       groupName = getText(h1)
     }
 
-    // If no original name found, use English name
     if (!groupNameOriginal) {
       groupNameOriginal = groupName
     }
 
-    // Get members from the member table (basic info first)
     interface BasicMember {
       id: string
       name: string
@@ -302,10 +249,9 @@ export async function getGroupMembers(
       const match = href.match(/\/noona\/idol\/([^/]+)\//)
       if (!match) continue
 
-      const idolSlug = match[1] // e.g., "ive_gaeul"
+      const idolSlug = match[1]
       const stageName = getText(link)
 
-      // Skip if not in a table row (could be other links)
       const row = link.closest('tr')
       if (!row) continue
 
@@ -315,23 +261,20 @@ export async function getGroupMembers(
       })
     }
 
-    // Fetch Korean stage names for all members in parallel
-    const membersWithKoreanNames = await Promise.all(
+    const membersWithKoreanNames: KpopMember[] = await Promise.all(
       basicMembers.map(async (member) => {
         const koreanStageName = await fetchIdolKoreanStageName(member.id)
         return {
           id: member.id,
           name: member.name,
-          // Use Korean stage name if available, otherwise fall back to English stage name
           name_original: koreanStageName || member.name,
           name_stage_ko: koreanStageName || undefined,
         }
       })
     )
 
-    const result = { groupName, groupNameOriginal, members: membersWithKoreanNames }
+    const result: GroupMembersResult = { groupName, groupNameOriginal, members: membersWithKoreanNames }
 
-    // Update cache
     groupMembersCache.set(groupSlug, {
       data: result,
       timestamp: Date.now(),
@@ -345,19 +288,44 @@ export async function getGroupMembers(
 }
 
 /**
- * Fetch all idols from the idol listing page
+ * K-pop 아이돌 검색 (이름 기반)
+ *
+ * @deprecated 500+ 아이돌 로드로 인한 타임아웃 문제. Bias.selca_slug 사용 권장.
  */
-async function fetchAllIdols(): Promise<KpopMemberWithGroup[]> {
-  // Check cache
-  if (idolsCache && Date.now() - idolsCache.timestamp < CACHE_TTL_MS) {
-    return idolsCache.data
+export async function searchMembers(query: string): Promise<KpopMemberWithGroup[]> {
+  const normalizedQuery = query.toLowerCase().trim()
+  if (!normalizedQuery) {
+    return []
   }
 
   try {
-    const html = await fetchHtml(`${BASE_URL}/noona/idol/`)
+    const allIdols = await fetchAllIdols()
+
+    const matches = allIdols
+      .filter((idol) => {
+        const nameMatch = idol.name.toLowerCase().includes(normalizedQuery)
+        const originalMatch = idol.name_original.toLowerCase().includes(normalizedQuery)
+        const stageKoMatch = idol.name_stage_ko?.toLowerCase().includes(normalizedQuery) || false
+        return nameMatch || originalMatch || stageKoMatch
+      })
+      .slice(0, 10)
+
+    return matches
+  } catch (error) {
+    console.error('[Selca Parser] Error searching members:', error)
+    return []
+  }
+}
+
+/**
+ * 전체 아이돌 목록 파싱 (내부 함수)
+ * WARNING: 500+ 아이돌 개별 페이지 방문으로 타임아웃 가능
+ */
+async function fetchAllIdols(): Promise<KpopMemberWithGroup[]> {
+  try {
+    const html = await fetchHtmlFromSelca(`${BASE_URL}/noona/idol/`)
     const root = parse(html)
 
-    // Step 1: Collect basic info from listing page
     const basicIdols: Array<{
       id: string
       stageName: string
@@ -367,7 +335,6 @@ async function fetchAllIdols(): Promise<KpopMemberWithGroup[]> {
     const rows = root.querySelectorAll('tbody tr')
 
     for (const row of rows) {
-      // Get idol link - format: /noona/idol/{group}_{name}/
       const idolLink = row.querySelector('a[href^="/noona/idol/"]')
       if (!idolLink) continue
 
@@ -378,7 +345,6 @@ async function fetchAllIdols(): Promise<KpopMemberWithGroup[]> {
       const idolSlug = match[1]
       const stageName = getText(idolLink)
 
-      // Get group info from the same cell
       const groupLink = row.querySelector('a.main_group_link')
       let group: KpopMemberWithGroup['group'] = null
 
@@ -393,12 +359,11 @@ async function fetchAllIdols(): Promise<KpopMemberWithGroup[]> {
           group = {
             id: groupSlug,
             name: groupName,
-            name_original: groupName, // Will be same for now
+            name_original: groupName,
           }
         }
       }
 
-      // Get Korean name from real name column
       const realNameTd = row.querySelectorAll('td')[1]
       let nameOriginal = ''
 
@@ -425,7 +390,6 @@ async function fetchAllIdols(): Promise<KpopMemberWithGroup[]> {
       })
     }
 
-    // Step 2: Fetch Korean stage names in parallel
     const idolsWithKoreanNames = await Promise.all(
       basicIdols.map(async (idol) => {
         const koreanStageName = await fetchIdolKoreanStageName(idol.id)
@@ -439,44 +403,9 @@ async function fetchAllIdols(): Promise<KpopMemberWithGroup[]> {
       })
     )
 
-    // Update cache
-    idolsCache = {
-      data: idolsWithKoreanNames,
-      timestamp: Date.now(),
-    }
-
     return idolsWithKoreanNames
   } catch (error) {
     console.error('[Selca Parser] Error fetching idols:', error)
-    return []
-  }
-}
-
-/**
- * Search for K-pop idols by name (English or Korean)
- * Returns top 10 matches with their group info
- */
-export async function searchMembers(query: string): Promise<KpopMemberWithGroup[]> {
-  const normalizedQuery = query.toLowerCase().trim()
-  if (!normalizedQuery) {
-    return []
-  }
-
-  try {
-    const allIdols = await fetchAllIdols()
-
-    const matches = allIdols
-      .filter((idol) => {
-        const nameMatch = idol.name.toLowerCase().includes(normalizedQuery)
-        const originalMatch = idol.name_original.toLowerCase().includes(normalizedQuery)
-        const stageKoMatch = idol.name_stage_ko?.toLowerCase().includes(normalizedQuery) || false
-        return nameMatch || originalMatch || stageKoMatch
-      })
-      .slice(0, 10)
-
-    return matches
-  } catch (error) {
-    console.error('[Selca Parser] Error searching members:', error)
     return []
   }
 }
