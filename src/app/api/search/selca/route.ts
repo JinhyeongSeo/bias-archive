@@ -18,10 +18,22 @@ const BASE_URL = 'https://selca.kastden.org'
 /** slug 형식 패턴: 영문 소문자, 숫자, 언더스코어만 허용 */
 const SLUG_PATTERN = /^[a-z0-9_]+$/
 
+/**
+ * 미디어 URL에서 ID를 추출
+ * @param href - /original/6753580/... 또는 /thumb/6753580.jpg 형식
+ * @returns 미디어 ID 또는 null
+ */
+function extractMediaId(href: string): string | null {
+  const originalMatch = href.match(/\/original\/(\d+)\//)
+  const thumbMatch = href.match(/\/thumb\/(\d+)\.jpg/)
+  return originalMatch?.[1] || thumbMatch?.[1] || null
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const query = searchParams.get('query')
   const page = parseInt(searchParams.get('page') || '1', 10)
+  const maxTimeId = searchParams.get('maxTimeId')
 
   if (!query) {
     return NextResponse.json(
@@ -63,15 +75,21 @@ export async function GET(request: NextRequest) {
       idolName = idol.name_original || idol.name
     }
 
-    // Step 2: Fetch idol's owner page
-    // NOTE: 페이지네이션 미구현 (max_time_id 추적 필요)
-    const ownerUrl = `${BASE_URL}/owner/${idolSlug}/`
+    // Step 2: Fetch idol's owner page with pagination
+    const params = new URLSearchParams()
+    if (maxTimeId) {
+      params.set('max_time_id', maxTimeId)
+    }
+    const ownerUrl = params.toString()
+      ? `${BASE_URL}/owner/${idolSlug}/?${params}`
+      : `${BASE_URL}/owner/${idolSlug}/`
     const html = await fetchHtmlFromSelca(ownerUrl)
     const root = parse(html)
 
-    // Step 3: Parse media items
+    // Step 3: Parse media items and track nextMaxTimeId
     const results: SelcaSearchResult[] = []
     const seenUrls = new Set<string>()
+    let nextMaxTimeId: string | null = null
 
     const mediaLinks = root.querySelectorAll('a[href^="/media/"], a[href^="/original/"]')
 
@@ -89,6 +107,15 @@ export async function GET(request: NextRequest) {
       const thumbnailUrl = thumbnailSrc ? `${BASE_URL}${thumbnailSrc}` : ''
 
       if (!thumbnailUrl) continue
+
+      // Extract media ID for pagination tracking
+      const mediaId = extractMediaId(thumbnailSrc || href)
+      if (mediaId) {
+        // Track the smallest (oldest) ID as nextMaxTimeId
+        if (!nextMaxTimeId || parseInt(mediaId, 10) < parseInt(nextMaxTimeId, 10)) {
+          nextMaxTimeId = mediaId
+        }
+      }
 
       let title = ''
       const parent = link.parentNode
@@ -111,18 +138,15 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Step 4: Pagination (미구현)
-    // selca.kastden.org는 무한 스크롤 방식으로 max_time_id 파라미터 사용
-    // Phase 30에서 구현 예정
-    const hasNextPage = false
-
-    const pageSize = 20
-    const paginatedResults = results.slice(0, pageSize)
+    // Step 4: Pagination - return all results (selca returns ~75 per page)
+    // hasNextPage is true if we got results (more likely exist)
+    const hasNextPage = results.length > 0 && nextMaxTimeId !== null
 
     const responseData: SelcaSearchResponse = {
-      results: paginatedResults,
+      results,
       hasNextPage,
       currentPage: page,
+      nextMaxTimeId: nextMaxTimeId || undefined,
     }
 
     return NextResponse.json(responseData)
