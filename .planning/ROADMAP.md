@@ -48,6 +48,8 @@ None
 - [x] **Phase 25: UI Fixes** - 태그 구분선 간격 수정, 내보내기 통계 0/0/0 버그 수정 ✓
 - [x] **Phase 26: Bias List UX Fixes** - 그룹 순서 변경 시 통합검색 실시간 반영, 최애/그룹 추가 시 아래에 추가 ✓
 - [x] **Phase 27: Selca External Search** - selca.kastden.org 외부 검색 기능 추가 (셀카/영상 콘텐츠) ✓
+- [x] **Phase 29: Selca Refactoring** - selca 관련 코드 리팩토링 (타입 통합, 중복 제거) ✓
+- [ ] **Phase 30: Selca Infinite Scroll** - selca.kastden.org 무한 스크롤 페이지네이션 구현
 
 ## Phase Details
 
@@ -526,6 +528,52 @@ Plans:
 - [ ] 28-01: fetchAllIdols 캐싱 방식 (실패 - 타임아웃)
 - [x] 28-02: Bias 기반 selca_slug 저장 및 활용 ✓
 
+### Phase 29: Selca Refactoring ✓
+
+**Goal**: selca 관련 코드 리팩토링 - 꼬인 로직 정리 및 문제 있는 코드 수정
+**Depends on**: Phase 28
+**Research**: Unlikely (internal code review)
+**Plans**: 1/1 Complete
+
+**기능 설명:**
+
+- selca 추가 작업 중 발생한 코드 품질 이슈 검토
+- 중복되거나 비효율적인 로직 제거
+- 아키텍처 및 데이터 흐름 개선
+- 버그 및 엣지 케이스 수정
+
+Plans:
+
+- [x] 29-01: selca 코드 리팩토링 (타입 통합, 중복 제거, 플랫폼 타입 수정) ✓
+
+### Phase 30: Selca Infinite Scroll
+
+**Goal**: selca.kastden.org 무한 스크롤 페이지네이션 구현 - 스크롤 시 추가 콘텐츠 동적 로딩
+**Depends on**: Phase 29
+**Research**: Likely (selca 사이트 API 분석 필요)
+**Plans**: TBD
+
+**배경:**
+
+- 현재 selca 검색은 초기 로드된 콘텐츠만 표시
+- selca.kastden.org는 무한 스크롤 방식으로 추가 데이터를 동적 로딩
+- 스크롤 끝에 도달 시 "loading" 표시와 함께 새 콘텐츠 fetch
+
+**기능 설명:**
+
+- selca 페이지네이션 API 엔드포인트 분석 (네트워크 요청 역공학)
+- 스크롤 이벤트 감지 및 추가 콘텐츠 로딩
+- Intersection Observer API 활용 (성능 최적화)
+- 로딩 스피너 및 "더 이상 콘텐츠 없음" 메시지
+- ExternalSearch selca 탭에 무한 스크롤 적용
+
+Plans:
+
+- [ ] TBD (run /gsd:plan-phase 30 to break down)
+
+**Details:**
+[To be added during planning]
+
 ## Progress
 
 **Execution Order:**
@@ -561,3 +609,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 26. Bias List UX Fixes | - | 1/1 | Complete | 2026-01-16 |
 | 27. Selca External Search | - | 1/1 | Complete | 2026-01-16 |
 | 28. Selca Search UX | - | 2/2 | Complete | 2026-01-16 |
+| 29. Selca Refactoring | - | 1/1 | Complete | 2026-01-16 |

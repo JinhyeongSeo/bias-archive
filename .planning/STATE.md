@@ -5,27 +5,27 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 28-02 완료 - Bias 기반 즉시 selca 검색 (selca_slug 저장으로 타임아웃 제거)
+**Current focus:** Phase 29-01 완료 - selca 코드 리팩토링 (타입 통합, 중복 제거, 플랫폼 타입 수정)
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 28 of 28 (Selca Search UX)
-Plan: 2 of 2 completed
+Phase: 29 of 30 (Selca Refactoring)
+Plan: 1 of 1 completed
 Status: Complete
-Last activity: 2026-01-16 — Completed 28-02-PLAN.md
+Last activity: 2026-01-16 — Completed 29-01-PLAN.md
 
-Progress: ████████████████████████████ 100% (28/28 phases complete)
+Progress: ███████████████████████████░ 96.7% (29/30 phases complete)
 
-**All phases complete!**
+**Next Phase:** Phase 30 - Selca Infinite Scroll
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 45
+- Total plans completed: 46
 - Average duration: ~8 min
-- Total execution time: ~361 min
+- Total execution time: ~370 min
 
 **By Phase:**
 
@@ -60,11 +60,12 @@ Progress: ███████████████████████�
 | 26. Bias List UX Fixes | 1 | ~5 min | 5 min |
 | 27. Selca External Search | 1 | ~30 min | 30 min |
 | 28. Selca Search UX | 2 | ~11 min | 6 min |
+| 29. Selca Refactoring | 1 | 9 min | 9 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 25-01 (~1m), 26-01 (~5m), 27-01 (~30m), 28-01 (failed), 28-02 (~11m)
-- Trend: Phase 28-02 완료! Bias 기반 즉시 selca 검색. selca_slug 저장으로 타임아웃 제거. 28-01의 fetchAllIdols() 방식 실패 후 Bias 데이터 활용으로 성공.
+- Last 5 plans: 26-01 (~5m), 27-01 (~30m), 28-01 (failed), 28-02 (~11m), 29-01 (9m)
+- Trend: Phase 29-01 완료! selca 코드 리팩토링. 공통 타입 파일 생성, 중복 코드 제거, 플랫폼 타입 누락 수정.
 
 ## Accumulated Context
 
@@ -114,6 +115,9 @@ Progress: ███████████████████████�
 - biases 테이블에 selca_slug 저장 (selca.kastden.org 아이돌 slug)
 - Bias 매칭 우선, selca_slug 사용으로 즉시 검색 (타임아웃 없음)
 - selca API에서 slug 형식 감지, searchMembers 호출 건너뛰기
+- selca 공통 타입 파일 분리 (src/lib/selca-types.ts)
+- fetchHtmlFromSelca 함수 공유 (selca.ts에서 export)
+- searchMembers @deprecated (타임아웃 문제, Bias.selca_slug 사용 권장)
 
 ### Roadmap Evolution
 
@@ -137,6 +141,8 @@ Progress: ███████████████████████�
 - Phase 26 added: Bias List UX Fixes (그룹 순서 실시간 반영 & 추가 위치 수정) ✓
 - Phase 27 added: Selca External Search (selca.kastden.org 외부 검색 플랫폼 추가) ✓
 - Phase 28 added: Selca Search UX (Bias 기반 즉시 검색, selca_slug 저장) ✓
+- Phase 29 added: Selca Refactoring (selca 관련 코드 리팩토링, 꼬인 로직 정리) ✓
+- Phase 30 added: Selca Infinite Scroll (selca.kastden.org 무한 스크롤 페이지네이션 구현) - Phase 29 리팩토링 후 실행
 
 ### Deferred Issues
 
@@ -157,7 +163,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-16
-Stopped at: Phase 28-02 completed (Bias 기반 즉시 selca 검색)
+Stopped at: Phase 29-01 completed (selca 코드 리팩토링)
 Resume file: None
 
-**Next recommended action:** All phases complete! Consider deployment or new features.
+**Next recommended action:** Phase 30 계획 또는 배포 검토
