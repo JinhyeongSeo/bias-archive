@@ -14,7 +14,7 @@ import {
   quickSpring,
 } from '@/lib/animations'
 
-type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls'
+type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'selca'
 type YouTubeOrder = 'relevance' | 'date' | 'viewCount'
 type YouTubePeriod = '' | 'today' | 'week' | 'month' | 'year'
 
@@ -43,6 +43,13 @@ interface KgirlsResult {
   url: string
   title: string
   thumbnailUrl: string | null
+  author: string
+}
+
+interface SelcaResult {
+  url: string
+  title: string
+  thumbnailUrl: string
   author: string
 }
 
@@ -87,6 +94,10 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
   const [kgirlsTotalPages, setKgirlsTotalPages] = useState(0)
   const [kgirlsBoard, setKgirlsBoard] = useState<'mgall' | 'issue'>('mgall')
 
+  // selca.kastden.org pagination state
+  const [selcaPage, setSelcaPage] = useState(1)
+  const [selcaHasNextPage, setSelcaHasNextPage] = useState(false)
+
   // ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -116,6 +127,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       setKgirlsPage(1)
       setKgirlsTotalPages(0)
       setKgirlsBoard('mgall')
+      setSelcaPage(1)
+      setSelcaHasNextPage(false)
       setSelectedUrls(new Set())
     }
     return () => {
@@ -133,6 +146,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       setHeyeTotalPages(0)
       setKgirlsPage(1)
       setKgirlsTotalPages(0)
+      setSelcaPage(1)
+      setSelcaHasNextPage(false)
       setSelectedUrls(new Set())
     }
   }
@@ -323,6 +338,29 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     }))
   }
 
+  const searchSelca = async (searchQuery: string, page: number = 1): Promise<EnrichedResult[]> => {
+    const response = await fetch(`/api/search/selca?query=${encodeURIComponent(searchQuery)}&page=${page}`)
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'selca.kastden.org 검색 실패')
+    }
+
+    // Update pagination state
+    setSelcaHasNextPage(data.hasNextPage || false)
+    setSelcaPage(data.currentPage || 1)
+
+    return (data.results as SelcaResult[]).map(item => ({
+      url: item.url,
+      title: item.title,
+      thumbnailUrl: item.thumbnailUrl,
+      author: item.author,
+      platform: 'selca' as Platform,
+      isSaved: checkIfSaved(item.url),
+      isSaving: false,
+    }))
+  }
+
   const handleSearch = async () => {
     if (!query.trim()) return
 
@@ -339,8 +377,10 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         searchResults = await searchTwitter(query)
       } else if (platform === 'heye') {
         searchResults = await searchHeye(query, 1)
-      } else {
+      } else if (platform === 'kgirls') {
         searchResults = await searchKgirls(query, 1)
+      } else {
+        searchResults = await searchSelca(query, 1)
       }
       setResults(searchResults)
     } catch (err) {
@@ -374,6 +414,22 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
 
     try {
       const searchResults = await searchKgirls(query, newPage)
+      setResults(searchResults)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSelcaPageChange = async (newPage: number) => {
+    if (newPage < 1 || isLoading) return
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const searchResults = await searchSelca(query, newPage)
       setResults(searchResults)
     } catch (err) {
       setError(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다')
@@ -584,6 +640,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         return 'bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400'
       case 'kgirls':
         return 'bg-pink-100 dark:bg-pink-900/50 text-pink-600 dark:text-pink-400'
+      case 'selca':
+        return 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
       default:
         return 'bg-zinc-100 dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400'
     }
@@ -599,6 +657,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         return 'heye.kr'
       case 'kgirls':
         return 'kgirls.net'
+      case 'selca':
+        return 'Selca'
       default:
         return p
     }
@@ -696,6 +756,17 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                 >
                   kgirls
                 </motion.button>
+                <motion.button
+                  onClick={() => handlePlatformChange('selca')}
+                  className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                    platform === 'selca'
+                      ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 ring-2 ring-purple-500/20'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
+                  {...pressScale}
+                >
+                  Selca
+                </motion.button>
               </div>
 
           {/* Platform Notice - fixed height container, hidden for youtube */}
@@ -730,6 +801,11 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                       <option value="issue">볼거리</option>
                     </select>
                   </div>
+                )}
+                {platform === 'selca' && (
+                  <p className="h-full flex items-center text-sm text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-4 rounded-lg">
+                    selca.kastden.org 아이돌별 미디어 검색
+                  </p>
                 )}
               </div>
               )}
@@ -993,6 +1069,31 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                       <motion.button
                         onClick={() => handleKgirlsPageChange(kgirlsPage + 1)}
                         disabled={kgirlsPage >= kgirlsTotalPages || isLoading}
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                        {...pressScale}
+                      >
+                        다음
+                      </motion.button>
+                    </div>
+                  )}
+
+                  {/* Selca Pagination */}
+                  {platform === 'selca' && (selcaPage > 1 || selcaHasNextPage) && (
+                    <div className="flex justify-center items-center gap-2 pt-2">
+                      <motion.button
+                        onClick={() => handleSelcaPageChange(selcaPage - 1)}
+                        disabled={selcaPage <= 1 || isLoading}
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                        {...pressScale}
+                      >
+                        이전
+                      </motion.button>
+                      <span className="text-sm text-zinc-500 dark:text-zinc-400 px-2">
+                        페이지 {selcaPage}
+                      </span>
+                      <motion.button
+                        onClick={() => handleSelcaPageChange(selcaPage + 1)}
+                        disabled={!selcaHasNextPage || isLoading}
                         className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                         {...pressScale}
                       >

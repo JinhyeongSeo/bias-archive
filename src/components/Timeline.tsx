@@ -14,6 +14,7 @@ const platformColors: Record<Platform, string> = {
   weverse: 'bg-green-500 dark:bg-green-600',
   heye: 'bg-orange-500 dark:bg-orange-600',
   kgirls: 'bg-pink-500 dark:bg-pink-600',
+  selca: 'bg-purple-500 dark:bg-purple-600',
   other: 'bg-zinc-500 dark:bg-zinc-600',
 }
 
