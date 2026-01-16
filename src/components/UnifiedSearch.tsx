@@ -1527,7 +1527,8 @@ export function UnifiedSearch({
             // Combine remaining cache + fetch next page
             const fromCache = heyeUnshownInCache;
             const needed = RESULTS_PER_PLATFORM - fromCache.length;
-            newPage = currentData.currentPage + 1;
+            // Use cache's currentPage if available, otherwise use currentData's
+            newPage = (heyeCache?.currentPage ?? currentData.currentPage) + 1;
             const apiResult = await searchHeye(query, newPage, 0);
 
             // API 결과에서도 이미 표시된 URL 제외
@@ -1604,7 +1605,8 @@ export function UnifiedSearch({
             // Combine remaining cache + fetch next page
             const fromCache = kgirlsUnshownInCache;
             const needed = RESULTS_PER_PLATFORM - fromCache.length;
-            newPage = currentData.currentPage + 1;
+            // Use cache's currentPage if available, otherwise use currentData's
+            newPage = (kgirlsCache?.currentPage ?? currentData.currentPage) + 1;
             const apiResult = await searchKgirls(query, newPage, 0);
 
             // API 결과에서도 이미 표시된 URL 제외
@@ -1682,7 +1684,8 @@ export function UnifiedSearch({
             // Combine remaining cache + fetch next page
             const fromCache = kgirlsIssueUnshownInCache;
             const needed = RESULTS_PER_PLATFORM - fromCache.length;
-            newPage = currentData.currentPage + 1;
+            // Use cache's currentPage if available, otherwise use currentData's
+            newPage = (kgirlsIssueCache?.currentPage ?? currentData.currentPage) + 1;
             const apiResult = await searchKgirlsIssue(query, newPage, 0);
 
             // API 결과에서도 이미 표시된 URL 제외
@@ -2616,6 +2619,15 @@ export function UnifiedSearch({
                                 {!platformData.isLoading && (
                                   <span className="text-xs text-zinc-400">
                                     ({platformData.results.length}개)
+                                    {/* Show page info for heye/kgirls/kgirls-issue */}
+                                    {(platformConfig.id === "heye" ||
+                                      platformConfig.id === "kgirls" ||
+                                      platformConfig.id === "kgirls-issue") &&
+                                      platformData.currentPage > 1 && (
+                                        <span className="ml-1 text-zinc-500">
+                                          · 페이지 {platformData.currentPage}
+                                        </span>
+                                      )}
                                   </span>
                                 )}
                               </div>
