@@ -1,56 +1,22 @@
 /**
  * selca.kastden.org Search API
- * Searches selca.kastden.org by idol name and returns media listings with pagination
+ *
+ * 아이돌 이름으로 selca.kastden.org 검색, 미디어 목록 반환
+ *
+ * @remarks
+ * - slug 직접 전달: Bias.selca_slug 사용 시 즉시 검색 (권장)
+ * - 이름 검색: searchMembers 호출 후 매칭 (타임아웃 가능성)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { parse } from 'node-html-parser'
-import { searchMembers } from '@/lib/parsers/selca'
-
-interface SelcaSearchResult {
-  url: string
-  title: string
-  thumbnailUrl: string
-  author: string
-}
-
-interface SelcaSearchResponse {
-  results: SelcaSearchResult[]
-  hasNextPage: boolean
-  currentPage: number
-}
+import { searchMembers, fetchHtmlFromSelca } from '@/lib/parsers/selca'
+import { SelcaSearchResult, SelcaSearchResponse } from '@/lib/selca-types'
 
 const BASE_URL = 'https://selca.kastden.org'
-const USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-const TIMEOUT_MS = 5000
 
-/**
- * Fetch HTML from URL with timeout and User-Agent
- */
-async function fetchHtml(url: string): Promise<string> {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
-
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9,ko;q=0.8',
-      },
-      signal: controller.signal,
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
-
-    return await response.text()
-  } finally {
-    clearTimeout(timeoutId)
-  }
-}
+/** slug 형식 패턴: 영문 소문자, 숫자, 언더스코어만 허용 */
+const SLUG_PATTERN = /^[a-z0-9_]+$/
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -69,15 +35,16 @@ export async function GET(request: NextRequest) {
     let idolSlug: string
     let idolName: string
 
-    // Check if query is already a slug (e.g., "aespa_winter")
-    if (query.includes('_') && /^[a-z0-9_]+$/.test(query)) {
-      // Query is already a slug - use it directly
+    // slug 형식 감지: 언더스코어 포함 + 영문소문자/숫자만
+    // 예: "aespa_winter", "ive_yujin"
+    if (query.includes('_') && SLUG_PATTERN.test(query)) {
+      // Query is already a slug - use it directly (Bias.selca_slug 활용)
       idolSlug = query
-      // Use slug as fallback name (will be replaced by actual name from page if available)
       idolName = query.replace(/_/g, ' ')
       console.log(`[Selca Search API] Using slug directly: "${idolSlug}"`)
     } else {
       // Query is not a slug - search for matching idol
+      // NOTE: searchMembers는 @deprecated, 타임아웃 가능성 있음
       console.log(`[Selca Search API] Searching for idol: "${query}"`)
       const idols = await searchMembers(query)
 
@@ -91,80 +58,64 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      // Use the first (most relevant) match
       const idol = idols[0]
-      idolSlug = idol.id // e.g., "ive_yujin"
+      idolSlug = idol.id
       idolName = idol.name_original || idol.name
     }
 
-    // Step 2: Fetch idol's owner page with pagination
-    let ownerUrl = `${BASE_URL}/owner/${idolSlug}/`
-
-    // Add max_time_id for pagination (if page > 1)
-    // For now, we'll fetch the page and extract max_time_id from the "Next page" link
-    // This is a simplified approach - in production you might want to track max_time_id across requests
-
-    const html = await fetchHtml(ownerUrl)
+    // Step 2: Fetch idol's owner page
+    // NOTE: 페이지네이션 미구현 (max_time_id 추적 필요)
+    const ownerUrl = `${BASE_URL}/owner/${idolSlug}/`
+    const html = await fetchHtmlFromSelca(ownerUrl)
     const root = parse(html)
 
     // Step 3: Parse media items
     const results: SelcaSearchResult[] = []
     const seenUrls = new Set<string>()
 
-    // Find all media items
-    // Pattern: <a href="/media/[ID]/" or "/original/[ID]/"><img src="/thumb/[ID].jpg"></a>
     const mediaLinks = root.querySelectorAll('a[href^="/media/"], a[href^="/original/"]')
 
     for (const link of mediaLinks) {
       const href = link.getAttribute('href')
       if (!href) continue
 
-      // Build absolute URL
       const url = `${BASE_URL}${href}`
 
-      // Skip duplicates
       if (seenUrls.has(url)) continue
       seenUrls.add(url)
 
-      // Get thumbnail from img inside the link
       const img = link.querySelector('img[src^="/thumb/"]')
       const thumbnailSrc = img?.getAttribute('src')
       const thumbnailUrl = thumbnailSrc ? `${BASE_URL}${thumbnailSrc}` : ''
 
       if (!thumbnailUrl) continue
 
-      // Get caption/title from nearby text (if any)
-      // selca.kastden.org doesn't always have captions, so we'll use empty string
       let title = ''
-
-      // Try to find caption in parent container
       const parent = link.parentNode
       if (parent) {
         const textContent = parent.textContent?.trim() || ''
-        // Extract any meaningful text (excluding "Posted by" info)
         const lines = textContent.split('\n').filter(line => {
           const trimmed = line.trim()
           return trimmed && !trimmed.startsWith('Posted by') && !trimmed.includes('ago')
         })
         if (lines.length > 0) {
-          title = lines[0].trim().substring(0, 200) // Limit length
+          title = lines[0].trim().substring(0, 200)
         }
       }
 
       results.push({
         url,
-        title: title || `${idolName} 미디어`, // Fallback to idol name
+        title: title || `${idolName} 미디어`,
         thumbnailUrl,
         author: idolName,
       })
     }
 
-    // Step 4: Check for next page
-    // Note: Pagination is not implemented yet (requires tracking max_time_id across requests)
-    // For now, we only show the first page
+    // Step 4: Pagination (미구현)
+    // selca.kastden.org는 무한 스크롤 방식으로 max_time_id 파라미터 사용
+    // Phase 30에서 구현 예정
     const hasNextPage = false
 
-    // Limit results per page
     const pageSize = 20
     const paginatedResults = results.slice(0, pageSize)
 
@@ -178,7 +129,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[Selca Search] Error:', error)
 
-    // Check if it's a 404 (idol not found)
     if (error instanceof Error && error.message.includes('HTTP 404')) {
       return NextResponse.json(
         { error: '해당 아이돌의 페이지를 찾을 수 없습니다' },
