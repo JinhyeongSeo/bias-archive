@@ -925,16 +925,33 @@ export function UnifiedSearch({
     searchQuery: string,
     page: number = 1
   ): Promise<{ results: EnrichedResult[]; hasMore: boolean }> => {
-    // 한글 → 영문 변환
-    const normalizedQuery = normalizeIdolName(searchQuery);
+    // Step 1: Bias 목록에서 매칭 찾기
+    const normalizedQuery = searchQuery.trim().toLowerCase();
 
-    // 디버깅용 로그
-    if (normalizedQuery !== searchQuery) {
-      console.log(`[Selca Search] "${searchQuery}" → "${normalizedQuery}"`);
+    const matchedBias = biases.find(bias => {
+      const nameMatch = bias.name.toLowerCase() === normalizedQuery;
+      const nameEnMatch = bias.name_en?.toLowerCase() === normalizedQuery;
+      const nameKoMatch = bias.name_ko?.toLowerCase() === normalizedQuery;
+      return nameMatch || nameEnMatch || nameKoMatch;
+    });
+
+    // Step 2: selca_slug 우선 사용 (있으면 바로 검색, 없으면 기존 방식)
+    let queryToUse = searchQuery;
+
+    if (matchedBias?.selca_slug) {
+      queryToUse = matchedBias.selca_slug;
+      console.log(`[Selca Search] "${searchQuery}" → slug: "${queryToUse}" (from Bias)`);
+    } else {
+      // 기존 방식: 한글 → 영문 변환
+      const normalizedFallback = normalizeIdolName(searchQuery);
+      if (normalizedFallback !== searchQuery) {
+        queryToUse = normalizedFallback;
+        console.log(`[Selca Search] "${searchQuery}" → "${queryToUse}" (fallback)`);
+      }
     }
 
     const params = new URLSearchParams({
-      query: normalizedQuery, // 변환된 검색어 사용
+      query: queryToUse, // selca_slug 또는 변환된 검색어 사용
       page: String(page),
       limit: String(API_FETCH_COUNT),
     });
