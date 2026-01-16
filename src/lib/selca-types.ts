@@ -73,14 +73,22 @@ export interface SelcaSearchResult {
 
 /**
  * selca 검색 API 응답 형식
+ *
+ * @remarks
+ * 페이지네이션은 max_time_id 기반:
+ * 1. 첫 요청: maxTimeId 없이 호출
+ * 2. 응답의 nextMaxTimeId를 다음 요청에 maxTimeId로 전달
+ * 3. hasNextPage=false이면 마지막 페이지
  */
 export interface SelcaSearchResponse {
   /** 검색 결과 목록 */
   results: SelcaSearchResult[]
-  /** 다음 페이지 존재 여부 (페이지네이션 미구현으로 항상 false) */
+  /** 다음 페이지 존재 여부 */
   hasNextPage: boolean
   /** 현재 페이지 번호 */
   currentPage: number
+  /** 다음 페이지 요청에 사용할 max_time_id (없으면 마지막 페이지) */
+  nextMaxTimeId?: string
 }
 
 /**
