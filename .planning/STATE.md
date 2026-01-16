@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 27 완료 - Selca External Search (selca.kastden.org 외부 검색 플랫폼 추가)
+**Current focus:** Phase 27 FIX 완료 - Selca 탭 표시 및 통합 (UnifiedSearch에 selca 플랫폼 추가)
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
 Phase: 27 of 27 (Selca External Search)
-Plan: 1 of 1 in current phase
-Status: Complete
-Last activity: 2026-01-16 — Completed 27-01-PLAN.md
+Plan: FIX completed
+Status: Complete (with fix)
+Last activity: 2026-01-16 — Completed 27-01-FIX.md
 
-Progress: ██████████████████████████ 100% (27/27 phases complete)
+Progress: ██████████████████████████ 100% (27/27 phases complete + 1 fix)
 
 **All phases complete!**
 
@@ -62,8 +62,8 @@ Progress: ███████████████████████�
 
 **Recent Trend:**
 
-- Last 5 plans: 23-01 (~8m), 24-01 (~5m), 25-01 (~1m), 26-01 (~5m), 27-01 (~30m)
-- Trend: Phase 27 완료! 전체 로드맵 100% 달성 (27개 Phase 모두 완료) - selca.kastden.org 외부 검색 통합 완성
+- Last 5 plans: 24-01 (~5m), 25-01 (~1m), 26-01 (~5m), 27-01 (~30m), 27-01-FIX (~14m)
+- Trend: Phase 27-01-FIX 완료! UnifiedSearch에 selca 탭 추가 및 플랫폼 완전 통합. 한글 검색 지원은 Phase 28 예정.
 
 ## Accumulated Context
 
@@ -152,5 +152,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-16
-Stopped at: Phase 27 added to roadmap (Selca External Search)
+Stopped at: Phase 27-01-FIX completed (Selca 탭 UnifiedSearch 통합)
 Resume file: None
+
+**Next recommended action:** Phase 28 (Selca Search UX - 한글 검색 지원)
