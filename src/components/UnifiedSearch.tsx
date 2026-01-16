@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getProxiedImageUrl } from '@/lib/proxy'
 import {
@@ -19,6 +19,10 @@ import {
   clearExpiredCache,
   type CachedPlatformResult,
 } from '@/lib/searchCache'
+import { useTranslations } from 'next-intl'
+
+// Selection type for idol dropdown
+type Selection = { type: 'bias'; id: string } | { type: 'group'; id: string } | null
 
 type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue'
 
@@ -99,9 +103,13 @@ const API_FETCH_COUNT = 20          // API에서 가져올 개수 (캐시용)
 
 export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, groups }: UnifiedSearchProps) {
   const { getDisplayName } = useNameLanguage()
+  const t = useTranslations('unifiedSearch')
 
   const [query, setQuery] = useState('')
-  const [selectedBiasId, setSelectedBiasId] = useState<string | null>(null)
+  const [selection, setSelection] = useState<Selection>(null)
+  const [isIdolDropdownOpen, setIsIdolDropdownOpen] = useState(false)
+  const [collapsedDropdownGroups, setCollapsedDropdownGroups] = useState<Set<string>>(new Set())
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const [enabledPlatforms, setEnabledPlatforms] = useState<Set<Platform>>(new Set(['youtube', 'twitter', 'heye', 'kgirls', 'kgirls-issue']))
 
   const [platformResults, setPlatformResults] = useState<Map<Platform, PlatformResults>>(new Map())
@@ -141,6 +149,49 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     }))
   }, [biases, groups])
 
+  // Group biases by group_id for dropdown display
+  const groupedBiases = useMemo(() => {
+    const grouped = new Map<string | null, BiasWithGroup[]>()
+    for (const bias of biasesWithGroups) {
+      const groupId = bias.group_id
+      if (!grouped.has(groupId)) {
+        grouped.set(groupId, [])
+      }
+      grouped.get(groupId)!.push(bias)
+    }
+    return grouped
+  }, [biasesWithGroups])
+
+  // Toggle dropdown group collapse
+  const toggleDropdownGroupCollapse = (groupId: string) => {
+    setCollapsedDropdownGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(groupId)) {
+        next.delete(groupId)
+      } else {
+        next.add(groupId)
+      }
+      return next
+    })
+  }
+
+  // Get selected display name
+  const getSelectionDisplayName = useCallback((): string => {
+    if (!selection) return t('selectIdol')
+    if (selection.type === 'group') {
+      const group = groups.find(g => g.id === selection.id)
+      if (group) {
+        return group.name
+      }
+    } else {
+      const bias = biases.find(b => b.id === selection.id)
+      if (bias) {
+        return getDisplayName(bias)
+      }
+    }
+    return t('selectIdol')
+  }, [selection, groups, biases, getDisplayName, t])
+
   // ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -152,6 +203,19 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsIdolDropdownOpen(false)
+      }
+    }
+    if (isIdolDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isIdolDropdownOpen])
+
   // Prevent body scroll when modal is open and reset state when closing
   useEffect(() => {
     if (isOpen) {
@@ -160,7 +224,9 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
       document.body.style.overflow = ''
       // Reset state when modal closes
       setQuery('')
-      setSelectedBiasId(null)
+      setSelection(null)
+      setIsIdolDropdownOpen(false)
+      setCollapsedDropdownGroups(new Set())
       setPlatformResults(new Map())
       setSelectedUrls(new Set())
       setCachedResults(new Map())
@@ -171,16 +237,25 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     }
   }, [isOpen])
 
-  // When bias is selected, update query with bias name
+  // When selection changes, update query
   useEffect(() => {
-    if (selectedBiasId) {
-      const selectedBias = biases.find(b => b.id === selectedBiasId)
+    if (!selection) return
+
+    if (selection.type === 'group') {
+      const group = groups.find(g => g.id === selection.id)
+      if (group) {
+        // Search with "한글명 영어명" format
+        const names = [group.name_ko, group.name_en].filter(Boolean)
+        setQuery(names.join(' ') || group.name)
+      }
+    } else {
+      const selectedBias = biases.find(b => b.id === selection.id)
       if (selectedBias) {
         // Use Korean name if available for better search results
         setQuery(selectedBias.name_ko || selectedBias.name)
       }
     }
-  }, [selectedBiasId, biases])
+  }, [selection, groups, biases])
 
   const checkIfSaved = useCallback((url: string): boolean => {
     const normalizedUrl = url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
@@ -1487,23 +1562,152 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
-              {/* Search Row: Bias Dropdown + Search Input */}
+              {/* Search Row: Idol Dropdown + Search Input */}
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                {/* Bias Dropdown */}
-                <div className="w-full sm:w-48 flex-shrink-0">
-                  <select
-                    value={selectedBiasId || ''}
-                    onChange={(e) => setSelectedBiasId(e.target.value || null)}
-                    className="w-full px-3 py-2 sm:py-2.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                {/* Custom Idol Dropdown */}
+                <div className="w-full sm:w-56 flex-shrink-0 relative" ref={dropdownRef}>
+                  <motion.button
+                    onClick={() => setIsIdolDropdownOpen(!isIdolDropdownOpen)}
+                    className={`w-full px-3 py-2 sm:py-2.5 text-sm border rounded-lg bg-white dark:bg-zinc-800 text-left flex items-center justify-between transition-colors ${
+                      isIdolDropdownOpen
+                        ? 'border-primary ring-2 ring-primary/30'
+                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                    }`}
+                    {...pressScale}
                   >
-                    <option value="">내 최애 선택</option>
-                    {biasesWithGroups.map((bias) => (
-                      <option key={bias.id} value={bias.id}>
-                        {getDisplayName(bias)}
-                        {bias.group && ` (${bias.group.name})`}
-                      </option>
-                    ))}
-                  </select>
+                    <span className={selection ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'}>
+                      {getSelectionDisplayName()}
+                    </span>
+                    <svg
+                      className={`w-4 h-4 text-zinc-400 transition-transform ${isIdolDropdownOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </motion.button>
+
+                  {/* Dropdown Menu */}
+                  <AnimatePresence>
+                    {isIdolDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg max-h-64 overflow-y-auto"
+                      >
+                        {/* No Selection option */}
+                        <button
+                          onClick={() => {
+                            setSelection(null)
+                            setIsIdolDropdownOpen(false)
+                          }}
+                          className="w-full px-3 py-2 text-sm text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
+                        >
+                          {t('noSelection')}
+                        </button>
+
+                        {/* Groups with members */}
+                        {Array.from(groupedBiases.entries()).map(([groupId, biasesInGroup]) => {
+                          const group = groupId ? groups.find(g => g.id === groupId) : null
+                          const isCollapsed = groupId ? collapsedDropdownGroups.has(groupId) : false
+
+                          if (group) {
+                            // Grouped biases
+                            return (
+                              <div key={groupId}>
+                                {/* Group Header */}
+                                <div className="flex items-center border-t border-zinc-100 dark:border-zinc-700/50">
+                                  {/* Collapse Toggle */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      toggleDropdownGroupCollapse(groupId!)
+                                    }}
+                                    className="px-2 py-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                  >
+                                    <svg
+                                      className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                  </button>
+
+                                  {/* Group Name (clickable for group selection) */}
+                                  <button
+                                    onClick={() => {
+                                      setSelection({ type: 'group', id: groupId! })
+                                      setIsIdolDropdownOpen(false)
+                                    }}
+                                    className={`flex-1 px-2 py-2 text-sm font-medium text-left transition-colors ${
+                                      selection?.type === 'group' && selection.id === groupId
+                                        ? 'text-primary bg-primary/5'
+                                        : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
+                                    }`}
+                                  >
+                                    {group.name}
+                                    <span className="ml-1 text-xs text-zinc-400">({biasesInGroup.length})</span>
+                                  </button>
+                                </div>
+
+                                {/* Group Members */}
+                                {!isCollapsed && (
+                                  <div className="pl-4">
+                                    {biasesInGroup.map((bias) => (
+                                      <button
+                                        key={bias.id}
+                                        onClick={() => {
+                                          setSelection({ type: 'bias', id: bias.id })
+                                          setIsIdolDropdownOpen(false)
+                                        }}
+                                        className={`w-full px-3 py-1.5 text-sm text-left transition-colors ${
+                                          selection?.type === 'bias' && selection.id === bias.id
+                                            ? 'text-primary bg-primary/5'
+                                            : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
+                                        }`}
+                                      >
+                                        {getDisplayName(bias)}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          } else {
+                            // Ungrouped biases
+                            return biasesInGroup.map((bias) => (
+                              <button
+                                key={bias.id}
+                                onClick={() => {
+                                  setSelection({ type: 'bias', id: bias.id })
+                                  setIsIdolDropdownOpen(false)
+                                }}
+                                className={`w-full px-3 py-2 text-sm text-left border-t border-zinc-100 dark:border-zinc-700/50 transition-colors ${
+                                  selection?.type === 'bias' && selection.id === bias.id
+                                    ? 'text-primary bg-primary/5'
+                                    : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
+                                }`}
+                              >
+                                {getDisplayName(bias)}
+                              </button>
+                            ))
+                          }
+                        })}
+
+                        {/* Empty state */}
+                        {biases.length === 0 && (
+                          <div className="px-3 py-4 text-sm text-zinc-400 text-center">
+                            등록된 아이돌이 없습니다
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Search Input */}
@@ -1513,7 +1717,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    placeholder="검색어 입력..."
+                    placeholder={t('searchPlaceholder')}
                     autoFocus
                     className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
@@ -1523,14 +1727,14 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                     className="px-4 sm:px-6 py-2 sm:py-2.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-smooth"
                     {...pressScale}
                   >
-                    {isSearching ? '검색 중...' : '검색'}
+                    {isSearching ? t('searching') : t('searchButton')}
                   </motion.button>
                 </div>
               </div>
 
               {/* Platform Filter */}
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mr-0.5 sm:mr-1">플랫폼:</span>
+                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mr-0.5 sm:mr-1">{t('platform')}:</span>
                 {PLATFORMS.map((platform) => {
                   const isEnabled = enabledPlatforms.has(platform.id)
                   return (
