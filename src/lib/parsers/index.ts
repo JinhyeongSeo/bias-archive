@@ -3,7 +3,7 @@
  * Central export for all parser modules
  */
 
-export type Platform = 'youtube' | 'twitter' | 'weverse' | 'heye' | 'kgirls' | 'other'
+export type Platform = 'youtube' | 'twitter' | 'weverse' | 'heye' | 'kgirls' | 'selca' | 'other'
 
 export type MediaType = 'image' | 'video' | 'gif'
 
