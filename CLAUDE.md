@@ -21,7 +21,9 @@ npm run lint     # ESLint 실행
 - **Styling:** Tailwind CSS 4
 - **i18n:** next-intl (한국어/영어)
 - **Video Processing:** FFmpeg.wasm (브라우저 GIF 생성)
-- **K-pop Data:** kpopnet.json (아이돌 그룹/멤버 데이터)
+- **K-pop Data:** selca.kastden.org API (아이돌 그룹/멤버 데이터)
+- **DnD:** @hello-pangea/dnd (드래그 앤 드롭)
+- **Animation:** framer-motion
 
 ## Architecture
 
@@ -43,6 +45,7 @@ npm run lint     # ESLint 실행
 | weverse.ts | Weverse | Open Graph |
 | heye.ts | heye.kr | HTML 파싱 |
 | kgirls.ts | kgirls.net | HTML 파싱 (XE CMS) |
+| selca.ts | selca.kastden.org | API (K-pop 그룹/멤버 데이터) |
 | generic.ts | 기타 | Open Graph |
 
 ### Supabase 구조
@@ -55,8 +58,29 @@ npm run lint     # ESLint 실행
 - `BiasManager.tsx` - 아이돌 등록/관리 (kpopnet.json 연동)
 - `UnifiedSearch.tsx` - 통합 검색 (아카이브 + 외부)
 - `LinkForm.tsx` - 링크 저장 폼
-- `GifMaker.tsx` - FFmpeg.wasm 기반 GIF 생성
+- `LinkList.tsx` / `LinkCard.tsx` - 링크 목록/카드 표시
+- `BatchTagModal.tsx` / `SelectionToolbar.tsx` - 다중 선택 및 배치 태그 관리
+- `ReelsViewer.tsx` - 릴스/스토리 형식 미디어 뷰어
 - `ViewerModal.tsx` / `EmbedViewer.tsx` - 미디어 뷰어
+- `GifMaker.tsx` - FFmpeg.wasm 기반 GIF 생성
+- `Timeline.tsx` - "과거의 오늘" 타임라인
+- `ExportModal.tsx` - 데이터 내보내기/가져오기
+
+### API 라우트 (`src/app/api/`)
+| 카테고리 | 엔드포인트 | 설명 |
+|----------|-----------|------|
+| Links | `/api/links`, `/api/links/[id]` | 링크 CRUD |
+| Links | `/api/links/batch`, `/api/links/batch/tags` | 배치 작업 |
+| Links | `/api/links/timeline` | 타임라인 데이터 |
+| Biases | `/api/biases`, `/api/biases/[id]` | Bias CRUD |
+| Biases | `/api/biases/batch`, `/api/biases/reorder` | 배치/순서 변경 |
+| Groups | `/api/groups`, `/api/groups/[id]`, `/api/groups/reorder` | 그룹 관리 |
+| Search | `/api/search/twitter`, `/api/search/heye`, `/api/search/kgirls` | 외부 검색 |
+| Search | `/api/search/cache`, `/api/search/viewed` | 검색 캐시/조회 기록 |
+| YouTube | `/api/youtube/search` | YouTube 검색 |
+| K-pop | `/api/kpop/groups`, `/api/kpop/members` | 아이돌 데이터 |
+| Util | `/api/metadata`, `/api/proxy/image` | 메타데이터/프록시 |
+| Data | `/api/import`, `/api/export` | 데이터 임포트/내보내기 |
 
 ## Environment Variables
 
@@ -76,3 +100,10 @@ GOOGLE_CSE_ID=
 ## Path Aliases
 
 `@/*` → `./src/*` (tsconfig.json)
+
+## 최근 주요 기능
+
+- **메모/북마크**: 링크에 개인 메모 추가, 즐겨찾기(starred) 기능
+- **배치 태그 관리**: 다중 선택 후 태그 일괄 추가/제거
+- **검색 캐시**: 외부 검색 결과 캐싱 (`src/lib/searchCache.ts`)
+- **kgirls-issue**: kgirls.net 이슈 게시판 별도 플랫폼 지원
