@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 21 - Design Overhaul
+**Current focus:** Phase 22 - Selca K-pop Data (kpopnet.json 대체)
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 21 of 21 (Design Overhaul)
-Plan: 5 of 5 in current phase
-Status: Complete
-Last activity: 2026-01-14 — Completed 21-05-PLAN.md (Final Polish)
+Phase: 22 of 22 (Selca K-pop Data)
+Plan: 0 of 2 in current phase
+Status: Planned, ready for execution
+Last activity: 2026-01-16 — Phase 22 planning complete
 
-Progress: █████████████████████ 100% (21/21 phases complete)
+Progress: █████████████████████ 95% (21/22 phases complete)
 
 ## Performance Metrics
 
@@ -110,6 +110,7 @@ Progress: █████████████████████ 100% (
 - Phase 20 added: Authentication (사용자 로그인/회원가입 기능)
 - Phase 21 added: Design Overhaul (토스 스타일 애니메이션, 트렌디한 디자인 전면 개편)
 - Phase 21-05 확장: 모바일 최적화, 이름 언어 auto 고정, 라이트 모드 색상 수정 추가
+- Phase 22 added: Namuwiki Idol Data (나무위키에서 아이돌 그룹/멤버 정보 가져오기)
 
 ### Deferred Issues
 
