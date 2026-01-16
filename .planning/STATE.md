@@ -156,7 +156,7 @@ Progress: ███████████████████████�
 
 ### Pending Todos
 
-None.
+- [Twitter 통합검색 비정상 URL 저장 버그](.planning/todos/pending/2026-01-16-twitter-search-malformed-url-storage.md) (Area: api)
 
 ### Completed (Recently)
 
