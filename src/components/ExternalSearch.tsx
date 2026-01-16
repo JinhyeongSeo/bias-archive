@@ -94,9 +94,10 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
   const [kgirlsTotalPages, setKgirlsTotalPages] = useState(0)
   const [kgirlsBoard, setKgirlsBoard] = useState<'mgall' | 'issue'>('mgall')
 
-  // selca.kastden.org pagination state
+  // selca.kastden.org pagination state (max_time_id based, forward-only)
   const [selcaPage, setSelcaPage] = useState(1)
   const [selcaHasNextPage, setSelcaHasNextPage] = useState(false)
+  const [selcaNextMaxTimeId, setSelcaNextMaxTimeId] = useState<string | undefined>()
 
   // ESC key to close modal
   useEffect(() => {
@@ -129,6 +130,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       setKgirlsBoard('mgall')
       setSelcaPage(1)
       setSelcaHasNextPage(false)
+      setSelcaNextMaxTimeId(undefined)
       setSelectedUrls(new Set())
     }
     return () => {
@@ -148,6 +150,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       setKgirlsTotalPages(0)
       setSelcaPage(1)
       setSelcaHasNextPage(false)
+      setSelcaNextMaxTimeId(undefined)
       setSelectedUrls(new Set())
     }
   }
@@ -338,17 +341,22 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     }))
   }
 
-  const searchSelca = async (searchQuery: string, page: number = 1): Promise<EnrichedResult[]> => {
-    const response = await fetch(`/api/search/selca?query=${encodeURIComponent(searchQuery)}&page=${page}`)
+  const searchSelca = async (searchQuery: string, maxTimeId?: string): Promise<EnrichedResult[]> => {
+    const params = new URLSearchParams({ query: searchQuery })
+    if (maxTimeId) {
+      params.set('maxTimeId', maxTimeId)
+    }
+    const response = await fetch(`/api/search/selca?${params}`)
     const data = await response.json()
 
     if (!response.ok) {
       throw new Error(data.error || 'selca.kastden.org 검색 실패')
     }
 
-    // Update pagination state
+    // Update pagination state (max_time_id based, forward-only)
     setSelcaHasNextPage(data.hasNextPage || false)
-    setSelcaPage(data.currentPage || 1)
+    setSelcaPage(prev => maxTimeId ? prev + 1 : 1)
+    setSelcaNextMaxTimeId(data.nextMaxTimeId)
 
     return (data.results as SelcaResult[]).map(item => ({
       url: item.url,
@@ -380,7 +388,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       } else if (platform === 'kgirls') {
         searchResults = await searchKgirls(query, 1)
       } else {
-        searchResults = await searchSelca(query, 1)
+        // Initial selca search (no maxTimeId)
+        searchResults = await searchSelca(query)
       }
       setResults(searchResults)
     } catch (err) {
@@ -422,14 +431,21 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     }
   }
 
-  const handleSelcaPageChange = async (newPage: number) => {
-    if (newPage < 1 || isLoading) return
+  // selca pagination: forward-only using max_time_id
+  const handleSelcaPageChange = async (direction: 'next' | 'prev') => {
+    if (isLoading) return
+
+    // Prev is not supported (max_time_id is forward-only)
+    if (direction === 'prev') return
+
+    // Next requires nextMaxTimeId
+    if (direction === 'next' && !selcaNextMaxTimeId) return
 
     setIsLoading(true)
     setError(null)
 
     try {
-      const searchResults = await searchSelca(query, newPage)
+      const searchResults = await searchSelca(query, selcaNextMaxTimeId)
       setResults(searchResults)
     } catch (err) {
       setError(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다')
@@ -1077,14 +1093,15 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                     </div>
                   )}
 
-                  {/* Selca Pagination */}
+                  {/* Selca Pagination (forward-only, max_time_id based) */}
                   {platform === 'selca' && (selcaPage > 1 || selcaHasNextPage) && (
                     <div className="flex justify-center items-center gap-2 pt-2">
                       <motion.button
-                        onClick={() => handleSelcaPageChange(selcaPage - 1)}
-                        disabled={selcaPage <= 1 || isLoading}
+                        onClick={() => handleSelcaPageChange('prev')}
+                        disabled={true}
                         className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                         {...pressScale}
+                        title="이전 페이지는 지원되지 않습니다"
                       >
                         이전
                       </motion.button>
@@ -1092,7 +1109,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                         페이지 {selcaPage}
                       </span>
                       <motion.button
-                        onClick={() => handleSelcaPageChange(selcaPage + 1)}
+                        onClick={() => handleSelcaPageChange('next')}
                         disabled={!selcaHasNextPage || isLoading}
                         className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                         {...pressScale}
