@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 25 추가됨 - UI Fixes (태그 구분선 간격 & 내보내기 통계)
+**Current focus:** Phase 26 추가됨 - Bias List UX Fixes (그룹 순서 실시간 반영 & 추가 위치 수정)
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 25 of 25 (UI Fixes)
-Plan: 1 of 1 in current phase
-Status: Phase complete
-Last activity: 2026-01-16 — Completed 25-01-PLAN.md
+Phase: 26 of 26 (Bias List UX Fixes)
+Plan: 0 of 1 in current phase
+Status: Planned, ready for execution
+Last activity: 2026-01-16 — Added Phase 26
 
-Progress: █████████████████████████ 100% (25/25 phases complete)
+Progress: █████████████████████████ 96% (25/26 phases complete)
 
 ## Performance Metrics
 
@@ -124,6 +124,7 @@ Progress: ███████████████████████�
 - Phase 23 added: Unified Search UX Improvements (통합검색 아이돌 선택 UI 개선) ✓
 - Phase 24 added: Group Deletion (BiasManager에서 그룹 전체 삭제 기능) ✓
 - Phase 25 added: UI Fixes (태그 구분선 간격 & 내보내기 통계 0/0/0 버그)
+- Phase 26 added: Bias List UX Fixes (그룹 순서 실시간 반영 & 추가 위치 수정)
 
 ### Deferred Issues
 
