@@ -154,6 +154,74 @@ const PLATFORMS: {
 const RESULTS_PER_PLATFORM = 6; // 화면에 표시할 개수
 const API_FETCH_COUNT = 20; // API에서 가져올 개수 (캐시용)
 
+// Korean to English idol name mapping for Selca search
+// 주요 아이돌 한영 매핑 (활동 중인 인기 그룹/멤버 우선)
+// 새로운 아이돌 추가 시 이 객체에 매핑을 추가하세요
+const IDOL_NAME_MAP: Record<string, string> = {
+  // aespa
+  "카리나": "karina",
+  "윈터": "winter",
+  "지젤": "giselle",
+  "닝닝": "ningning",
+
+  // IVE
+  "유진": "yujin",
+  "원영": "wonyoung",
+  "가을": "gaeul",
+  "리즈": "liz",
+  "레이": "rei",
+  "이서": "leeseo",
+
+  // NewJeans
+  "민지": "minji",
+  "하니": "hanni",
+  "다니엘": "danielle",
+  "해린": "haerin",
+  "혜인": "hyein",
+
+  // BLACKPINK
+  "지수": "jisoo",
+  "제니": "jennie",
+  "로제": "rose",
+  "리사": "lisa",
+
+  // (G)I-DLE
+  "미연": "miyeon",
+  "민니": "minnie",
+  "소연": "soyeon",
+  "우기": "yuqi",
+  "슈화": "shuhua",
+
+  // TWICE
+  "나연": "nayeon",
+  "정연": "jeongyeon",
+  "모모": "momo",
+  "사나": "sana",
+  "지효": "jihyo",
+  "미나": "mina",
+  "다현": "dahyun",
+  "채영": "chaeyoung",
+  "쯔위": "tzuyu",
+
+  // Red Velvet
+  "아이린": "irene",
+  "슬기": "seulgi",
+  "웬디": "wendy",
+  "조이": "joy",
+  "예리": "yeri",
+};
+
+/**
+ * Normalize idol name for Selca search
+ * Converts Korean names to English stage names
+ * @param query - Search query (Korean or English)
+ * @returns Normalized English stage name
+ */
+function normalizeIdolName(query: string): string {
+  const normalized = query.trim().toLowerCase();
+  return IDOL_NAME_MAP[normalized] || normalized;
+}
+
 export function UnifiedSearch({
   isOpen,
   onClose,
@@ -857,8 +925,16 @@ export function UnifiedSearch({
     searchQuery: string,
     page: number = 1
   ): Promise<{ results: EnrichedResult[]; hasMore: boolean }> => {
+    // 한글 → 영문 변환
+    const normalizedQuery = normalizeIdolName(searchQuery);
+
+    // 디버깅용 로그
+    if (normalizedQuery !== searchQuery) {
+      console.log(`[Selca Search] "${searchQuery}" → "${normalizedQuery}"`);
+    }
+
     const params = new URLSearchParams({
-      query: searchQuery,
+      query: normalizedQuery, // 변환된 검색어 사용
       page: String(page),
       limit: String(API_FETCH_COUNT),
     });
