@@ -504,6 +504,28 @@ Plans:
 
 - [x] 27-01: selca 검색 API 라우트 + ExternalSearch selca 탭 추가 ✓
 
+### Phase 28: Selca Search UX
+
+**Goal**: Bias 기반 즉시 selca 검색 - selca_slug 저장 및 활용으로 타임아웃 제거
+**Depends on**: Phase 27
+**Research**: Complete
+**Plans**: 2/2 Complete
+
+**배경:**
+- Phase 28-01 실패: fetchAllIdols() 방식은 500+ 아이돌 페이지 방문으로 15초 타임아웃 초과
+- Phase 28-02 성공: Bias에 selca_slug 저장, 검색 시 Bias 매칭으로 즉시 검색
+
+**기능 설명:**
+- biases 테이블에 selca_slug 컬럼 추가 (selca.kastden.org 아이돌 slug 저장)
+- BiasManager에서 최애 추가 시 selca_slug 자동 저장 (개별/일괄 모두)
+- UnifiedSearch에서 Bias 매칭 후 slug 우선 사용 (즉시 검색, 타임아웃 없음)
+- selca API에서 slug 직접 사용 시 searchMembers 호출 건너뛰기
+- Option A (수동 백필): 사용자가 Bias를 다시 추가할 때 자동으로 채워짐
+
+Plans:
+- [ ] 28-01: fetchAllIdols 캐싱 방식 (실패 - 타임아웃)
+- [x] 28-02: Bias 기반 selca_slug 저장 및 활용 ✓
+
 ## Progress
 
 **Execution Order:**
@@ -538,3 +560,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 25. UI Fixes | - | 1/1 | Complete | 2026-01-16 |
 | 26. Bias List UX Fixes | - | 1/1 | Complete | 2026-01-16 |
 | 27. Selca External Search | - | 1/1 | Complete | 2026-01-16 |
+| 28. Selca Search UX | - | 2/2 | Complete | 2026-01-16 |

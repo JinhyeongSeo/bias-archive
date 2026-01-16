@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 27 FIX 완료 - Selca 탭 표시 및 통합 (UnifiedSearch에 selca 플랫폼 추가)
+**Current focus:** Phase 28-02 완료 - Bias 기반 즉시 selca 검색 (selca_slug 저장으로 타임아웃 제거)
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 27 of 27 (Selca External Search)
-Plan: FIX completed
-Status: Complete (with fix)
-Last activity: 2026-01-16 — Completed 27-01-FIX.md
+Phase: 28 of 28 (Selca Search UX)
+Plan: 2 of 2 completed
+Status: Complete
+Last activity: 2026-01-16 — Completed 28-02-PLAN.md
 
-Progress: ██████████████████████████ 100% (27/27 phases complete + 1 fix)
+Progress: ████████████████████████████ 100% (28/28 phases complete)
 
 **All phases complete!**
 
@@ -23,9 +23,9 @@ Progress: ███████████████████████�
 
 **Velocity:**
 
-- Total plans completed: 43
+- Total plans completed: 45
 - Average duration: ~8 min
-- Total execution time: ~350 min
+- Total execution time: ~361 min
 
 **By Phase:**
 
@@ -59,11 +59,12 @@ Progress: ███████████████████████�
 | 25. UI Fixes | 1 | ~1 min | 1 min |
 | 26. Bias List UX Fixes | 1 | ~5 min | 5 min |
 | 27. Selca External Search | 1 | ~30 min | 30 min |
+| 28. Selca Search UX | 2 | ~11 min | 6 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 24-01 (~5m), 25-01 (~1m), 26-01 (~5m), 27-01 (~30m), 27-01-FIX (~14m)
-- Trend: Phase 27-01-FIX 완료! UnifiedSearch에 selca 탭 추가 및 플랫폼 완전 통합. 한글 검색 지원은 Phase 28 예정.
+- Last 5 plans: 25-01 (~1m), 26-01 (~5m), 27-01 (~30m), 28-01 (failed), 28-02 (~11m)
+- Trend: Phase 28-02 완료! Bias 기반 즉시 selca 검색. selca_slug 저장으로 타임아웃 제거. 28-01의 fetchAllIdols() 방식 실패 후 Bias 데이터 활용으로 성공.
 
 ## Accumulated Context
 
@@ -110,6 +111,9 @@ Progress: ███████████████████████�
 - DB FK의 ON DELETE SET NULL 활용으로 그룹 삭제 시 최애는 유지 (group_id만 NULL)
 - 새 bias/group 추가 시 sort_order를 max+1로 자동 설정 (목록 맨 아래에 추가)
 - onBiasReordered를 handleBiasChange에 연결하여 그룹 순서 변경 시 통합검색 실시간 반영
+- biases 테이블에 selca_slug 저장 (selca.kastden.org 아이돌 slug)
+- Bias 매칭 우선, selca_slug 사용으로 즉시 검색 (타임아웃 없음)
+- selca API에서 slug 형식 감지, searchMembers 호출 건너뛰기
 
 ### Roadmap Evolution
 
@@ -132,6 +136,7 @@ Progress: ███████████████████████�
 - Phase 25 added: UI Fixes (태그 구분선 간격 & 내보내기 통계 0/0/0 버그) ✓
 - Phase 26 added: Bias List UX Fixes (그룹 순서 실시간 반영 & 추가 위치 수정) ✓
 - Phase 27 added: Selca External Search (selca.kastden.org 외부 검색 플랫폼 추가) ✓
+- Phase 28 added: Selca Search UX (Bias 기반 즉시 검색, selca_slug 저장) ✓
 
 ### Deferred Issues
 
@@ -152,7 +157,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-16
-Stopped at: Phase 27-01-FIX completed (Selca 탭 UnifiedSearch 통합)
+Stopped at: Phase 28-02 completed (Bias 기반 즉시 selca 검색)
 Resume file: None
 
-**Next recommended action:** Phase 28 (Selca Search UX - 한글 검색 지원)
+**Next recommended action:** All phases complete! Consider deployment or new features.
