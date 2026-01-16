@@ -114,14 +114,32 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
     return group.name_en || group.name
   }, [locale])
 
+  // Korean top 100 surnames for detecting real names vs stage names
+  const KOREAN_SURNAMES = useMemo(() => new Set([
+    '김', '이', '박', '최', '정', '강', '조', '윤', '장', '임',
+    '한', '오', '서', '신', '권', '황', '안', '송', '전', '홍',
+    '유', '고', '문', '양', '손', '배', '백', '허', '노', '심',
+    '하', '주', '구', '곽', '성', '차', '우', '민', '류', '나',
+    '진', '지', '엄', '채', '원', '천', '방', '공', '현', '함',
+    '변', '염', '여', '추', '도', '소', '석', '선', '설', '마',
+    '길', '연', '위', '표', '명', '기', '반', '피', '왕', '금',
+    '옥', '육', '인', '맹', '남', '탁', '국', '어', '경', '은',
+    '편', '제', '빈', '봉', '사', '부',
+  ]), [])
+
   // Helper to remove Korean surname for better search results
-  // Korean names are typically 2-4 characters with first character being surname
+  // Only applies to real Korean names (exactly 3 chars + first char is a surname)
+  // Stage names like "윈터", "카리나" are kept as-is
   const removeKoreanSurname = useCallback((name: string): string => {
-    if (/^[가-힣]{2,4}$/.test(name)) {
-      return name.slice(1) // e.g., "장원영" → "원영"
+    // Condition: exactly 3 Korean characters + first char is a Korean surname
+    const isThreeCharKorean = /^[가-힣]{3}$/.test(name)
+    const firstCharIsSurname = KOREAN_SURNAMES.has(name.charAt(0))
+
+    if (isThreeCharKorean && firstCharIsSurname) {
+      return name.slice(1) // e.g., "장원영" → "원영", "안유진" → "유진"
     }
-    return name
-  }, [])
+    return name // e.g., "윈터" → "윈터", "카리나" → "카리나"
+  }, [KOREAN_SURNAMES])
 
   const [query, setQuery] = useState('')
   const [selection, setSelection] = useState<Selection>(null)
@@ -1640,7 +1658,7 @@ export function UnifiedSearch({ isOpen, onClose, savedUrls, onSave, biases, grou
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                        className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg max-h-80 overflow-y-auto"
                       >
                         {/* No Selection option */}
                         <button
