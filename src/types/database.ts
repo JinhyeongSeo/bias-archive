@@ -99,6 +99,10 @@ export type Database = {
           user_id: string | null
           memo: string | null
           starred: boolean
+          archive_status: string | null
+          archive_url: string | null
+          archive_job_id: string | null
+          archived_at: string | null
           created_at: string
           updated_at: string
         }
@@ -115,6 +119,10 @@ export type Database = {
           user_id?: string | null
           memo?: string | null
           starred?: boolean
+          archive_status?: string | null
+          archive_url?: string | null
+          archive_job_id?: string | null
+          archived_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -131,6 +139,10 @@ export type Database = {
           user_id?: string | null
           memo?: string | null
           starred?: boolean
+          archive_status?: string | null
+          archive_url?: string | null
+          archive_job_id?: string | null
+          archived_at?: string | null
           updated_at?: string
         }
         Relationships: [
