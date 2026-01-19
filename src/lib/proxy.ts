@@ -12,6 +12,17 @@ const HOTLINK_PROTECTED_DOMAINS = ['heye.kr', 'kgirls.net', 'twimg.com', 'cdnins
 const VIDEO_PROXY_BASE_URL = process.env.NEXT_PUBLIC_VIDEO_PROXY_URL || 'https://video-proxy.jh4clover.workers.dev'
 
 /**
+ * Decode HTML entities in URL (handles &amp; from Instagram/other sources)
+ */
+function decodeUrlEntities(url: string): string {
+  return url
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+}
+
+/**
  * Check if a URL needs to be proxied (from hotlink protected domains)
  */
 export function needsProxy(url: string): boolean {
@@ -30,12 +41,15 @@ export function needsProxy(url: string): boolean {
  * Returns original URL if not from a hotlink protected domain
  */
 export function getProxiedImageUrl(url: string): string {
-  if (!needsProxy(url)) {
-    return url
+  // Decode HTML entities first (handles &amp; from Instagram/other sources)
+  const cleanUrl = decodeUrlEntities(url)
+
+  if (!needsProxy(cleanUrl)) {
+    return cleanUrl
   }
 
   // wsrv.nl format: https://wsrv.nl/?url={encodedUrl}
-  return `https://wsrv.nl/?url=${encodeURIComponent(url)}`
+  return `https://wsrv.nl/?url=${encodeURIComponent(cleanUrl)}`
 }
 
 /**
@@ -72,12 +86,38 @@ export function isVideoUrl(url: string): boolean {
  * Returns original URL if not from a hotlink protected domain
  */
 export function getProxiedVideoUrl(url: string): string {
-  if (!needsProxy(url)) {
-    return url
+  // Decode HTML entities first (handles &amp; from Instagram/other sources)
+  const cleanUrl = decodeUrlEntities(url)
+
+  if (!needsProxy(cleanUrl)) {
+    return cleanUrl
   }
 
   // Cloudflare Worker format: https://worker.workers.dev/?url={encodedUrl}
-  return `${VIDEO_PROXY_BASE_URL}/?url=${encodeURIComponent(url)}`
+  return `${VIDEO_PROXY_BASE_URL}/?url=${encodeURIComponent(cleanUrl)}`
+}
+
+/**
+ * Extract original URL from a proxied URL (wsrv.nl or video-proxy)
+ * Also decodes HTML entities. Use this before saving to DB.
+ */
+export function extractOriginalUrl(url: string): string {
+  try {
+    const urlObj = new URL(url)
+
+    // Check if it's a proxy URL (wsrv.nl or video-proxy)
+    if (urlObj.hostname === 'wsrv.nl' || urlObj.hostname.endsWith('.workers.dev')) {
+      const encodedOriginal = urlObj.searchParams.get('url')
+      if (encodedOriginal) {
+        return decodeURIComponent(encodedOriginal)
+      }
+    }
+
+    // Not a proxy URL, return as-is (with HTML entity decoding)
+    return decodeUrlEntities(url)
+  } catch {
+    return decodeUrlEntities(url)
+  }
 }
 
 /**

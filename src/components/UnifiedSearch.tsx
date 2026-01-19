@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl } from "@/lib/proxy";
+import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl, extractOriginalUrl } from "@/lib/proxy";
 import {
   modalOverlay,
   modalContent,
@@ -1083,10 +1083,13 @@ export function UnifiedSearch({
       }
 
       // Defensive: handle undefined results
+      // Apply proxy for display - getProxiedImageUrl handles &amp; decoding internally
       const results = ((data.results || []) as InstagramResult[]).map((item) => ({
         url: item.url,
         title: item.title,
-        thumbnailUrl: item.thumbnailUrl,
+        thumbnailUrl: item.thumbnailUrl
+          ? getProxiedImageUrl(item.thumbnailUrl)
+          : null,
         author: item.author,
         platform: "instagram" as Platform,
         isSaved: checkIfSaved(item.url),
@@ -2125,17 +2128,26 @@ export function UnifiedSearch({
         };
       }
 
+      // Extract original URLs for saving (removes proxy wrapper and decodes HTML entities)
+      const thumbnailUrlForSave = metadata.thumbnailUrl
+        ? extractOriginalUrl(metadata.thumbnailUrl)
+        : null;
+      const mediaForSave = metadata.media?.map(m => ({
+        ...m,
+        url: extractOriginalUrl(m.url),
+      }));
+
       const saveResponse = await fetch("/api/links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: result.url,
           title: metadata.title,
-          thumbnailUrl: metadata.thumbnailUrl,
+          thumbnailUrl: thumbnailUrlForSave,
           platform: metadata.platform,
           authorName: metadata.authorName,
           searchQuery: query,
-          media: metadata.media,
+          media: mediaForSave,
         }),
       });
 
@@ -2236,17 +2248,26 @@ export function UnifiedSearch({
         }
       }
 
+      // Extract original URLs for saving (removes proxy wrapper and decodes HTML entities)
+      const thumbnailUrlForSave = metadata.thumbnailUrl
+        ? extractOriginalUrl(metadata.thumbnailUrl)
+        : null;
+      const mediaForSave = metadata.media?.map(m => ({
+        ...m,
+        url: extractOriginalUrl(m.url),
+      }));
+
       const saveResponse = await fetch("/api/links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: result.url,
           title: metadata.title,
-          thumbnailUrl: metadata.thumbnailUrl,
+          thumbnailUrl: thumbnailUrlForSave,
           platform: metadata.platform,
           authorName: metadata.authorName,
           searchQuery: query,
-          media: metadata.media,
+          media: mediaForSave,
         }),
       });
 
@@ -2347,17 +2368,26 @@ export function UnifiedSearch({
           };
         }
 
+        // Extract original URLs for saving (removes proxy wrapper and decodes HTML entities)
+        const thumbnailUrlForSave = metadata.thumbnailUrl
+          ? extractOriginalUrl(metadata.thumbnailUrl)
+          : null;
+        const mediaForSave = metadata.media?.map(m => ({
+          ...m,
+          url: extractOriginalUrl(m.url),
+        }));
+
         const saveResponse = await fetch("/api/links", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             url,
             title: metadata.title,
-            thumbnailUrl: metadata.thumbnailUrl,
+            thumbnailUrl: thumbnailUrlForSave,
             platform: metadata.platform,
             authorName: metadata.authorName,
             searchQuery: query,
-            media: metadata.media,
+            media: mediaForSave,
           }),
         });
 
