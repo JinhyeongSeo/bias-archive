@@ -87,38 +87,26 @@ export function LinkCard({
   const [archiveStatus, setArchiveStatus] = useState<ArchiveStatusType>(
     (link.archive_status as ArchiveStatusType) || null
   )
-  const [archivedThumbnailUrl, setArchivedThumbnailUrl] = useState<string | null>(
-    link.archived_thumbnail_url || null
+  const [archivedUrl, setArchivedUrl] = useState<string | null>(
+    link.archived_url || null
   )
-  const [useFallbackImage, setUseFallbackImage] = useState(false)
   const [imageError, setImageError] = useState(false)
   const { getTagDisplayName } = useNameLanguage()
 
-  // Get thumbnail URL with fallback support
+  // Get thumbnail URL (no fallback to archived - archived URL is for page, not thumbnail)
   const getThumbnailSrc = useCallback(() => {
     if (!link.thumbnail_url) return null
-
-    // If original failed and we have a Wayback fallback for the thumbnail
-    if (useFallbackImage && archivedThumbnailUrl) {
-      return archivedThumbnailUrl
-    }
 
     // Return proxied URL
     if (isVideoUrl(link.thumbnail_url)) {
       return getProxiedVideoUrl(link.thumbnail_url)
     }
     return getProxiedImageUrl(link.thumbnail_url)
-  }, [link.thumbnail_url, useFallbackImage, archivedThumbnailUrl])
+  }, [link.thumbnail_url])
 
   const handleImageError = useCallback(() => {
-    if (!useFallbackImage && archivedThumbnailUrl) {
-      // Try Wayback fallback
-      setUseFallbackImage(true)
-    } else {
-      // Both primary and fallback failed
-      setImageError(true)
-    }
-  }, [useFallbackImage, archivedThumbnailUrl])
+    setImageError(true)
+  }, [])
 
   const platform = (link.platform || 'other') as Platform
 
@@ -210,7 +198,7 @@ export function LinkCard({
 
         if (data.status === 'archived') {
           setArchiveStatus('archived')
-          setArchivedThumbnailUrl(data.archived_thumbnail_url || null)
+          setArchivedUrl(data.archived_url || null)
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current)
             pollIntervalRef.current = null
@@ -280,10 +268,10 @@ export function LinkCard({
       // API returns 'status' field, not 'archive_status'
       const newStatus = data.status as ArchiveStatusType
       setArchiveStatus(newStatus)
-      setArchivedThumbnailUrl(data.archived_thumbnail_url || null)
+      setArchivedUrl(data.archived_url || null)
 
       // If pending, start polling for completion
-      if (newStatus === 'pending' && data.job_id) {
+      if (newStatus === 'pending') {
         pollArchiveStatus()
       }
     } catch (error) {
@@ -541,7 +529,7 @@ export function LinkCard({
           {/* Archive status button */}
           <ArchiveStatus
             status={archiveStatus}
-            archiveUrl={archivedThumbnailUrl}
+            archiveUrl={archivedUrl}
             onArchive={handleArchive}
             isArchiving={isArchiving}
             size="sm"
@@ -905,7 +893,7 @@ export function LinkCard({
         {/* Archive status button */}
         <ArchiveStatus
           status={archiveStatus}
-          archiveUrl={archivedThumbnailUrl}
+          archiveUrl={archivedUrl}
           onArchive={handleArchive}
           isArchiving={isArchiving}
           size="sm"
