@@ -54,7 +54,9 @@ interface InstagramSearchResult {
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const query = searchParams.get('q')
-  const limit = parseInt(searchParams.get('limit') || '20', 10)
+  // Default to 10 results (lower = faster Apify execution)
+  // Apify Instagram scraper can be slow, so we limit to avoid timeout
+  const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 20)
 
   // Check for API token
   const apiToken = process.env.APIFY_API_TOKEN
@@ -86,7 +88,7 @@ export async function GET(request: NextRequest) {
         resultsLimit: limit,
       },
       {
-        timeoutSecs: 60, // 60 seconds timeout (Apify uses timeoutSecs, not timeout)
+        timeout: 55, // 55 seconds timeout (leave buffer for Vercel's 60s limit)
       }
     )
 
