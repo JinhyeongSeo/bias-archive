@@ -206,7 +206,8 @@ export function LinkCard({
       }
 
       const data = await response.json()
-      setArchiveStatus(data.archive_status as ArchiveStatusType)
+      // API returns 'status' field, not 'archive_status'
+      setArchiveStatus(data.status as ArchiveStatusType)
       setArchiveUrl(data.archive_url || null)
     } catch (error) {
       console.error('Archive error:', error)
