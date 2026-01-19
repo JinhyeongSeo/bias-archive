@@ -7,6 +7,7 @@
  * - Requires APIFY_API_TOKEN environment variable
  * - Returns { notConfigured: true } if token not set
  * - Search types: 'hashtag' (default), 'user'
+ * - Results are cached for 1 hour to reduce API calls and improve speed
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -35,6 +36,51 @@ interface InstagramSearchResult {
   author: string
 }
 
+interface CacheEntry {
+  results: InstagramSearchResult[]
+  hasMore: boolean
+  timestamp: number
+}
+
+// In-memory cache (1 hour TTL)
+const cache = new Map<string, CacheEntry>()
+const CACHE_TTL = 60 * 60 * 1000 // 1 hour in milliseconds
+
+function getCacheKey(query: string, searchType: string, limit: number): string {
+  return `${query.toLowerCase()}:${searchType}:${limit}`
+}
+
+function getFromCache(key: string): CacheEntry | null {
+  const entry = cache.get(key)
+  if (!entry) return null
+
+  // Check if cache is expired
+  if (Date.now() - entry.timestamp > CACHE_TTL) {
+    cache.delete(key)
+    return null
+  }
+
+  return entry
+}
+
+function setCache(key: string, results: InstagramSearchResult[], hasMore: boolean): void {
+  // Limit cache size to prevent memory issues
+  if (cache.size > 100) {
+    // Remove oldest entries
+    const entries = Array.from(cache.entries())
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp)
+    for (let i = 0; i < 20; i++) {
+      cache.delete(entries[i][0])
+    }
+  }
+
+  cache.set(key, {
+    results,
+    hasMore,
+    timestamp: Date.now(),
+  })
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const query = searchParams.get('q')
@@ -54,7 +100,20 @@ export async function GET(request: NextRequest) {
     )
   }
 
+  // Check cache first
+  const cacheKey = getCacheKey(query, searchType, limit)
+  const cached = getFromCache(cacheKey)
+  if (cached) {
+    console.log(`[Instagram Search] Cache hit for: ${query}`)
+    return NextResponse.json({
+      results: cached.results,
+      hasMore: cached.hasMore,
+      cached: true,
+    })
+  }
+
   try {
+    console.log(`[Instagram Search] Cache miss, calling Apify for: ${query}`)
     const client = new ApifyClient({ token: apiToken })
 
     // Run Instagram Search Scraper actor
@@ -94,9 +153,14 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    const hasMore = results.length >= limit
+
+    // Save to cache
+    setCache(cacheKey, results, hasMore)
+
     return NextResponse.json({
       results,
-      hasMore: results.length >= limit,
+      hasMore,
     })
   } catch (error) {
     console.error('[Instagram Search] Error:', error)
