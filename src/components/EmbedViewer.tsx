@@ -475,6 +475,14 @@ export function EmbedViewer({ url, platform, media }: EmbedViewerProps) {
     }
   }
 
+  // Instagram - show media gallery (images, videos)
+  if (platform === 'instagram') {
+    const hasMedia = media && media.some(m => m.media_type === 'image' || m.media_type === 'video')
+    if (hasMedia) {
+      return <MediaGallery media={media!} />
+    }
+  }
+
   // Fallback for unsupported platforms
   return <FallbackEmbed url={url} />
 }

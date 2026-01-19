@@ -323,8 +323,8 @@ export function LinkCard({
   const hasVideo = platform === 'youtube' ||
     (platform === 'twitter' && link.media?.some(m => m.media_type === 'video'))
 
-  // Check if platform supports in-app viewing (YouTube, Twitter, heye.kr, kgirls.net have viewers)
-  const supportsViewer = platform === 'youtube' || platform === 'twitter' || platform === 'heye' || platform === 'kgirls'
+  // Check if platform supports in-app viewing (YouTube, Twitter, heye.kr, kgirls.net, Instagram have viewers)
+  const supportsViewer = platform === 'youtube' || platform === 'twitter' || platform === 'heye' || platform === 'kgirls' || platform === 'instagram'
 
   // Handle thumbnail click to open viewer or navigate to link
   const handleThumbnailClick = () => {
