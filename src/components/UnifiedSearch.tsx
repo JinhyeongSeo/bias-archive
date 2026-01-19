@@ -27,7 +27,7 @@ type Selection =
   | { type: "group"; id: string }
   | null;
 
-type Platform = "youtube" | "twitter" | "heye" | "kgirls" | "kgirls-issue" | "selca";
+type Platform = "youtube" | "twitter" | "heye" | "kgirls" | "kgirls-issue" | "selca" | "instagram";
 
 interface YouTubeResult {
   videoId: string;
@@ -63,6 +63,13 @@ interface SelcaResult {
   url: string;
   title: string;
   thumbnailUrl: string;
+  author: string;
+}
+
+interface InstagramResult {
+  url: string;
+  title: string;
+  thumbnailUrl: string | null;
   author: string;
 }
 
@@ -149,6 +156,13 @@ const PLATFORMS: {
     color: "text-purple-700 dark:text-purple-300",
     bgColor: "bg-purple-100 dark:bg-purple-900/50",
     ringColor: "ring-purple-500/20",
+  },
+  {
+    id: "instagram",
+    label: "Instagram",
+    color: "text-pink-600 dark:text-pink-400",
+    bgColor: "bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/50 dark:to-pink-900/50",
+    ringColor: "ring-pink-500/20",
   },
 ];
 
@@ -1034,6 +1048,55 @@ export function UnifiedSearch({
     }
   };
 
+  // Instagram search via Apify
+  const searchInstagram = async (
+    searchQuery: string,
+    searchType: 'user' | 'hashtag' = 'hashtag'
+  ): Promise<{ results: EnrichedResult[]; hasMore: boolean }> => {
+    const params = new URLSearchParams({
+      q: searchQuery,
+      type: searchType,
+      limit: String(API_FETCH_COUNT),
+    });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout (Apify can be slow)
+
+    try {
+      const response = await fetch(`/api/search/instagram?${params}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.notConfigured) {
+          throw new Error("Instagram 검색이 설정되지 않았습니다");
+        }
+        throw new Error(data.error || "Instagram 검색 실패");
+      }
+
+      const results = (data.results as InstagramResult[]).map((item) => ({
+        url: item.url,
+        title: item.title,
+        thumbnailUrl: item.thumbnailUrl,
+        author: item.author,
+        platform: "instagram" as Platform,
+        isSaved: checkIfSaved(item.url),
+        isSaving: false,
+      }));
+
+      return { results, hasMore: data.hasMore || false };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("요청 시간이 초과되었습니다");
+      }
+      throw error;
+    }
+  };
+
   // 플랫폼별 검색 처리 헬퍼 함수
   const processPlatformSearch = async (
     platform: Platform,
@@ -1297,6 +1360,17 @@ export function UnifiedSearch({
           "selca",
           cachedSelca,
           () => searchSelca(query, startPage, cachedSelca?.nextMaxTimeId)
+        )
+      );
+    }
+
+    if (enabledPlatforms.has("instagram")) {
+      const cachedInstagram = cached?.platforms.instagram;
+      searchPromises.push(
+        processPlatformSearch(
+          "instagram",
+          cachedInstagram,
+          () => searchInstagram(query)
         )
       );
     }
@@ -1816,6 +1890,15 @@ export function UnifiedSearch({
               });
             }
           }
+          break;
+        }
+        case "instagram": {
+          // Instagram: No pagination support in MVP, just return empty
+          // Future: Could implement cursor-based pagination if Apify supports it
+          searchResult = {
+            results: [],
+            hasMore: false,
+          };
           break;
         }
         default:
