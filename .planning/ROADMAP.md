@@ -52,6 +52,7 @@ None
 - [x] **Phase 30: Selca Infinite Scroll** - selca.kastden.org 무한 스크롤 페이지네이션 구현 ✓
 - [x] **Phase 31: External Search Pagination** - heye, kgirls, kgirls-issue 외부 검색 페이지네이션 (캐시 20개 제한 해결) ✓
 - [x] **Phase 33: Unified Search Category Selection** - 통합 검색에서 카테고리별 선택 기능 추가 ✓
+- [ ] **Phase 34: Internet Archive Backup** - 링크 백업 및 폴백 시스템 (archive.org 연동)
 
 Plans:
 
@@ -663,6 +664,48 @@ Plans:
 **Details:**
 [To be added during planning]
 
+### Phase 34: Internet Archive Backup
+
+**Goal**: 링크 저장 시 이미지/영상을 Internet Archive(archive.org)에 백업하고, 원본 링크가 깨지면 백업에서 불러오는 폴백 시스템 구현
+**Depends on**: Phase 33
+**Research**: Likely (archive.org API 조사 필요)
+**Plans**: TBD
+
+**배경:**
+
+- 현재는 외부 링크의 이미지/썸네일 URL을 그대로 참조
+- 원본 삭제 시 콘텐츠를 볼 수 없음
+- 무료 + 무제한 + 영구 보관이 가능한 Internet Archive 활용
+
+**기능 설명:**
+
+1. **백업 저장**:
+   - 링크 저장 시 이미지/영상을 archive.org에 업로드
+   - DB에 archive_url 컬럼 추가
+   - 백그라운드 작업으로 비동기 처리
+
+2. **폴백 로딩**:
+   - 이미지/영상 표시 시 원본 URL 먼저 시도
+   - 원본 실패(404, 타임아웃 등) 시 archive.org URL로 폴백
+   - onError 핸들러로 자동 전환
+
+3. **아카이빙 상태 표시**:
+   - archive_status: 'pending', 'archived', 'failed'
+   - UI에 아카이빙 상태 아이콘 표시
+
+4. **선택적 백업**:
+   - 즐겨찾기(starred) 링크 자동 백업
+   - 수동 "백업" 버튼으로 개별 링크 아카이빙
+
+Plans:
+
+- [x] 34-01: DB 스키마 및 archive.org API 모듈 ✓
+- [ ] 34-02: 아카이브 API 라우트 및 자동 백업
+- [ ] 34-03: UI 표시 및 폴백 시스템
+
+**Details:**
+Phase 34 실행 중 - Internet Archive 백업 시스템 구현
+
 ## Progress
 
 **Execution Order:**
@@ -703,3 +746,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 31. External Search Pagination | - | 1/1 | Complete | 2026-01-16 |
 | 32. Namuwiki Fallback Search | - | 1/1 | Complete | 2026-01-19 |
 | 33. Unified Search Category Selection | - | 1/1 | Complete | 2026-01-19 |
+| 34. Internet Archive Backup | - | 1/3 | In Progress | - |
