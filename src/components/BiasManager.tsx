@@ -1061,6 +1061,11 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                           {group.memberCount}명
                         </span>
                         {/* Source badge */}
+                        {group.source === 'selca' && (
+                          <span className="ml-1 px-1 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded">
+                            selca
+                          </span>
+                        )}
                         {group.source === 'namuwiki' && (
                           <span className="ml-1 px-1 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded">
                             나무위키
@@ -1089,6 +1094,11 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                     </span>
                   )}
                   {/* Source badge for selected group */}
+                  {selectedGroup.source === 'selca' && (
+                    <span className="ml-1 px-1 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded">
+                      selca
+                    </span>
+                  )}
                   {selectedGroup.source === 'namuwiki' && (
                     <span className="ml-1 px-1 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded">
                       나무위키
