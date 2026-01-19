@@ -5,19 +5,19 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 32-01-FIX 완료 - 나무위키 폴백 검색 버그 수정
+**Current focus:** Phase 33 추가 - 통합 검색 카테고리별 선택 기능
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 32 of 32 (Namuwiki Fallback Search)
-Plan: 1 of 1 completed
-Status: Complete
-Last activity: 2026-01-19 — Completed 32-01-FIX-PLAN.md (UAT issues resolved)
+Phase: 33 of 33 (Unified Search Category Selection)
+Plan: 0 of 1 (planned)
+Status: Ready to Execute
+Last activity: 2026-01-19 — Phase 33 계획 완료
 
-Progress: ████████████████████████████████ 100% (32/32 phases complete)
+Progress: ████████████████████████████████ 97% (32/33 phases complete)
 
-**Milestone Complete!**
+**Next Phase:** Phase 33 - 통합 검색 카테고리별 선택
 
 ## Performance Metrics
 
@@ -155,6 +155,7 @@ Progress: ███████████████████████�
 - Phase 30 added: Selca Infinite Scroll (selca.kastden.org 무한 스크롤 페이지네이션 구현) ✓
 - Phase 31 added: External Search Pagination (heye, kgirls, kgirls-issue 외부 검색 페이지네이션) ✓
 - Phase 32 added: Namuwiki Fallback Search (selca에 없는 아이돌 나무위키 폴백 검색) ✓
+- Phase 33 added: Unified Search Category Selection (통합 검색 카테고리별 선택 기능)
 
 ### Deferred Issues
 
@@ -176,7 +177,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-19
-Stopped at: Phase 32-01-FIX completed (UAT-001, UAT-002 해결)
+Stopped at: Phase 33 추가됨
 Resume file: None
 
-**Next recommended action:** 마일스톤 완료 (`/gsd:complete-milestone`)
+**Next recommended action:** Phase 33 실행 (`/gsd:execute-plan .planning/phases/33-unified-search-category-selection/33-01-PLAN.md`)

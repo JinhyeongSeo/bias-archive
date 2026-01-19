@@ -1923,6 +1923,46 @@ export function UnifiedSearch({
     setSelectedUrls(new Set());
   };
 
+  // Platform-specific selection helpers
+  const getSelectableByPlatform = (platform: Platform) => {
+    return selectableResults.filter((r) => r.platform === platform);
+  };
+
+  const getSelectedCountByPlatform = (platform: Platform) => {
+    return selectableResults.filter(
+      (r) => r.platform === platform && selectedUrls.has(r.url)
+    ).length;
+  };
+
+  const selectByPlatform = (platform: Platform) => {
+    const platformResults = getSelectableByPlatform(platform);
+    setSelectedUrls((prev) => {
+      const next = new Set(prev);
+      platformResults.forEach((r) => next.add(r.url));
+      return next;
+    });
+  };
+
+  const deselectByPlatform = (platform: Platform) => {
+    const platformResults = getSelectableByPlatform(platform);
+    setSelectedUrls((prev) => {
+      const next = new Set(prev);
+      platformResults.forEach((r) => next.delete(r.url));
+      return next;
+    });
+  };
+
+  const togglePlatformSelection = (platform: Platform) => {
+    const selectable = getSelectableByPlatform(platform);
+    const selectedInPlatform = getSelectedCountByPlatform(platform);
+
+    if (selectedInPlatform === selectable.length && selectable.length > 0) {
+      deselectByPlatform(platform);
+    } else {
+      selectByPlatform(platform);
+    }
+  };
+
   // Save functions
   const handleSaveCachedResult = async (
     platform: Platform,
@@ -2596,6 +2636,19 @@ export function UnifiedSearch({
                         {selectedCount > 0 && (
                           <span className="text-xs sm:text-sm text-primary font-medium">
                             {selectedCount}개 선택
+                            {(() => {
+                              const platformsWithSelection = PLATFORMS.filter(
+                                (p) => enabledPlatforms.has(p.id) && getSelectedCountByPlatform(p.id) > 0
+                              );
+                              if (platformsWithSelection.length > 1) {
+                                return (
+                                  <span className="text-zinc-400 dark:text-zinc-500 font-normal ml-1">
+                                    ({platformsWithSelection.length}개 플랫폼)
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
                           </span>
                         )}
                         <motion.button
@@ -2682,6 +2735,39 @@ export function UnifiedSearch({
                                   </span>
                                 )}
                               </div>
+
+                              {/* Platform Selection Button */}
+                              {(() => {
+                                const selectable = getSelectableByPlatform(platformConfig.id);
+                                const selectedInPlatform = getSelectedCountByPlatform(platformConfig.id);
+                                if (selectable.length === 0) return null;
+
+                                const isAllSelected = selectedInPlatform === selectable.length;
+
+                                return (
+                                  <div className="flex items-center gap-1.5">
+                                    {selectedInPlatform > 0 && (
+                                      <span className="text-xs text-primary">
+                                        {selectedInPlatform}개
+                                      </span>
+                                    )}
+                                    <motion.button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        togglePlatformSelection(platformConfig.id);
+                                      }}
+                                      className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                                        isAllSelected
+                                          ? 'bg-primary/10 text-primary'
+                                          : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                                      }`}
+                                      {...pressScale}
+                                    >
+                                      {isAllSelected ? '해제' : '선택'}
+                                    </motion.button>
+                                  </div>
+                                );
+                              })()}
                             </div>
 
                             {/* Platform Error */}

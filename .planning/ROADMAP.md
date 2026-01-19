@@ -51,6 +51,11 @@ None
 - [x] **Phase 29: Selca Refactoring** - selca 관련 코드 리팩토링 (타입 통합, 중복 제거) ✓
 - [x] **Phase 30: Selca Infinite Scroll** - selca.kastden.org 무한 스크롤 페이지네이션 구현 ✓
 - [x] **Phase 31: External Search Pagination** - heye, kgirls, kgirls-issue 외부 검색 페이지네이션 (캐시 20개 제한 해결) ✓
+- [ ] **Phase 33: Unified Search Category Selection** - 통합 검색에서 카테고리별 선택 기능 추가
+
+Plans:
+
+- [ ] 33-01: 플랫폼별 선택 함수 및 UI 추가
 
 ## Phase Details
 
@@ -638,6 +643,26 @@ Plans:
 **Details:**
 selca → namuwiki 폴백 검색 구현, 출처 배지 UI 추가
 
+### Phase 33: Unified Search Category Selection
+
+**Goal**: 통합 검색에서 전체 선택 외에도 카테고리(플랫폼)별 선택 기능 추가
+**Depends on**: Phase 32
+**Research**: Unlikely (UI 개선)
+**Plans**: TBD
+
+**기능 설명:**
+
+- 현재는 "전체 선택/해제"만 가능
+- 카테고리(YouTube, Twitter, heye, kgirls, selca 등)별로 일괄 선택/해제 버튼 추가
+- 플랫폼별로 검색 결과를 그룹화하여 선택 관리 용이하게
+
+Plans:
+
+- [ ] TBD (run /gsd:plan-phase 33 to break down)
+
+**Details:**
+[To be added during planning]
+
 ## Progress
 
 **Execution Order:**
@@ -677,3 +702,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 30. Selca Infinite Scroll | - | 1/1 | Complete | 2026-01-16 |
 | 31. External Search Pagination | - | 1/1 | Complete | 2026-01-16 |
 | 32. Namuwiki Fallback Search | - | 1/1 | Complete | 2026-01-19 |
+| 33. Unified Search Category Selection | - | 0/0 | Not Started | - |
