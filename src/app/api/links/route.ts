@@ -4,6 +4,7 @@ import type { LinkInsert, MediaData, LinkMediaInsert } from "@/lib/links";
 import { getBiases } from "@/lib/biases";
 import { extractAutoTags, combineTextForTagExtraction } from "@/lib/autoTag";
 import { createClient } from "@/lib/supabase-server";
+import { saveToArchive } from "@/lib/archive";
 
 /**
  * GET /api/links
@@ -219,6 +220,28 @@ export async function POST(request: NextRequest) {
           console.error(`Error linking tag "${tagName}":`, error);
         }
       }
+    }
+
+    // Non-blocking archive trigger (if credentials configured)
+    if (process.env.ARCHIVE_ORG_ACCESS_KEY && process.env.ARCHIVE_ORG_SECRET_KEY) {
+      saveToArchive(url)
+        .then(async (result) => {
+          if (result.status === 'success' || result.status === 'pending') {
+            const archiveSupabase = await createClient();
+            await archiveSupabase
+              .from('links')
+              .update({
+                archive_status: result.status === 'success' ? 'archived' : 'pending',
+                archive_job_id: result.job_id || null,
+                archive_url: result.archive_url || null,
+                archived_at: result.status === 'success' ? new Date().toISOString() : null,
+              })
+              .eq('id', link.id);
+          }
+        })
+        .catch((err) => {
+          console.error('Auto-archive error (non-blocking):', err);
+        });
     }
 
     // Return link with tags and media
