@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   // Check for API token
   const apiToken = process.env.APIFY_API_TOKEN
   if (!apiToken) {
-    return NextResponse.json({ notConfigured: true })
+    return NextResponse.json({ notConfigured: true, results: [], hasMore: false })
   }
 
   if (!query) {

@@ -385,7 +385,7 @@ export function UnifiedSearch({
     width: 0,
   });
   const [enabledPlatforms, setEnabledPlatforms] = useState<Set<Platform>>(
-    new Set(["youtube", "twitter", "heye", "kgirls", "kgirls-issue", "selca"])
+    new Set(["youtube", "twitter", "heye", "kgirls", "kgirls-issue", "selca", "instagram"])
   );
 
   const [platformResults, setPlatformResults] = useState<
@@ -1070,14 +1070,17 @@ export function UnifiedSearch({
 
       const data = await response.json();
 
+      // Check notConfigured first (even on 200 OK response)
+      if (data.notConfigured) {
+        throw new Error("Instagram 검색이 설정되지 않았습니다");
+      }
+
       if (!response.ok) {
-        if (data.notConfigured) {
-          throw new Error("Instagram 검색이 설정되지 않았습니다");
-        }
         throw new Error(data.error || "Instagram 검색 실패");
       }
 
-      const results = (data.results as InstagramResult[]).map((item) => ({
+      // Defensive: handle undefined results
+      const results = ((data.results || []) as InstagramResult[]).map((item) => ({
         url: item.url,
         title: item.title,
         thumbnailUrl: item.thumbnailUrl,
