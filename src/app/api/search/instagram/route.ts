@@ -1,12 +1,13 @@
 /**
  * Instagram Search API
  *
- * Uses Apify Instagram Search Scraper for hashtag/user search
+ * Uses Apify Instagram Hashtag Scraper to get posts from a hashtag
  *
  * @remarks
  * - Requires APIFY_API_TOKEN environment variable
  * - Returns { notConfigured: true } if token not set
- * - Search types: 'hashtag' (default), 'user'
+ * - Searches for posts with the given hashtag
+ * - Supports 'top' (popular) and 'recent' sorting
  * - Caching is handled client-side via Supabase (like other platforms)
  */
 
@@ -16,17 +17,19 @@ import { ApifyClient } from 'apify-client'
 // Extend max duration for Apify actor execution (Vercel Hobby: max 60s)
 export const maxDuration = 60
 
-interface ApifyInstagramResult {
-  type: string
+interface ApifyHashtagPost {
   id: string
+  shortCode: string
   url: string
-  name?: string
-  username?: string
-  profilePicUrl?: string
-  biography?: string
-  followersCount?: number
-  followsCount?: number
-  postsCount?: number
+  caption?: string
+  displayUrl?: string
+  videoUrl?: string
+  ownerUsername?: string
+  ownerFullName?: string
+  timestamp?: string
+  likesCount?: number
+  commentsCount?: number
+  type?: string  // 'Image', 'Video', 'Sidecar'
 }
 
 interface InstagramSearchResult {
@@ -39,7 +42,7 @@ interface InstagramSearchResult {
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const query = searchParams.get('q')
-  const searchType = searchParams.get('type') || 'hashtag' // 'user' | 'hashtag'
+  const sort = searchParams.get('sort') || 'top' // 'top' (인기순) | 'recent' (최신순)
   const limit = parseInt(searchParams.get('limit') || '20', 10)
 
   // Check for API token
@@ -55,17 +58,20 @@ export async function GET(request: NextRequest) {
     )
   }
 
+  // Remove # if present
+  const hashtag = query.replace(/^#/, '')
+
   try {
-    console.log(`[Instagram Search] Calling Apify for: ${query}`)
+    console.log(`[Instagram Search] Calling Apify Hashtag Scraper for: #${hashtag} (sort: ${sort})`)
     const client = new ApifyClient({ token: apiToken })
 
-    // Run Instagram Search Scraper actor
-    // Actor ID: apify/instagram-search-scraper
-    const run = await client.actor('apify/instagram-search-scraper').call(
+    // Run Instagram Hashtag Scraper actor
+    // Actor ID: apify/instagram-hashtag-scraper
+    const run = await client.actor('apify/instagram-hashtag-scraper').call(
       {
-        search: query,
-        searchType: searchType as 'user' | 'hashtag',
+        hashtags: [hashtag],
         resultsLimit: limit,
+        resultsType: sort === 'recent' ? 'recent' : 'top', // 'top' or 'recent'
       },
       {
         timeout: 60, // 60 seconds timeout
@@ -76,23 +82,16 @@ export async function GET(request: NextRequest) {
     const { items } = await client.dataset(run.defaultDatasetId).listItems()
 
     // Transform results to unified format
-    const results: InstagramSearchResult[] = (items as unknown as ApifyInstagramResult[]).map((item) => {
-      // For user search results
-      if (item.type === 'user' || item.username) {
-        return {
-          url: item.url || `https://www.instagram.com/${item.username}/`,
-          title: item.name || item.username || query,
-          thumbnailUrl: item.profilePicUrl || null,
-          author: item.username || query,
-        }
-      }
+    const results: InstagramSearchResult[] = (items as unknown as ApifyHashtagPost[]).map((item) => {
+      // Truncate caption for title (first 50 chars)
+      const caption = item.caption || ''
+      const title = caption.length > 50 ? caption.substring(0, 50) + '...' : caption || `#${hashtag} 게시물`
 
-      // For hashtag search results
       return {
-        url: item.url || `https://www.instagram.com/explore/tags/${query}/`,
-        title: item.name || `#${query}`,
-        thumbnailUrl: null,
-        author: `#${query}`,
+        url: item.url || `https://www.instagram.com/p/${item.shortCode}/`,
+        title,
+        thumbnailUrl: item.displayUrl || null,
+        author: item.ownerUsername || hashtag,
       }
     })
 
