@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ApifyClient } from 'apify-client'
 import { decodeHtmlEntities } from '@/lib/utils/decodeHtmlEntities'
+import type { ParsedMedia } from '@/lib/parsers'
 
 // Extend max duration for Apify actor execution (Vercel Hobby: max 60s)
 export const maxDuration = 60
@@ -42,17 +43,12 @@ interface ApifyHashtagPost {
   childPosts?: ApifyChildPost[]  // Carousel/Sidecar posts have child images
 }
 
-interface MediaItem {
-  type: 'image' | 'video'
-  url: string
-}
-
 interface InstagramSearchResult {
   url: string
   title: string
   thumbnailUrl: string | null
   author: string
-  media?: MediaItem[]  // All images/videos for carousel support
+  media: ParsedMedia[]  // All images/videos for carousel support (empty array if none)
 }
 
 export async function GET(request: NextRequest) {
@@ -104,7 +100,7 @@ export async function GET(request: NextRequest) {
       const title = caption.length > 50 ? caption.substring(0, 50) + '...' : caption || `#${hashtag} 게시물`
 
       // Build media array for viewer support
-      const media: MediaItem[] = []
+      const media: ParsedMedia[] = []
 
       // For Sidecar (carousel) posts, use childPosts if available
       if (item.type === 'Sidecar' && item.childPosts && item.childPosts.length > 0) {
@@ -131,7 +127,7 @@ export async function GET(request: NextRequest) {
         title,
         thumbnailUrl: item.displayUrl ? decodeHtmlEntities(item.displayUrl) : null,
         author: decodeHtmlEntities(item.ownerUsername || hashtag),
-        media: media.length > 0 ? media : undefined,
+        media,  // Always return array (empty if no media)
       }
     })
 

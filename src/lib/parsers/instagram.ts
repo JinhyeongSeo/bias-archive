@@ -3,7 +3,7 @@
  * Extracts metadata from Instagram post/reel URLs via HTML meta tag parsing
  */
 
-import type { VideoMetadata } from './index'
+import type { VideoMetadata, ParsedMedia } from './index'
 import { decodeHtmlEntities } from '@/lib/utils/decodeHtmlEntities'
 
 /**
@@ -153,8 +153,8 @@ export async function parseInstagram(url: string): Promise<VideoMetadata> {
       platform: 'instagram',
       originalDate: null,
       authorName,
-      // Include thumbnailUrl as media for viewer support
-      media: thumbnailUrl ? [{ type: 'image', url: thumbnailUrl }] : undefined,
+      // Include thumbnailUrl as media for viewer support (empty array if no media)
+      media: thumbnailUrl ? [{ type: 'image', url: thumbnailUrl } as ParsedMedia] : [],
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
@@ -183,6 +183,7 @@ export async function parseInstagram(url: string): Promise<VideoMetadata> {
       platform: 'instagram',
       originalDate: null,
       authorName: fallbackAuthor,
+      media: [],
     }
   } finally {
     clearTimeout(timeoutId)
