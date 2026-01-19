@@ -9,7 +9,7 @@ import type { Platform } from '@/lib/metadata'
 import { TagEditor } from './TagEditor'
 import { ArchiveStatus, type ArchiveStatusType } from './ArchiveStatus'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
-import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl } from '@/lib/proxy'
+import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl, getWaybackFallbackUrl } from '@/lib/proxy'
 import { quickSpring } from '@/lib/animations'
 
 type LinkWithTags = Link & { tags: Tag[] }
@@ -88,7 +88,35 @@ export function LinkCard({
     (link.archive_status as ArchiveStatusType) || null
   )
   const [archiveUrl, setArchiveUrl] = useState<string | null>(link.archive_url || null)
+  const [useFallbackImage, setUseFallbackImage] = useState(false)
+  const [imageError, setImageError] = useState(false)
   const { getTagDisplayName } = useNameLanguage()
+
+  // Get thumbnail URL with fallback support
+  const getThumbnailSrc = useCallback(() => {
+    if (!link.thumbnail_url) return null
+
+    // If original failed and we have a Wayback fallback
+    if (useFallbackImage && archiveUrl) {
+      return getWaybackFallbackUrl(link.thumbnail_url, archiveUrl)
+    }
+
+    // Return proxied URL
+    if (isVideoUrl(link.thumbnail_url)) {
+      return getProxiedVideoUrl(link.thumbnail_url)
+    }
+    return getProxiedImageUrl(link.thumbnail_url)
+  }, [link.thumbnail_url, useFallbackImage, archiveUrl])
+
+  const handleImageError = useCallback(() => {
+    if (!useFallbackImage && archiveUrl) {
+      // Try Wayback fallback
+      setUseFallbackImage(true)
+    } else {
+      // Both primary and fallback failed
+      setImageError(true)
+    }
+  }, [useFallbackImage, archiveUrl])
 
   const platform = (link.platform || 'other') as Platform
 
@@ -281,21 +309,23 @@ export function LinkCard({
           className={`relative w-40 sm:w-48 flex-shrink-0 bg-muted dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}
           onClick={handleThumbnailClick}
         >
-          {link.thumbnail_url ? (
+          {link.thumbnail_url && !imageError ? (
             isVideoUrl(link.thumbnail_url) ? (
               <video
-                src={getProxiedVideoUrl(link.thumbnail_url!)}
+                src={getThumbnailSrc() || getProxiedVideoUrl(link.thumbnail_url)}
                 className={`absolute inset-0 w-full h-full object-cover ${useTopCrop ? 'object-top' : ''}`}
                 muted
                 playsInline
                 preload="metadata"
+                onError={handleImageError}
               />
             ) : (
               <Image
-                src={getProxiedImageUrl(link.thumbnail_url)}
+                src={getThumbnailSrc() || getProxiedImageUrl(link.thumbnail_url)}
                 alt={link.title || 'Thumbnail'}
                 fill
                 className={`object-cover ${useTopCrop ? 'object-top' : ''}`}
+                onError={handleImageError}
               />
             )
           ) : (
@@ -637,23 +667,25 @@ export function LinkCard({
         className={`relative aspect-video bg-muted dark:bg-zinc-700 ${supportsViewer ? 'cursor-pointer' : ''}`}
         onClick={handleThumbnailClick}
       >
-        {link.thumbnail_url ? (
+        {link.thumbnail_url && !imageError ? (
           isVideoUrl(link.thumbnail_url) ? (
             <video
-              src={getProxiedVideoUrl(link.thumbnail_url)}
+              src={getThumbnailSrc() || getProxiedVideoUrl(link.thumbnail_url)}
               className={`absolute inset-0 w-full h-full object-cover ${useTopCrop ? 'object-top' : ''}`}
               muted
               playsInline
               preload="metadata"
+              onError={handleImageError}
             />
           ) : (
             <Image
-              src={getProxiedImageUrl(link.thumbnail_url)}
+              src={getThumbnailSrc() || getProxiedImageUrl(link.thumbnail_url)}
               alt={link.title || 'Thumbnail'}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className={`object-cover ${useTopCrop ? 'object-top' : ''}`}
               priority={priority}
+              onError={handleImageError}
             />
           )
         ) : (

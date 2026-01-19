@@ -79,3 +79,29 @@ export function getProxiedVideoUrl(url: string): string {
   // Cloudflare Worker format: https://worker.workers.dev/?url={encodedUrl}
   return `${VIDEO_PROXY_BASE_URL}/?url=${encodeURIComponent(url)}`
 }
+
+/**
+ * Get Wayback Machine fallback URL for an archived resource
+ * Returns the archive URL if available, null otherwise
+ */
+export function getWaybackFallbackUrl(originalUrl: string, archiveUrl?: string | null): string | null {
+  if (archiveUrl) {
+    return archiveUrl
+  }
+  return null
+}
+
+/**
+ * Get proxied URL with Wayback fallback
+ * Returns primary proxied URL and optional fallback URL from Wayback Machine
+ */
+export function getProxiedUrlWithFallback(
+  url: string,
+  archiveUrl?: string | null,
+  isVideo?: boolean
+): { primary: string; fallback: string | null } {
+  const primary = isVideo ? getProxiedVideoUrl(url) : getProxiedImageUrl(url)
+  const fallback = getWaybackFallbackUrl(url, archiveUrl)
+
+  return { primary, fallback }
+}
