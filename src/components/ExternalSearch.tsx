@@ -70,6 +70,7 @@ interface EnrichedResult {
   publishedAt?: string
   isSaved: boolean
   isSaving: boolean
+  media?: { type: 'image' | 'video'; url: string }[]  // Media array for Instagram carousel support
 }
 
 interface ExternalSearchProps {
@@ -397,6 +398,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
       platform: 'instagram' as Platform,
       isSaved: checkIfSaved(item.url),
       isSaving: false,
+      media: item.media,  // Preserve media array for carousel support
     }))
   }
 
@@ -510,11 +512,13 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         thumbnailUrl: result.thumbnailUrl,
         platform: result.platform,
         authorName: result.author,
+        media: result.media,  // Include pre-loaded media from search results
       }
 
-      // heye는 이미 검색 시 썸네일/미디어를 로드했으므로 metadata 재요청 스킵
+      // heye/instagram은 이미 검색 시 썸네일/미디어를 로드했으므로 metadata 재요청 스킵
+      // Instagram 캐러셀 미디어 데이터 보존을 위해 필수
       // 다른 플랫폼은 미디어 정보 등을 가져오기 위해 metadata 요청 필요
-      if (result.platform !== 'heye') {
+      if (result.platform !== 'heye' && result.platform !== 'instagram') {
         const metaResponse = await fetch('/api/metadata', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -601,10 +605,12 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
           thumbnailUrl: result.thumbnailUrl,
           platform: result.platform,
           authorName: result.author,
+          media: result.media,  // Include pre-loaded media from search results
         }
 
-        // heye는 이미 검색 시 썸네일을 로드했으므로 metadata 재요청 스킵
-        if (result.platform !== 'heye') {
+        // heye/instagram은 이미 검색 시 썸네일/미디어를 로드했으므로 metadata 재요청 스킵
+        // Instagram 캐러셀 미디어 데이터 보존을 위해 필수
+        if (result.platform !== 'heye' && result.platform !== 'instagram') {
           const metaResponse = await fetch('/api/metadata', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
