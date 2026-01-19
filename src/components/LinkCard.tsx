@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -183,6 +183,72 @@ export function LinkCard({
     onTagsChange?.(link.id, newTags)
   }
 
+  // Poll for archive status completion
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  const pollArchiveStatus = useCallback(() => {
+    // Clear any existing interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+    }
+
+    let attempts = 0
+    const maxAttempts = 30 // Max 5 minutes (10s * 30)
+
+    const checkStatus = async () => {
+      attempts++
+      try {
+        const response = await fetch(`/api/links/${link.id}/archive`, {
+          method: 'GET',
+        })
+
+        if (!response.ok) return
+
+        const data = await response.json()
+
+        if (data.status === 'archived') {
+          setArchiveStatus('archived')
+          setArchiveUrl(data.archive_url || null)
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
+        } else if (data.status === 'failed') {
+          setArchiveStatus('failed')
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
+        } else if (attempts >= maxAttempts) {
+          // Stop polling after max attempts
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
+        }
+      } catch (error) {
+        console.error('Poll archive status error:', error)
+      }
+    }
+
+    // Poll every 10 seconds
+    pollIntervalRef.current = setInterval(checkStatus, 10000)
+    // Also check immediately
+    checkStatus()
+  }, [link.id])
+
+  // Start polling if already pending on mount, cleanup on unmount
+  useEffect(() => {
+    if (archiveStatus === 'pending') {
+      pollArchiveStatus()
+    }
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleArchive = useCallback(async () => {
     setIsArchiving(true)
     try {
@@ -210,15 +276,21 @@ export function LinkCard({
       }
 
       // API returns 'status' field, not 'archive_status'
-      setArchiveStatus(data.status as ArchiveStatusType)
+      const newStatus = data.status as ArchiveStatusType
+      setArchiveStatus(newStatus)
       setArchiveUrl(data.archive_url || null)
+
+      // If pending, start polling for completion
+      if (newStatus === 'pending' && data.job_id) {
+        pollArchiveStatus()
+      }
     } catch (error) {
       console.error('Archive error:', error)
       setArchiveStatus('failed')
     } finally {
       setIsArchiving(false)
     }
-  }, [link.id, locale])
+  }, [link.id, locale, pollArchiveStatus])
 
   const handleDelete = async () => {
     if (!showConfirm) {
