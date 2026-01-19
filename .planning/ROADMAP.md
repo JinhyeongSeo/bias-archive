@@ -700,7 +700,7 @@ Plans:
 Plans:
 
 - [x] 34-01: DB 스키마 및 archive.org API 모듈 ✓
-- [ ] 34-02: 아카이브 API 라우트 및 자동 백업
+- [x] 34-02: 아카이브 API 라우트 및 자동 백업 ✓
 - [ ] 34-03: UI 표시 및 폴백 시스템
 
 **Details:**
@@ -746,4 +746,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 31. External Search Pagination | - | 1/1 | Complete | 2026-01-16 |
 | 32. Namuwiki Fallback Search | - | 1/1 | Complete | 2026-01-19 |
 | 33. Unified Search Category Selection | - | 1/1 | Complete | 2026-01-19 |
-| 34. Internet Archive Backup | - | 1/3 | In Progress | - |
+| 34. Internet Archive Backup | - | 2/3 | In Progress | - |
