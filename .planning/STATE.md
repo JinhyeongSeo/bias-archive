@@ -5,19 +5,19 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 35 - Instagram 카테고리 추가 및 검색 기능
+**Current focus:** Phase 36 - 검색/파서 코드 리팩토링 및 버그 수정
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 35 of 35 (Instagram Search)
-Plan: 1 of 1 in current phase
-Status: Phase complete
-Last activity: 2026-01-19 — Completed 35-01-PLAN.md
+Phase: 36 of 36 (Search & Parser Refactoring)
+Plan: 0 of 2 in current phase
+Status: Planned
+Last activity: 2026-01-19 — Created 36-01-PLAN.md, 36-02-PLAN.md
 
-Progress: ██████████████████████████████████████ 100% (35 of 35 phases complete)
+Progress: █████████████████████████████████████░ 97% (35 of 36 phases complete)
 
-**All phases complete.** Consider new feature requests or maintenance tasks.
+**Next Plan:** 36-01 - 중복 코드 제거 및 타입 통일
 
 ## Performance Metrics
 
@@ -164,6 +164,7 @@ Progress: ███████████████████████�
 - Phase 33 added: Unified Search Category Selection (통합 검색 카테고리별 선택 기능)
 - Phase 34 added: Internet Archive Backup (링크 백업 및 폴백 시스템)
 - Phase 35 added: Instagram Search (Instagram 카테고리 추가 및 검색 기능) ✓
+- Phase 36 added: Search & Parser Refactoring (Instagram 추가 후 코드 리팩토링)
 
 ### Deferred Issues
 
@@ -188,7 +189,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-19
-Stopped at: Completed Phase 35 (Instagram Search)
+Stopped at: Planned Phase 36 (2 plans created)
 Resume file: None
 
-**Next recommended action:** All 35 phases complete. Consider new feature requests or maintenance tasks.
+**Next recommended action:** Run `/gsd:execute-phase 36` to execute the refactoring plans.

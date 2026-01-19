@@ -53,7 +53,8 @@ None
 - [x] **Phase 31: External Search Pagination** - heye, kgirls, kgirls-issue 외부 검색 페이지네이션 (캐시 20개 제한 해결) ✓
 - [x] **Phase 33: Unified Search Category Selection** - 통합 검색에서 카테고리별 선택 기능 추가 ✓
 - [x] **Phase 34: Internet Archive Backup** - 링크 백업 및 폴백 시스템 (archive.org 연동) ✓
-- [ ] **Phase 35: Instagram Search** - Instagram 카테고리 추가 및 검색 기능
+- [x] **Phase 35: Instagram Search** - Instagram 카테고리 추가 및 검색 기능 ✓
+- [ ] **Phase 36: Search & Parser Refactoring** - 검색/파서 코드 리팩토링 및 버그 수정
 
 Plans:
 
@@ -731,6 +732,61 @@ Plans:
 **Details:**
 Phase 35 완료 - Instagram URL 파서 및 Apify 기반 검색 기능 구현 완료 (2026-01-19)
 
+### Phase 36: Search & Parser Refactoring
+
+**Goal**: Instagram 추가 후 꼬인 코드 리팩토링 - 중복 제거, 타입 통일, 성능 최적화, 검색 API 버그 수정
+**Depends on**: Phase 35
+**Research**: Unlikely (내부 코드 정리)
+**Plans**: TBD
+
+**발견된 문제점:**
+
+1. **중복 코드**:
+   - `decodeHtmlEntities` 함수가 instagram.ts와 instagram/route.ts에 중복
+   - 각 버전의 기능이 다름 (검색 API 버전이 더 포괄적)
+
+2. **미디어 타입 불일치**:
+   - 파서: `media?: { type: 'image' | 'video'; url: string }[]`
+   - 검색 API: 다른 구조 사용
+   - undefined vs 빈 배열 반환 불일치
+
+3. **성능 문제**:
+   - heye/kgirls N+1 썸네일 로딩 (결과당 추가 HTTP 요청)
+   - Selca `searchMembers` deprecated 표시만 되어있고 실제 사용됨
+
+4. **타임아웃 불일치**:
+   - Instagram 파서: 8초
+   - YouTube/Twitter 파서: 5초
+   - Selca 파서: 30초
+   - 검색 API: 시간 제한 없음
+
+5. **에러 처리 불일치**:
+   - 검색 API별로 다른 에러 응답 형식
+
+6. **Instagram 검색 API 버그**:
+   - Apify Actor API 파라미터 검증 필요
+   - 페이지네이션 미지원 (무한 스크롤 없음)
+   - ReelsViewer와의 데이터 연동 문제
+
+**기능 설명:**
+
+- 공유 유틸리티 생성 (`src/lib/utils/decodeHtmlEntities.ts`)
+- 미디어 타입 표준화 (`ParsedMedia[]` 통일)
+- 타임아웃 설정 중앙화
+- N+1 썸네일 로딩 최적화
+- deprecated 코드 정리 또는 완전 제거
+- 에러 처리 표준화
+- Instagram 검색 API 문서 확인 및 수정
+- ReelsViewer 데이터 연동 버그 수정
+
+Plans:
+
+- [ ] 36-01: 중복 코드 제거 및 타입 통일 (decodeHtmlEntities, ParsedMedia)
+- [ ] 36-02: Instagram 검색 API 버그 수정 및 검증
+
+**Details:**
+[To be added after execution]
+
 ## Progress
 
 **Execution Order:**
@@ -773,3 +829,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 33. Unified Search Category Selection | - | 1/1 | Complete | 2026-01-19 |
 | 34. Internet Archive Backup | - | 3/3 | Complete | 2026-01-19 |
 | 35. Instagram Search | - | 1/1 | Complete | 2026-01-19 |
+| 36. Search & Parser Refactoring | - | 0/2 | Planned | - |
