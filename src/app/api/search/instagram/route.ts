@@ -78,19 +78,29 @@ export async function GET(request: NextRequest) {
 
     // Run Instagram Hashtag Scraper actor
     // Actor ID: apify/instagram-hashtag-scraper
+    // Input: hashtags (array), resultsLimit (number per hashtag)
+    // Note: resultsType parameter removed - not part of official input schema
     const run = await client.actor('apify/instagram-hashtag-scraper').call(
       {
         hashtags: [hashtag],
         resultsLimit: limit,
-        resultsType: 'posts', // 'posts', 'reels', or 'stories'
       },
       {
-        timeout: 60, // 60 seconds timeout
+        timeoutSecs: 60, // 60 seconds timeout (Apify uses timeoutSecs, not timeout)
       }
     )
 
     // Get results from the dataset
     const { items } = await client.dataset(run.defaultDatasetId).listItems()
+
+    // Handle empty results from Apify
+    if (!items || items.length === 0) {
+      console.log(`[Instagram Search] No results found for: #${hashtag}`)
+      return NextResponse.json({
+        results: [],
+        hasMore: false,
+      })
+    }
 
     // Transform results to unified format
     const results: InstagramSearchResult[] = (items as unknown as ApifyHashtagPost[]).map((item) => {
@@ -153,6 +163,14 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(
           { error: 'Instagram API 설정에 문제가 있습니다.' },
           { status: 500 }
+        )
+      }
+
+      // Handle rate limit errors
+      if (error.message.includes('rate') || error.message.includes('limit') || error.message.includes('429')) {
+        return NextResponse.json(
+          { error: 'Instagram API 요청 한도에 도달했습니다. 잠시 후 다시 시도해주세요.' },
+          { status: 429 }
         )
       }
     }
