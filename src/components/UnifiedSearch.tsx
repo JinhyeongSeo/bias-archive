@@ -1059,7 +1059,7 @@ export function UnifiedSearch({
     const params = new URLSearchParams({
       q: searchQuery,
       type: searchType,
-      limit: String(API_FETCH_COUNT),
+      limit: '10', // Instagram Apify scraper is slow, use lower limit to avoid timeout
     });
 
     const controller = new AbortController();
