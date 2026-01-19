@@ -6,16 +6,16 @@ import {
   getWaybackUrl,
 } from '@/lib/archive';
 
-// Process limit per call (rate limit: 15/min, so process 3 items with ~5 URLs each)
-const ITEMS_PER_BATCH = 3;
-const DELAY_BETWEEN_REQUESTS = 4500; // 4.5 seconds
+// Process limit per call - increased since we only archive page URLs now (1 API call per link)
+const ITEMS_PER_BATCH = 10;
+const DELAY_BETWEEN_REQUESTS = 4500; // 4.5 seconds between links
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Archive a media URL and return its Wayback URL
+ * Archive a page URL and return its Wayback URL
  */
-async function archiveMediaUrl(url: string): Promise<string | null> {
+async function archivePageUrl(url: string): Promise<string | null> {
   if (!url) return null;
 
   try {
@@ -32,7 +32,7 @@ async function archiveMediaUrl(url: string): Promise<string | null> {
       return getWaybackUrl(url);
     }
   } catch (error) {
-    console.error(`Error archiving media URL ${url}:`, error);
+    console.error(`Error archiving page URL ${url}:`, error);
   }
 
   return null;
@@ -41,7 +41,7 @@ async function archiveMediaUrl(url: string): Promise<string | null> {
 /**
  * POST /api/archive/process
  * Process queued links for archiving (called by cron or manually)
- * Processes a limited batch to stay within rate limits
+ * Simplified: archives original page URL only (not individual media files)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -55,10 +55,10 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // Get queued links (oldest first)
+    // Get queued links (oldest first) - no need to fetch link_media anymore
     const { data: queuedLinks, error: fetchError } = await supabase
       .from('links')
-      .select('*, link_media(*)')
+      .select('*')
       .eq('archive_status', 'queued')
       .order('created_at', { ascending: true })
       .limit(ITEMS_PER_BATCH);
@@ -89,40 +89,24 @@ export async function POST(request: NextRequest) {
           .update({ archive_status: 'pending' })
           .eq('id', link.id);
 
-        // Archive thumbnail URL
-        let archivedThumbnailUrl: string | null = null;
-        if (link.thumbnail_url) {
-          archivedThumbnailUrl = await archiveMediaUrl(link.thumbnail_url);
-          await delay(DELAY_BETWEEN_REQUESTS);
-        }
-
-        // Archive link_media URLs
-        const mediaItems = link.link_media || [];
-        for (const media of mediaItems) {
-          if (media.media_url && !media.archived_url) {
-            const archivedUrl = await archiveMediaUrl(media.media_url);
-            if (archivedUrl) {
-              await supabase
-                .from('link_media')
-                .update({ archived_url: archivedUrl })
-                .eq('id', media.id);
-            }
-            await delay(DELAY_BETWEEN_REQUESTS);
-          }
-        }
+        // Archive the original page URL (single API call per link)
+        const archivedUrl = await archivePageUrl(link.url);
 
         // Update link with archive status
         await supabase
           .from('links')
           .update({
-            archive_status: 'archived',
-            archived_thumbnail_url: archivedThumbnailUrl,
-            archived_at: new Date().toISOString(),
+            archive_status: archivedUrl ? 'archived' : 'failed',
+            archived_url: archivedUrl,
+            archived_at: archivedUrl ? new Date().toISOString() : null,
           })
           .eq('id', link.id);
 
         processedCount++;
-        results.push({ id: link.id, status: 'archived' });
+        results.push({ id: link.id, status: archivedUrl ? 'archived' : 'failed' });
+
+        // Rate limit between links
+        await delay(DELAY_BETWEEN_REQUESTS);
       } catch (error) {
         console.error(`Error processing link ${link.id}:`, error);
 

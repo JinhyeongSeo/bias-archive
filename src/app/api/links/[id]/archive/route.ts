@@ -10,42 +10,10 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-// Delay helper for rate limiting
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * Archive a media URL and return its Wayback URL
- * Checks if already archived first, then saves if not
- */
-async function archiveMediaUrl(url: string): Promise<string | null> {
-  if (!url) return null;
-
-  try {
-    // First check if already archived
-    const availability = await checkWaybackAvailability(url);
-    if (availability.available && availability.url) {
-      return availability.url;
-    }
-
-    // Save to archive
-    const result = await saveToArchive(url);
-    if (result.status === 'success' && result.archive_url) {
-      return result.archive_url;
-    }
-    if (result.status === 'pending') {
-      // Return the expected URL format even if pending
-      return getWaybackUrl(url);
-    }
-  } catch (error) {
-    console.error(`Error archiving media URL ${url}:`, error);
-  }
-
-  return null;
-}
-
 /**
  * POST /api/links/[id]/archive
- * Trigger archive of link media (thumbnail + link_media) to Internet Archive
+ * Archive the original page URL to Internet Archive
+ * Simplified: archives the page URL only (not individual media files)
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
@@ -78,10 +46,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Get link with media and verify ownership
+    // Get link and verify ownership
     const { data: link, error: fetchError } = await supabase
       .from('links')
-      .select('*, link_media(*)')
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -100,10 +68,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // If already archived, return existing status
-    if (link.archive_status === 'archived' && link.archived_thumbnail_url) {
+    if (link.archive_status === 'archived' && link.archived_url) {
       return NextResponse.json({
         status: 'archived',
-        archived_thumbnail_url: link.archived_thumbnail_url,
+        archived_url: link.archived_url,
         archived_at: link.archived_at,
       });
     }
@@ -114,33 +82,32 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .update({ archive_status: 'pending' })
       .eq('id', id);
 
-    // Archive thumbnail URL
-    let archivedThumbnailUrl: string | null = null;
-    if (link.thumbnail_url) {
-      archivedThumbnailUrl = await archiveMediaUrl(link.thumbnail_url);
-      await delay(4500); // Wait 4.5 seconds between requests (15/min limit)
-    }
-
-    // Archive link_media URLs
-    const mediaItems = link.link_media || [];
-    for (const media of mediaItems) {
-      if (media.media_url && !media.archived_url) {
-        const archivedUrl = await archiveMediaUrl(media.media_url);
-        if (archivedUrl) {
-          await supabase
-            .from('link_media')
-            .update({ archived_url: archivedUrl })
-            .eq('id', media.id);
+    // Archive the original page URL (not individual media)
+    let archivedUrl: string | null = null;
+    try {
+      // First check if already archived
+      const availability = await checkWaybackAvailability(link.url);
+      if (availability.available && availability.url) {
+        archivedUrl = availability.url;
+      } else {
+        // Save to archive
+        const result = await saveToArchive(link.url);
+        if (result.status === 'success' && result.archive_url) {
+          archivedUrl = result.archive_url;
+        } else if (result.status === 'pending') {
+          // Return the expected URL format even if pending
+          archivedUrl = getWaybackUrl(link.url);
         }
-        await delay(4500); // Rate limit
       }
+    } catch (error) {
+      console.error(`Error archiving page URL ${link.url}:`, error);
     }
 
     // Update link with archive status
     const updateData = {
-      archive_status: 'archived',
-      archived_thumbnail_url: archivedThumbnailUrl,
-      archived_at: new Date().toISOString(),
+      archive_status: archivedUrl ? 'archived' : 'failed',
+      archived_url: archivedUrl,
+      archived_at: archivedUrl ? new Date().toISOString() : null,
     };
 
     const { error: updateError } = await supabase
@@ -153,10 +120,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({
-      status: 'archived',
-      archived_thumbnail_url: archivedThumbnailUrl,
+      status: updateData.archive_status,
+      archived_url: archivedUrl,
       archived_at: updateData.archived_at,
-      media_count: mediaItems.length,
     });
   } catch (error) {
     console.error('Error archiving link:', error);
@@ -194,10 +160,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Get link with media and verify ownership
+    // Get link and verify ownership
     const { data: link, error: fetchError } = await supabase
       .from('links')
-      .select('*, link_media(*)')
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -215,16 +181,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Return current status with media archive info
-    const mediaItems = link.link_media || [];
-    const archivedMediaCount = mediaItems.filter((m: { archived_url?: string | null }) => m.archived_url).length;
-
+    // Return current status
     return NextResponse.json({
       status: link.archive_status || null,
-      archived_thumbnail_url: link.archived_thumbnail_url,
+      archived_url: link.archived_url,
       archived_at: link.archived_at,
-      media_count: mediaItems.length,
-      archived_media_count: archivedMediaCount,
     });
   } catch (error) {
     console.error('Error checking archive status:', error);
