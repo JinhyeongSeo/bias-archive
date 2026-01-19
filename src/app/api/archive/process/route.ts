@@ -9,6 +9,7 @@ import {
 // Process limit per call - increased since we only archive page URLs now (1 API call per link)
 const ITEMS_PER_BATCH = 10;
 const DELAY_BETWEEN_REQUESTS = 4500; // 4.5 seconds between links
+const STALE_PENDING_MINUTES = 5; // Reset pending items older than 5 minutes
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -54,6 +55,19 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
+
+    // Reset stale pending items (older than 5 minutes) back to queued
+    const staleThreshold = new Date(Date.now() - STALE_PENDING_MINUTES * 60 * 1000).toISOString();
+    const { count: resetCount } = await supabase
+      .from('links')
+      .update({ archive_status: 'queued' })
+      .eq('archive_status', 'pending')
+      .lt('updated_at', staleThreshold)
+      .select('*', { count: 'exact', head: true });
+
+    if (resetCount && resetCount > 0) {
+      console.log(`[Archive] Reset ${resetCount} stale pending items to queued`);
+    }
 
     // Get queued links (oldest first) - no need to fetch link_media anymore
     const { data: queuedLinks, error: fetchError } = await supabase
