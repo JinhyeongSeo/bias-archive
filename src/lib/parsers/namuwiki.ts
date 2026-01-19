@@ -10,10 +10,8 @@
 import { parse, HTMLElement } from 'node-html-parser'
 
 const BASE_URL = 'https://namu.wiki'
-// Googlebot User-Agent로 설정하면 나무위키가 SSR 콘텐츠를 반환함
-// (일반 브라우저 UA는 SPA 로더만 반환)
-const USER_AGENT =
-  'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+// Cloudflare Workers 프록시 URL (Vercel에서 직접 접근 시 403 차단됨)
+const PROXY_URL = 'https://video-proxy.jh4clover.workers.dev/namuwiki'
 const TIMEOUT_MS = 15000 // 15초 타임아웃 (SSR 렌더링에 시간이 더 걸릴 수 있음)
 const CACHE_TTL_MS = 10 * 60 * 1000 // 10분 캐시
 
@@ -79,18 +77,18 @@ function getText(element: HTMLElement | null): string {
 
 /**
  * 나무위키에서 HTML 페이지 가져오기
+ * Cloudflare Workers 프록시를 통해 요청 (Vercel에서 직접 접근 시 403 차단됨)
  */
 async function fetchHtmlFromNamuwiki(url: string): Promise<string> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-      },
+    // Cloudflare Workers 프록시를 통해 요청
+    const proxyUrl = `${PROXY_URL}?url=${encodeURIComponent(url)}`
+    console.log(`[Namuwiki Parser] Fetching via proxy: ${proxyUrl}`)
+
+    const response = await fetch(proxyUrl, {
       signal: controller.signal,
     })
 

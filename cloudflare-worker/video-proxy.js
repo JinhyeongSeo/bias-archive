@@ -16,13 +16,18 @@
  */
 
 // Allowed domains for video proxying (whitelist for security)
-const ALLOWED_DOMAINS = [
+const ALLOWED_VIDEO_DOMAINS = [
   'kgirls.net',
   'www.kgirls.net',
   'heye.kr',
   'www.heye.kr',
   'img1.heye.kr',
   'video.twimg.com', // Twitter videos
+]
+
+// Allowed domains for HTML proxying (namuwiki fallback)
+const ALLOWED_HTML_DOMAINS = [
+  'namu.wiki',
 ]
 
 // Maximum file size (100MB)
@@ -56,6 +61,11 @@ const worker = {
       })
     }
 
+    // Namuwiki HTML proxy endpoint
+    if (url.pathname === '/namuwiki') {
+      return handleNamuwikiProxy(request, url)
+    }
+
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
       return handleCORS()
@@ -82,7 +92,7 @@ const worker = {
 
     // Validate domain is in whitelist
     const hostname = targetUrl.hostname.replace(/^www\./, '')
-    if (!ALLOWED_DOMAINS.some(d => d === hostname || d === `www.${hostname}`)) {
+    if (!ALLOWED_VIDEO_DOMAINS.some(d => d === hostname || d === `www.${hostname}`)) {
       return new Response(`Domain not allowed: ${hostname}`, { status: 403 })
     }
 
@@ -199,4 +209,90 @@ function handleCORS() {
       'Access-Control-Max-Age': '86400',
     },
   })
+}
+
+/**
+ * Namuwiki HTML Proxy Handler
+ * Proxies requests to namu.wiki with Googlebot UA to get SSR content
+ * Bypasses Cloudflare challenge that blocks Vercel serverless functions
+ */
+async function handleNamuwikiProxy(request, url) {
+  // Handle CORS preflight
+  if (request.method === 'OPTIONS') {
+    return handleCORS()
+  }
+
+  // Only allow GET requests
+  if (request.method !== 'GET') {
+    return new Response('Method not allowed', { status: 405 })
+  }
+
+  const targetUrl = url.searchParams.get('url')
+
+  // Validate URL parameter
+  if (!targetUrl) {
+    return new Response('Missing url parameter', { status: 400 })
+  }
+
+  let parsedUrl
+  try {
+    parsedUrl = new URL(targetUrl)
+  } catch {
+    return new Response('Invalid URL', { status: 400 })
+  }
+
+  // Validate domain is namu.wiki
+  const hostname = parsedUrl.hostname.replace(/^www\./, '')
+  if (!ALLOWED_HTML_DOMAINS.includes(hostname)) {
+    return new Response(`Domain not allowed: ${hostname}`, { status: 403 })
+  }
+
+  try {
+    // Use Googlebot UA to get SSR content from namuwiki
+    const headers = new Headers()
+    headers.set('User-Agent', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)')
+    headers.set('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
+    headers.set('Accept-Language', 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7')
+
+    const response = await fetch(parsedUrl.toString(), {
+      headers,
+      redirect: 'follow',
+      cf: {
+        // Cache in Cloudflare CDN for 10 minutes
+        cacheTtl: 600,
+        cacheEverything: true,
+      },
+    })
+
+    if (!response.ok) {
+      return new Response(`Origin returned ${response.status}`, {
+        status: response.status,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+      })
+    }
+
+    const html = await response.text()
+
+    // Return HTML with CORS headers
+    return new Response(html, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Cache-Control': 'public, max-age=600', // 10 minutes
+      },
+    })
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
+    })
+  }
 }
