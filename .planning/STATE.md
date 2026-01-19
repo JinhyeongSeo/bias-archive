@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 32-01 완료 - selca에 없는 아이돌 나무위키 폴백 검색
+**Current focus:** Phase 32-01-FIX 완료 - 나무위키 폴백 검색 버그 수정
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
@@ -13,7 +13,7 @@ See: .planning/PROJECT.md (updated 2026-01-13)
 Phase: 32 of 32 (Namuwiki Fallback Search)
 Plan: 1 of 1 completed
 Status: Complete
-Last activity: 2026-01-19 — Completed 32-01-PLAN.md
+Last activity: 2026-01-19 — Completed 32-01-FIX-PLAN.md (UAT issues resolved)
 
 Progress: ████████████████████████████████ 100% (32/32 phases complete)
 
@@ -67,8 +67,8 @@ Progress: ███████████████████████�
 
 **Recent Trend:**
 
-- Last 5 plans: 29-01 (9m), 30-01 (5m), 31-01 (2m), 32-01 (4m)
-- Trend: Phase 32-01 완료! selca에 없는 아이돌 나무위키 폴백 검색 구현.
+- Last 5 plans: 30-01 (5m), 31-01 (2m), 32-01 (4m), 32-01-FIX (11m)
+- Trend: Phase 32-01-FIX 완료! UAT 이슈 해결 (나무위키 폴백 검색 + selca 배지)
 
 ## Accumulated Context
 
@@ -176,7 +176,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-19
-Stopped at: Phase 32-01 completed (selca에 없는 아이돌 나무위키 폴백 검색)
+Stopped at: Phase 32-01-FIX completed (UAT-001, UAT-002 해결)
 Resume file: None
 
-**Next recommended action:** 마일스톤 완료 또는 새 기능 추가
+**Next recommended action:** 마일스톤 완료 (`/gsd:complete-milestone`)
