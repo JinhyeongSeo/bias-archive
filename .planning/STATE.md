@@ -165,13 +165,13 @@ Progress: ███████████████████████�
 
 ### Pending Todos
 
-- [Twitter 검색 중 캐시된 결과 표시 차단 버그](.planning/todos/pending/2026-01-19-twitter-search-blocks-cached-results.md) (Area: ui)
+None.
 
 ### Completed (Recently)
 
+- [Twitter 검색 중 캐시된 결과 표시 차단 버그](.planning/todos/done/2026-01-19-twitter-search-blocks-cached-results.md) (Area: ui)
 - [Twitter 검색 결과 URL 제목 저장 버그](.planning/todos/done/2026-01-16-twitter-search-url-title-bug-v2.md) (Area: api)
 - [통합검색 더보기 버튼 자동 트리거 버그](.planning/todos/done/2026-01-19-unified-search-load-more-auto-trigger.md) (Area: ui)
-- [Fix database loading issue for links and groups](.planning/todos/done/2026-01-14-fix-db-loading-issue.md) (Area: database)
 
 ### Blockers/Concerns
 

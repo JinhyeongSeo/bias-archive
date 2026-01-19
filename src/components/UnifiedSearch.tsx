@@ -1044,8 +1044,7 @@ export function UnifiedSearch({
       nextPageToken?: string;
       nextCursor?: string;
       nextMaxTimeId?: string;
-    }>,
-    newCachedResults: Map<Platform, CachedPlatformResult>
+    }>
   ) => {
     const displayedIndex = cachedData?.displayedIndex ?? 0;
     const cachedResultsList = cachedData?.results ?? [];
@@ -1062,11 +1061,15 @@ export function UnifiedSearch({
       const hasMoreInCache =
         cachedResultsList.length > newDisplayedIndex || cachedData?.hasMore;
 
-      // "오늘 본 결과"에 이전에 표시했던 결과 저장
+      // "오늘 본 결과"에 이전에 표시했던 결과 즉시 저장
       if (alreadyDisplayed.length > 0) {
-        newCachedResults.set(platform, {
-          ...cachedData!,
-          results: alreadyDisplayed,
+        setCachedResults((prev) => {
+          const next = new Map(prev);
+          next.set(platform, {
+            ...cachedData!,
+            results: alreadyDisplayed,
+          });
+          return next;
         });
       }
 
@@ -1121,17 +1124,21 @@ export function UnifiedSearch({
       const toDisplay = combined.slice(0, RESULTS_PER_PLATFORM);
       const toSaveInCache = combined.slice(RESULTS_PER_PLATFORM);
 
-      // "오늘 본 결과"에 이전에 표시했던 결과 저장
+      // "오늘 본 결과"에 이전에 표시했던 결과 즉시 저장
       if (alreadyDisplayed.length > 0) {
-        newCachedResults.set(platform, {
-          results: alreadyDisplayed,
-          displayedIndex: alreadyDisplayed.length,
-          currentPage: cachedData?.currentPage ?? 1,
-          currentOffset: cachedData?.currentOffset ?? 0,
-          hasMore: false,
-          nextPageToken: cachedData?.nextPageToken,
-          nextCursor: cachedData?.nextCursor,
-          nextMaxTimeId: cachedData?.nextMaxTimeId,
+        setCachedResults((prev) => {
+          const next = new Map(prev);
+          next.set(platform, {
+            results: alreadyDisplayed,
+            displayedIndex: alreadyDisplayed.length,
+            currentPage: cachedData?.currentPage ?? 1,
+            currentOffset: cachedData?.currentOffset ?? 0,
+            hasMore: false,
+            nextPageToken: cachedData?.nextPageToken,
+            nextCursor: cachedData?.nextCursor,
+            nextMaxTimeId: cachedData?.nextMaxTimeId,
+          });
+          return next;
         });
       }
 
@@ -1198,7 +1205,9 @@ export function UnifiedSearch({
 
     // 캐시 확인 (서버에서 가져오기)
     const cached = await getSearchCache(query);
-    const newCachedResults = new Map<Platform, CachedPlatformResult>();
+
+    // 검색 시작 시 캐시된 결과 초기화
+    setCachedResults(new Map());
 
     // Initialize results for each enabled platform
     const initialResults = new Map<Platform, PlatformResults>();
@@ -1225,8 +1234,7 @@ export function UnifiedSearch({
         processPlatformSearch(
           "youtube",
           cachedYoutube,
-          () => searchYouTube(query, cachedYoutube?.nextPageToken),
-          newCachedResults
+          () => searchYouTube(query, cachedYoutube?.nextPageToken)
         )
       );
     }
@@ -1237,8 +1245,7 @@ export function UnifiedSearch({
         processPlatformSearch(
           "twitter",
           cachedTwitter,
-          () => searchTwitter(query, cachedTwitter?.nextCursor),
-          newCachedResults
+          () => searchTwitter(query, cachedTwitter?.nextCursor)
         )
       );
     }
@@ -1251,8 +1258,7 @@ export function UnifiedSearch({
         processPlatformSearch(
           "heye",
           cachedHeye,
-          () => searchHeye(query, startPage, startOffset),
-          newCachedResults
+          () => searchHeye(query, startPage, startOffset)
         )
       );
     }
@@ -1265,8 +1271,7 @@ export function UnifiedSearch({
         processPlatformSearch(
           "kgirls",
           cachedKgirls,
-          () => searchKgirls(query, startPage, startOffset),
-          newCachedResults
+          () => searchKgirls(query, startPage, startOffset)
         )
       );
     }
@@ -1279,8 +1284,7 @@ export function UnifiedSearch({
         processPlatformSearch(
           "kgirls-issue",
           cachedKgirlsIssue,
-          () => searchKgirlsIssue(query, startPage, startOffset),
-          newCachedResults
+          () => searchKgirlsIssue(query, startPage, startOffset)
         )
       );
     }
@@ -1292,16 +1296,13 @@ export function UnifiedSearch({
         processPlatformSearch(
           "selca",
           cachedSelca,
-          () => searchSelca(query, startPage, cachedSelca?.nextMaxTimeId),
-          newCachedResults
+          () => searchSelca(query, startPage, cachedSelca?.nextMaxTimeId)
         )
       );
     }
 
     await Promise.allSettled(searchPromises);
 
-    // 캐시된 결과 상태 설정
-    setCachedResults(newCachedResults);
     // 캐시된 결과는 기본적으로 접힌 상태
     setShowCached(new Map());
 
