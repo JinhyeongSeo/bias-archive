@@ -14,9 +14,20 @@ interface GroupWithSource {
 }
 
 /**
+ * 한글 검색어인지 확인
+ */
+function isKoreanQuery(query: string): boolean {
+  return /[가-힣]/.test(query)
+}
+
+/**
  * GET /api/kpop/groups?q=검색어
  * Search for K-pop groups by name (English or Korean)
- * Uses selca.kastden.org for real-time data, falls back to namuwiki
+ *
+ * 검색 전략:
+ * 1. 한글 검색어 → namuwiki에서 영문명 추출 → selca에서 영문명으로 재검색
+ * 2. 영문 검색어 → selca에서 직접 검색
+ * 3. selca에 없으면 namuwiki 결과 반환
  */
 export async function GET(request: NextRequest) {
   try {
@@ -32,31 +43,49 @@ export async function GET(request: NextRequest) {
 
     const trimmedQuery = query.trim()
 
-    // 1. selca.kastden.org에서 먼저 검색
-    const selcaGroups = await searchGroups(trimmedQuery)
+    // 1. 영문 검색어면 selca에서 바로 검색
+    if (!isKoreanQuery(trimmedQuery)) {
+      const selcaGroups = await searchGroups(trimmedQuery)
 
-    if (selcaGroups.length > 0) {
-      // selca 결과가 있으면 source 필드 추가하여 반환
-      const groupsWithSource: GroupWithSource[] = selcaGroups.map((group) => ({
-        ...group,
-        source: 'selca' as const,
-      }))
-      return NextResponse.json({ groups: groupsWithSource })
+      if (selcaGroups.length > 0) {
+        const groupsWithSource: GroupWithSource[] = selcaGroups.map((group) => ({
+          ...group,
+          source: 'selca' as const,
+        }))
+        return NextResponse.json({ groups: groupsWithSource })
+      }
     }
 
-    // 2. selca에 결과가 없으면 나무위키에서 폴백 검색
-    console.log(`[K-pop Groups API] Falling back to namuwiki for: ${trimmedQuery}`)
+    // 2. 한글 검색어이거나 영문 검색에서 결과 없음 → namuwiki에서 검색
+    console.log(`[K-pop Groups API] Searching namuwiki for: ${trimmedQuery}`)
 
     const namuwikiGroup = await searchGroupFromNamuwiki(trimmedQuery)
 
     if (namuwikiGroup) {
-      // 멤버 수 조회를 위해 멤버 목록 가져오기
+      // 나무위키에서 영문 그룹명과 멤버 정보 가져오기
       const membersResult = await getGroupMembersFromNamuwiki(trimmedQuery)
       const memberCount = membersResult?.members.length || 0
+      const englishName = membersResult?.groupNameEn
 
+      // 3. 영문명이 있으면 selca에서 재검색 시도
+      if (englishName) {
+        console.log(`[K-pop Groups API] Found English name: ${englishName}, searching selca...`)
+        const selcaGroups = await searchGroups(englishName)
+
+        if (selcaGroups.length > 0) {
+          // selca에서 찾음! selca 결과 반환
+          const groupsWithSource: GroupWithSource[] = selcaGroups.map((group) => ({
+            ...group,
+            source: 'selca' as const,
+          }))
+          return NextResponse.json({ groups: groupsWithSource })
+        }
+      }
+
+      // 4. selca에 없으면 namuwiki 결과 반환
       const groupWithSource: GroupWithSource = {
-        id: `namuwiki:${trimmedQuery}`, // namuwiki: 접두사로 식별
-        name: membersResult?.groupNameEn || namuwikiGroup.name_ko,
+        id: `namuwiki:${trimmedQuery}`,
+        name: englishName || namuwikiGroup.name_ko,
         name_original: namuwikiGroup.name_ko,
         memberCount,
         source: 'namuwiki',
@@ -65,7 +94,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ groups: [groupWithSource] })
     }
 
-    // 3. 둘 다 결과 없음
+    // 5. namuwiki에도 없으면 selca에서 한글로 검색 시도 (일부 그룹은 한글명 있음)
+    if (isKoreanQuery(trimmedQuery)) {
+      const selcaGroups = await searchGroups(trimmedQuery)
+
+      if (selcaGroups.length > 0) {
+        const groupsWithSource: GroupWithSource[] = selcaGroups.map((group) => ({
+          ...group,
+          source: 'selca' as const,
+        }))
+        return NextResponse.json({ groups: groupsWithSource })
+      }
+    }
+
+    // 6. 결과 없음
     return NextResponse.json({ groups: [] })
   } catch (error) {
     console.error('Error searching K-pop groups:', error)
