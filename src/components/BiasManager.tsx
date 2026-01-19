@@ -13,6 +13,7 @@ interface KpopGroup {
   name: string
   name_original: string
   memberCount: number
+  source?: 'selca' | 'namuwiki'
 }
 
 interface KpopMember {
@@ -68,7 +69,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   const [isGroupMode, setIsGroupMode] = useState(false)
   const [groupQuery, setGroupQuery] = useState('')
   const [groupResults, setGroupResults] = useState<KpopGroup[]>([])
-  const [selectedGroup, setSelectedGroup] = useState<{ id: string; name: string; nameOriginal: string; hasSelcaGroup?: boolean; selcaGroupSlug?: string } | null>(null)
+  const [selectedGroup, setSelectedGroup] = useState<{ id: string; name: string; nameOriginal: string; hasSelcaGroup?: boolean; selcaGroupSlug?: string; source?: 'selca' | 'namuwiki' } | null>(null)
   const [groupMembers, setGroupMembers] = useState<KpopMember[]>([])
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
   const [isSearching, setIsSearching] = useState(false)
@@ -498,25 +499,27 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     setIsLoadingMembers(true)
 
     try {
-      const response = await fetch(`/api/kpop/groups/${group.id}/members`)
+      const response = await fetch(`/api/kpop/groups/${encodeURIComponent(group.id)}/members`)
       if (response.ok) {
         const data = await response.json()
         setGroupMembers(data.members || [])
         // Select all members by default
         setSelectedMembers(new Set(data.members?.map((m: KpopMember) => m.id) || []))
-        // Set group with selca info from API response
+        // Set group with selca info and source from API response
         setSelectedGroup({
           id: group.id,
           name: group.name,
           nameOriginal: group.name_original,
           hasSelcaGroup: data.hasSelcaGroup,
           selcaGroupSlug: data.selcaGroupSlug,
+          source: data.source || group.source, // API response or fallback to group source
         })
       } else {
         setSelectedGroup({
           id: group.id,
           name: group.name,
           nameOriginal: group.name_original,
+          source: group.source,
         })
       }
     } catch (error) {
@@ -525,6 +528,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         id: group.id,
         name: group.name,
         nameOriginal: group.name_original,
+        source: group.source,
       })
     } finally {
       setIsLoadingMembers(false)
@@ -1056,6 +1060,12 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                         <span className="text-muted-foreground ml-1 text-xs">
                           {group.memberCount}명
                         </span>
+                        {/* Source badge */}
+                        {group.source === 'namuwiki' && (
+                          <span className="ml-1 px-1 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded">
+                            나무위키
+                          </span>
+                        )}
                       </button>
                     </li>
                   ))}
@@ -1078,6 +1088,12 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                       ({selectedGroup.nameOriginal})
                     </span>
                   )}
+                  {/* Source badge for selected group */}
+                  {selectedGroup.source === 'namuwiki' && (
+                    <span className="ml-1 px-1 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded">
+                      나무위키
+                    </span>
+                  )}
                 </span>
                 <button
                   type="button"
@@ -1091,6 +1107,13 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
                   다른 그룹 선택
                 </button>
               </div>
+
+              {/* Namuwiki source notice */}
+              {selectedGroup.source === 'namuwiki' && (
+                <div className="px-2 py-1.5 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-md">
+                  <span className="font-medium">안내:</span> 나무위키에서 가져온 데이터입니다. 외부 검색(selca) 기능이 제한됩니다.
+                </div>
+              )}
 
               {isLoadingMembers ? (
                 <div className="flex items-center justify-center py-4">
