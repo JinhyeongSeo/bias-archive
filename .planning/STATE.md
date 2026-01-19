@@ -5,27 +5,27 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 34 추가 - Internet Archive 백업 및 폴백 시스템
+**Current focus:** Phase 35 - Instagram 카테고리 추가 및 검색 기능
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 34 of 34 (Internet Archive Backup)
-Plan: 3 of 3 in current phase
-Status: Complete
-Last activity: 2026-01-19 — Completed 34-03-PLAN.md (Phase 34 완료)
+Phase: 35 of 35 (Instagram Search)
+Plan: 1 of 1 in current phase
+Status: Phase complete
+Last activity: 2026-01-19 — Completed 35-01-PLAN.md
 
-Progress: ██████████████████████████████████ 100% (34 phases complete)
+Progress: ██████████████████████████████████████ 100% (35 of 35 phases complete)
 
-**Next Phase:** None - All phases complete
+**All phases complete.** Consider new feature requests or maintenance tasks.
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 49
+- Total plans completed: 50
 - Average duration: ~8 min
-- Total execution time: ~379 min
+- Total execution time: ~385 min
 
 **By Phase:**
 
@@ -66,10 +66,13 @@ Progress: ███████████████████████�
 | 32. Namuwiki Fallback Search | 1 | 4 min | 4 min |
 | 33. Unified Search Category | 1 | 2 min | 2 min |
 
+| 34. Internet Archive Backup | 3 | ~50 min | 17 min |
+| 35. Instagram Search | 1 | 6 min | 6 min |
+
 **Recent Trend:**
 
-- Last 5 plans: 33-01 (2m), 34-01 (2m), 34-02 (3m), 34-03 (~45m)
-- Trend: Phase 34 완료 - Internet Archive 백업 시스템 구현 완료
+- Last 5 plans: 34-01 (2m), 34-02 (3m), 34-03 (~45m), 35-01 (6m)
+- Trend: Phase 35 완료 - Instagram 검색 기능 구현 완료
 
 ## Accumulated Context
 
@@ -129,6 +132,8 @@ Progress: ███████████████████████�
 - namuwiki: 접두사로 그룹 ID 식별 (selca slug와 구분)
 - 나무위키 멤버는 hasSelcaOwner=false (selca 검색 불가)
 - UI에 출처 배지 표시 (selca/namuwiki 구분)
+- Apify Instagram Search Scraper로 Instagram 검색 (월 ~2000건 무료)
+- Instagram URL 파서는 HTML og:* 메타태그 파싱 (oEmbed 제한으로)
 
 ### Roadmap Evolution
 
@@ -158,6 +163,7 @@ Progress: ███████████████████████�
 - Phase 32 added: Namuwiki Fallback Search (selca에 없는 아이돌 나무위키 폴백 검색) ✓
 - Phase 33 added: Unified Search Category Selection (통합 검색 카테고리별 선택 기능)
 - Phase 34 added: Internet Archive Backup (링크 백업 및 폴백 시스템)
+- Phase 35 added: Instagram Search (Instagram 카테고리 추가 및 검색 기능) ✓
 
 ### Deferred Issues
 
@@ -182,7 +188,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-19
-Stopped at: Completed Phase 34 (Internet Archive Backup)
+Stopped at: Completed Phase 35 (Instagram Search)
 Resume file: None
 
-**Next recommended action:** All phases complete. Consider new feature requests or maintenance tasks.
+**Next recommended action:** All 35 phases complete. Consider new feature requests or maintenance tasks.

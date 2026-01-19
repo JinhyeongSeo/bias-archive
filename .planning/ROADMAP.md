@@ -53,6 +53,7 @@ None
 - [x] **Phase 31: External Search Pagination** - heye, kgirls, kgirls-issue 외부 검색 페이지네이션 (캐시 20개 제한 해결) ✓
 - [x] **Phase 33: Unified Search Category Selection** - 통합 검색에서 카테고리별 선택 기능 추가 ✓
 - [x] **Phase 34: Internet Archive Backup** - 링크 백업 및 폴백 시스템 (archive.org 연동) ✓
+- [ ] **Phase 35: Instagram Search** - Instagram 카테고리 추가 및 검색 기능
 
 Plans:
 
@@ -708,6 +709,28 @@ Plans:
 Phase 34 완료 - Internet Archive 백업 시스템 구현 완료 (2026-01-19)
 34-04-FIX: heye.kr Cloudflare 차단 문제 해결 - 미디어 URL 대신 원본 페이지 URL 아카이빙으로 단순화
 
+### Phase 35: Instagram Search
+
+**Goal**: Instagram 카테고리 추가 및 검색 기능 구현
+**Depends on**: Phase 34
+**Research**: Likely (Instagram API 또는 스크래핑 방법 조사 필요)
+**Plans**: TBD
+
+**기능 설명:**
+
+- 통합검색에 Instagram 탭 추가 (YouTube, Twitter, heye, kgirls, selca와 동일한 방식)
+- Instagram 게시물/릴스 검색 기능
+- 검색 결과를 아카이브에 저장 (이미지, 동영상 지원)
+- LinkCard에서 Instagram 플랫폼 아이콘 표시
+- Instagram URL 파서 추가 (메타데이터 추출)
+
+Plans:
+
+- [x] 35-01: Instagram URL 파서 및 Apify 검색 API ✓
+
+**Details:**
+Phase 35 완료 - Instagram URL 파서 및 Apify 기반 검색 기능 구현 완료 (2026-01-19)
+
 ## Progress
 
 **Execution Order:**
@@ -749,3 +772,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 32. Namuwiki Fallback Search | - | 1/1 | Complete | 2026-01-19 |
 | 33. Unified Search Category Selection | - | 1/1 | Complete | 2026-01-19 |
 | 34. Internet Archive Backup | - | 3/3 | Complete | 2026-01-19 |
+| 35. Instagram Search | - | 1/1 | Complete | 2026-01-19 |
