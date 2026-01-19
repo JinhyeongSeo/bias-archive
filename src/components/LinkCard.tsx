@@ -201,11 +201,14 @@ export function LinkCard({
         return
       }
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error('Failed to archive')
+        console.error('Archive error:', data.error)
+        setArchiveStatus('failed')
+        return
       }
 
-      const data = await response.json()
       // API returns 'status' field, not 'archive_status'
       setArchiveStatus(data.status as ArchiveStatusType)
       setArchiveUrl(data.archive_url || null)
@@ -458,7 +461,9 @@ export function LinkCard({
         )}
 
         {/* Actions */}
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className={`absolute top-2 right-2 flex gap-1 transition-opacity ${
+          isArchiving || archiveStatus ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        }`}>
           {/* Archive status button */}
           <ArchiveStatus
             status={archiveStatus}
@@ -820,7 +825,9 @@ export function LinkCard({
       )}
 
       {/* Actions */}
-      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className={`absolute top-2 right-2 flex gap-1 transition-opacity ${
+        isArchiving || archiveStatus ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+      }`}>
         {/* Archive status button */}
         <ArchiveStatus
           status={archiveStatus}
