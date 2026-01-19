@@ -1075,6 +1075,12 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                             <span className={`text-xs px-1.5 py-0.5 rounded ${getPlatformBadgeStyle(result.platform)}`}>
                               {getPlatformLabel(result.platform)}
                             </span>
+                            {/* Show media count for carousel posts (Instagram) */}
+                            {result.media && result.media.length > 1 && (
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                                {result.media.length}장
+                              </span>
+                            )}
                             {result.author && (
                               <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[200px]">
                                 {result.author}
