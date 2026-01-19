@@ -33,8 +33,8 @@ function HomeContent() {
   const [layout, setLayout] = useState<LayoutType>('grid')
   const { isOpen: isMobileMenuOpen, close: closeMobileMenu } = useMobileMenu()
 
-  // Background archive queue processing
-  const { processQueue } = useArchiveQueue()
+  // Background archive queue processing (runs every 1 minute)
+  useArchiveQueue()
 
   // Biases and groups for UnifiedSearch
   const [biases, setBiases] = useState<Bias[]>([])
@@ -108,8 +108,7 @@ function HomeContent() {
   const handleSave = () => {
     // Increment to trigger LinkList refresh
     setRefreshTrigger((prev) => prev + 1)
-    // Trigger archive queue processing immediately after save
-    processQueue()
+    // Archive queue will be processed automatically every 1 minute
   }
 
   const handleLinksLoad = useCallback((urls: string[]) => {

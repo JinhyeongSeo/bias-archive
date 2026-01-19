@@ -48,7 +48,7 @@ export function useArchiveQueue() {
     // Process immediately on mount
     processQueue();
 
-    // Then process periodically
+    // Then process periodically (every 1 minute)
     intervalRef.current = setInterval(processQueue, PROCESS_INTERVAL);
 
     return () => {
@@ -57,7 +57,4 @@ export function useArchiveQueue() {
       }
     };
   }, [processQueue]);
-
-  // Return a function to manually trigger processing
-  return { processQueue };
 }
