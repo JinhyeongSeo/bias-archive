@@ -7,7 +7,7 @@
  * - Requires APIFY_API_TOKEN environment variable
  * - Returns { notConfigured: true } if token not set
  * - Searches for posts with the given hashtag
- * - Supports 'top' (popular) and 'recent' sorting
+ * - Returns posts from the hashtag
  * - Caching is handled client-side via Supabase (like other platforms)
  */
 
@@ -42,7 +42,6 @@ interface InstagramSearchResult {
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const query = searchParams.get('q')
-  const sort = searchParams.get('sort') || 'top' // 'top' (인기순) | 'recent' (최신순)
   const limit = parseInt(searchParams.get('limit') || '20', 10)
 
   // Check for API token
@@ -62,7 +61,7 @@ export async function GET(request: NextRequest) {
   const hashtag = query.replace(/^#/, '')
 
   try {
-    console.log(`[Instagram Search] Calling Apify Hashtag Scraper for: #${hashtag} (sort: ${sort})`)
+    console.log(`[Instagram Search] Calling Apify Hashtag Scraper for: #${hashtag}`)
     const client = new ApifyClient({ token: apiToken })
 
     // Run Instagram Hashtag Scraper actor
@@ -71,7 +70,7 @@ export async function GET(request: NextRequest) {
       {
         hashtags: [hashtag],
         resultsLimit: limit,
-        resultsType: sort === 'recent' ? 'recent' : 'top', // 'top' or 'recent'
+        resultsType: 'posts', // 'posts', 'reels', or 'stories'
       },
       {
         timeout: 60, // 60 seconds timeout
