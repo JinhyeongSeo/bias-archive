@@ -17,6 +17,14 @@ import { ApifyClient } from 'apify-client'
 // Extend max duration for Apify actor execution (Vercel Hobby: max 60s)
 export const maxDuration = 60
 
+interface ApifyChildPost {
+  id: string
+  shortCode?: string
+  type?: string  // 'Image', 'Video'
+  displayUrl?: string
+  videoUrl?: string
+}
+
 interface ApifyHashtagPost {
   id: string
   shortCode: string
@@ -30,6 +38,12 @@ interface ApifyHashtagPost {
   likesCount?: number
   commentsCount?: number
   type?: string  // 'Image', 'Video', 'Sidecar'
+  childPosts?: ApifyChildPost[]  // Carousel/Sidecar posts have child images
+}
+
+interface MediaItem {
+  type: 'image' | 'video'
+  url: string
 }
 
 interface InstagramSearchResult {
@@ -37,6 +51,7 @@ interface InstagramSearchResult {
   title: string
   thumbnailUrl: string | null
   author: string
+  media?: MediaItem[]  // All images/videos for carousel support
 }
 
 /**
@@ -120,11 +135,35 @@ export async function GET(request: NextRequest) {
       const caption = decodeHtmlEntities(rawCaption)
       const title = caption.length > 50 ? caption.substring(0, 50) + '...' : caption || `#${hashtag} 게시물`
 
+      // Build media array for viewer support
+      const media: MediaItem[] = []
+
+      // For Sidecar (carousel) posts, use childPosts if available
+      if (item.type === 'Sidecar' && item.childPosts && item.childPosts.length > 0) {
+        for (const child of item.childPosts) {
+          if (child.videoUrl) {
+            media.push({ type: 'video', url: decodeHtmlEntities(child.videoUrl) })
+          } else if (child.displayUrl) {
+            media.push({ type: 'image', url: decodeHtmlEntities(child.displayUrl) })
+          }
+        }
+      }
+
+      // Fallback to single displayUrl/videoUrl if no childPosts or not a Sidecar
+      if (media.length === 0) {
+        if (item.videoUrl) {
+          media.push({ type: 'video', url: decodeHtmlEntities(item.videoUrl) })
+        } else if (item.displayUrl) {
+          media.push({ type: 'image', url: decodeHtmlEntities(item.displayUrl) })
+        }
+      }
+
       return {
         url: item.url || `https://www.instagram.com/p/${item.shortCode}/`,
         title,
         thumbnailUrl: item.displayUrl ? decodeHtmlEntities(item.displayUrl) : null,
         author: decodeHtmlEntities(item.ownerUsername || hashtag),
+        media: media.length > 0 ? media : undefined,
       }
     })
 

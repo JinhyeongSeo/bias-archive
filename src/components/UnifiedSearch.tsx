@@ -71,6 +71,7 @@ interface InstagramResult {
   title: string;
   thumbnailUrl: string | null;
   author: string;
+  media?: { type: 'image' | 'video'; url: string }[];
 }
 
 interface EnrichedResult {
@@ -82,6 +83,7 @@ interface EnrichedResult {
   publishedAt?: string;
   isSaved: boolean;
   isSaving: boolean;
+  media?: { type: 'image' | 'video'; url: string }[];
 }
 
 interface PlatformResults {
@@ -1089,6 +1091,7 @@ export function UnifiedSearch({
         platform: "instagram" as Platform,
         isSaved: checkIfSaved(item.url),
         isSaving: false,
+        media: item.media,
       }));
 
       return { results, hasMore: data.hasMore || false };
@@ -2224,9 +2227,13 @@ export function UnifiedSearch({
         };
       }
 
-      // Instagram: media가 없으면 thumbnailUrl을 media로 변환 (뷰어 지원)
-      if (metadata.platform === 'instagram' && !metadata.media && metadata.thumbnailUrl) {
-        metadata.media = [{ type: 'image', url: metadata.thumbnailUrl }];
+      // Instagram: 검색 결과의 media 배열 우선 사용, 없으면 thumbnailUrl로 폴백 (뷰어 지원)
+      if (metadata.platform === 'instagram' && !metadata.media) {
+        if (result.media && result.media.length > 0) {
+          metadata.media = result.media;
+        } else if (metadata.thumbnailUrl) {
+          metadata.media = [{ type: 'image', url: metadata.thumbnailUrl }];
+        }
       }
 
       const saveResponse = await fetch("/api/links", {
