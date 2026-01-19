@@ -10,6 +10,7 @@ import {
   parseHeye,
   parseKgirls,
   parseGeneric,
+  parseInstagram,
   type Platform,
   type VideoMetadata,
 } from './parsers'
@@ -83,6 +84,11 @@ export function detectPlatform(url: string): Platform {
       return 'kgirls'
     }
 
+    // Instagram patterns
+    if (hostname.includes('instagram.com')) {
+      return 'instagram'
+    }
+
     return 'other'
   } catch {
     return 'other'
@@ -154,6 +160,8 @@ function getParser(platform: Platform): (url: string) => Promise<VideoMetadata> 
       return parseHeye
     case 'kgirls':
       return parseKgirls
+    case 'instagram':
+      return parseInstagram
     default:
       return parseGeneric
   }
