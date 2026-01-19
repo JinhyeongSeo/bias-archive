@@ -2,16 +2,50 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 import {
   saveToArchive,
-  checkArchiveStatus,
+  checkWaybackAvailability,
+  getWaybackUrl,
 } from '@/lib/archive';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+// Delay helper for rate limiting
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Archive a media URL and return its Wayback URL
+ * Checks if already archived first, then saves if not
+ */
+async function archiveMediaUrl(url: string): Promise<string | null> {
+  if (!url) return null;
+
+  try {
+    // First check if already archived
+    const availability = await checkWaybackAvailability(url);
+    if (availability.available && availability.url) {
+      return availability.url;
+    }
+
+    // Save to archive
+    const result = await saveToArchive(url);
+    if (result.status === 'success' && result.archive_url) {
+      return result.archive_url;
+    }
+    if (result.status === 'pending') {
+      // Return the expected URL format even if pending
+      return getWaybackUrl(url);
+    }
+  } catch (error) {
+    console.error(`Error archiving media URL ${url}:`, error);
+  }
+
+  return null;
+}
+
 /**
  * POST /api/links/[id]/archive
- * Trigger archive of a link to Internet Archive (requires authentication)
+ * Trigger archive of link media (thumbnail + link_media) to Internet Archive
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
@@ -44,10 +78,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Get link and verify ownership
+    // Get link with media and verify ownership
     const { data: link, error: fetchError } = await supabase
       .from('links')
-      .select('*')
+      .select('*, link_media(*)')
       .eq('id', id)
       .single();
 
@@ -65,36 +99,48 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // If already archived, return existing archive URL
-    if (link.archive_status === 'archived' && link.archive_url) {
+    // If already archived, return existing status
+    if (link.archive_status === 'archived' && link.archived_thumbnail_url) {
       return NextResponse.json({
         status: 'archived',
-        archive_url: link.archive_url,
+        archived_thumbnail_url: link.archived_thumbnail_url,
         archived_at: link.archived_at,
       });
     }
 
-    // Trigger archive
-    const result = await saveToArchive(link.url);
+    // Set status to pending immediately
+    await supabase
+      .from('links')
+      .update({ archive_status: 'pending' })
+      .eq('id', id);
 
-    if (result.status === 'error') {
-      return NextResponse.json(
-        { error: result.error || '아카이브 요청에 실패했습니다' },
-        { status: 500 }
-      );
+    // Archive thumbnail URL
+    let archivedThumbnailUrl: string | null = null;
+    if (link.thumbnail_url) {
+      archivedThumbnailUrl = await archiveMediaUrl(link.thumbnail_url);
+      await delay(4500); // Wait 4.5 seconds between requests (15/min limit)
+    }
+
+    // Archive link_media URLs
+    const mediaItems = link.link_media || [];
+    for (const media of mediaItems) {
+      if (media.media_url && !media.archived_url) {
+        const archivedUrl = await archiveMediaUrl(media.media_url);
+        if (archivedUrl) {
+          await supabase
+            .from('link_media')
+            .update({ archived_url: archivedUrl })
+            .eq('id', media.id);
+        }
+        await delay(4500); // Rate limit
+      }
     }
 
     // Update link with archive status
-    const updateData: {
-      archive_status: string;
-      archive_job_id?: string | null;
-      archive_url?: string | null;
-      archived_at?: string | null;
-    } = {
-      archive_status: result.status === 'success' ? 'archived' : 'pending',
-      archive_job_id: result.job_id || null,
-      archive_url: result.archive_url || null,
-      archived_at: result.status === 'success' ? new Date().toISOString() : null,
+    const updateData = {
+      archive_status: 'archived',
+      archived_thumbnail_url: archivedThumbnailUrl,
+      archived_at: new Date().toISOString(),
     };
 
     const { error: updateError } = await supabase
@@ -107,10 +153,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({
-      status: updateData.archive_status,
-      job_id: result.job_id,
-      archive_url: result.archive_url,
+      status: 'archived',
+      archived_thumbnail_url: archivedThumbnailUrl,
       archived_at: updateData.archived_at,
+      media_count: mediaItems.length,
     });
   } catch (error) {
     console.error('Error archiving link:', error);
@@ -148,10 +194,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Get link and verify ownership
+    // Get link with media and verify ownership
     const { data: link, error: fetchError } = await supabase
       .from('links')
-      .select('*')
+      .select('*, link_media(*)')
       .eq('id', id)
       .single();
 
@@ -169,72 +215,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // If not pending or no job_id, return current status
-    if (link.archive_status !== 'pending' || !link.archive_job_id) {
-      return NextResponse.json({
-        status: link.archive_status || null,
-        archive_url: link.archive_url,
-        archived_at: link.archived_at,
-      });
-    }
+    // Return current status with media archive info
+    const mediaItems = link.link_media || [];
+    const archivedMediaCount = mediaItems.filter((m: { archived_url?: string | null }) => m.archived_url).length;
 
-    // Check if archive.org credentials are configured
-    if (!process.env.ARCHIVE_ORG_ACCESS_KEY || !process.env.ARCHIVE_ORG_SECRET_KEY) {
-      return NextResponse.json({
-        status: link.archive_status,
-        archive_url: link.archive_url,
-        archived_at: link.archived_at,
-      });
-    }
-
-    // Check status of pending job
-    const result = await checkArchiveStatus(link.archive_job_id);
-
-    if (result.status === 'success') {
-      // Update link with completed archive
-      const updateData = {
-        archive_status: 'archived',
-        archive_url: result.archive_url || link.archive_url,
-        archived_at: new Date().toISOString(),
-      };
-
-      const { error: updateError } = await supabase
-        .from('links')
-        .update(updateData)
-        .eq('id', id);
-
-      if (updateError) {
-        console.error('Error updating link archive status:', updateError);
-      }
-
-      return NextResponse.json({
-        status: 'archived',
-        archive_url: updateData.archive_url,
-        archived_at: updateData.archived_at,
-      });
-    }
-
-    if (result.status === 'error') {
-      // Update link with failed status
-      const { error: updateError } = await supabase
-        .from('links')
-        .update({ archive_status: 'failed' })
-        .eq('id', id);
-
-      if (updateError) {
-        console.error('Error updating link archive status:', updateError);
-      }
-
-      return NextResponse.json({
-        status: 'failed',
-        error: result.error,
-      });
-    }
-
-    // Still pending
     return NextResponse.json({
-      status: 'pending',
-      job_id: link.archive_job_id,
+      status: link.archive_status || null,
+      archived_thumbnail_url: link.archived_thumbnail_url,
+      archived_at: link.archived_at,
+      media_count: mediaItems.length,
+      archived_media_count: archivedMediaCount,
     });
   } catch (error) {
     console.error('Error checking archive status:', error);

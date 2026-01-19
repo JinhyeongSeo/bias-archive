@@ -11,6 +11,7 @@ import { UnifiedSearch } from '@/components/UnifiedSearch'
 import { LayoutToggle } from '@/components/LayoutToggle'
 import { Timeline } from '@/components/Timeline'
 import { useMobileMenu } from '@/contexts/MobileMenuContext'
+import { useArchiveQueue } from '@/hooks/useArchiveQueue'
 import type { Bias, Group } from '@/types/database'
 
 type LayoutType = 'grid' | 'list'
@@ -31,6 +32,9 @@ function HomeContent() {
   const [isUnifiedSearchOpen, setIsUnifiedSearchOpen] = useState(false)
   const [layout, setLayout] = useState<LayoutType>('grid')
   const { isOpen: isMobileMenuOpen, close: closeMobileMenu } = useMobileMenu()
+
+  // Background archive queue processing
+  useArchiveQueue()
 
   // Biases and groups for UnifiedSearch
   const [biases, setBiases] = useState<Bias[]>([])

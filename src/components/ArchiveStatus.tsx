@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { quickSpring } from '@/lib/animations'
 
-export type ArchiveStatusType = 'pending' | 'archived' | 'failed' | null
+export type ArchiveStatusType = 'queued' | 'pending' | 'archived' | 'failed' | null
 
 interface ArchiveStatusProps {
   status: ArchiveStatusType
@@ -87,13 +87,28 @@ export function ArchiveStatus({
     )
   }
 
-  // Pending status - archiving queued
+  // Queued status - waiting to be processed
+  if (status === 'queued') {
+    return (
+      <motion.button
+        disabled
+        className={`${buttonSize} rounded-md bg-card/90 dark:bg-zinc-800/90 text-yellow-500 shadow-sm cursor-not-allowed`}
+        title="대기 중..."
+        whileTap={{ scale: 0.9 }}
+        transition={quickSpring}
+      >
+        <ClockIcon className={iconSize} />
+      </motion.button>
+    )
+  }
+
+  // Pending status - archiving in progress
   if (status === 'pending') {
     return (
       <motion.button
         disabled
         className={`${buttonSize} rounded-md bg-card/90 dark:bg-zinc-800/90 text-yellow-500 shadow-sm cursor-not-allowed`}
-        title="Archiving..."
+        title="아카이브 중..."
         whileTap={{ scale: 0.9 }}
         transition={quickSpring}
       >

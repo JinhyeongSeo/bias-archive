@@ -9,7 +9,7 @@ import type { Platform } from '@/lib/metadata'
 import { TagEditor } from './TagEditor'
 import { ArchiveStatus, type ArchiveStatusType } from './ArchiveStatus'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
-import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl, getWaybackFallbackUrl } from '@/lib/proxy'
+import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl } from '@/lib/proxy'
 import { quickSpring } from '@/lib/animations'
 
 type LinkWithTags = Link & { tags: Tag[] }
@@ -87,7 +87,9 @@ export function LinkCard({
   const [archiveStatus, setArchiveStatus] = useState<ArchiveStatusType>(
     (link.archive_status as ArchiveStatusType) || null
   )
-  const [archiveUrl, setArchiveUrl] = useState<string | null>(link.archive_url || null)
+  const [archivedThumbnailUrl, setArchivedThumbnailUrl] = useState<string | null>(
+    link.archived_thumbnail_url || null
+  )
   const [useFallbackImage, setUseFallbackImage] = useState(false)
   const [imageError, setImageError] = useState(false)
   const { getTagDisplayName } = useNameLanguage()
@@ -96,9 +98,9 @@ export function LinkCard({
   const getThumbnailSrc = useCallback(() => {
     if (!link.thumbnail_url) return null
 
-    // If original failed and we have a Wayback fallback
-    if (useFallbackImage && archiveUrl) {
-      return getWaybackFallbackUrl(link.thumbnail_url, archiveUrl)
+    // If original failed and we have a Wayback fallback for the thumbnail
+    if (useFallbackImage && archivedThumbnailUrl) {
+      return archivedThumbnailUrl
     }
 
     // Return proxied URL
@@ -106,17 +108,17 @@ export function LinkCard({
       return getProxiedVideoUrl(link.thumbnail_url)
     }
     return getProxiedImageUrl(link.thumbnail_url)
-  }, [link.thumbnail_url, useFallbackImage, archiveUrl])
+  }, [link.thumbnail_url, useFallbackImage, archivedThumbnailUrl])
 
   const handleImageError = useCallback(() => {
-    if (!useFallbackImage && archiveUrl) {
+    if (!useFallbackImage && archivedThumbnailUrl) {
       // Try Wayback fallback
       setUseFallbackImage(true)
     } else {
       // Both primary and fallback failed
       setImageError(true)
     }
-  }, [useFallbackImage, archiveUrl])
+  }, [useFallbackImage, archivedThumbnailUrl])
 
   const platform = (link.platform || 'other') as Platform
 
@@ -208,7 +210,7 @@ export function LinkCard({
 
         if (data.status === 'archived') {
           setArchiveStatus('archived')
-          setArchiveUrl(data.archive_url || null)
+          setArchivedThumbnailUrl(data.archived_thumbnail_url || null)
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current)
             pollIntervalRef.current = null
@@ -278,7 +280,7 @@ export function LinkCard({
       // API returns 'status' field, not 'archive_status'
       const newStatus = data.status as ArchiveStatusType
       setArchiveStatus(newStatus)
-      setArchiveUrl(data.archive_url || null)
+      setArchivedThumbnailUrl(data.archived_thumbnail_url || null)
 
       // If pending, start polling for completion
       if (newStatus === 'pending' && data.job_id) {
@@ -539,7 +541,7 @@ export function LinkCard({
           {/* Archive status button */}
           <ArchiveStatus
             status={archiveStatus}
-            archiveUrl={archiveUrl}
+            archiveUrl={archivedThumbnailUrl}
             onArchive={handleArchive}
             isArchiving={isArchiving}
             size="sm"
@@ -903,7 +905,7 @@ export function LinkCard({
         {/* Archive status button */}
         <ArchiveStatus
           status={archiveStatus}
-          archiveUrl={archiveUrl}
+          archiveUrl={archivedThumbnailUrl}
           onArchive={handleArchive}
           isArchiving={isArchiving}
           size="sm"
