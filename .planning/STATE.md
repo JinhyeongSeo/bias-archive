@@ -165,7 +165,7 @@ Progress: ███████████████████████�
 
 ### Pending Todos
 
-None.
+- [Twitter 검색 중 캐시된 결과 표시 차단 버그](.planning/todos/pending/2026-01-19-twitter-search-blocks-cached-results.md) (Area: ui)
 
 ### Completed (Recently)
 
