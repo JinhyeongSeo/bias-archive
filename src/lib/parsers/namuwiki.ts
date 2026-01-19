@@ -10,9 +10,11 @@
 import { parse, HTMLElement } from 'node-html-parser'
 
 const BASE_URL = 'https://namu.wiki'
+// Googlebot User-Agent로 설정하면 나무위키가 SSR 콘텐츠를 반환함
+// (일반 브라우저 UA는 SPA 로더만 반환)
 const USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-const TIMEOUT_MS = 10000 // 10초 타임아웃
+  'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+const TIMEOUT_MS = 15000 // 15초 타임아웃 (SSR 렌더링에 시간이 더 걸릴 수 있음)
 const CACHE_TTL_MS = 10 * 60 * 1000 // 10분 캐시
 
 /**
@@ -142,27 +144,36 @@ export async function searchGroupFromNamuwiki(groupName: string): Promise<Namuwi
 
   try {
     const url = `${BASE_URL}/w/${encodeURIComponent(normalizedName)}`
+    console.log(`[Namuwiki Parser] Fetching: ${url}`)
     const html = await fetchHtmlFromNamuwiki(url)
+    console.log(`[Namuwiki Parser] HTML length: ${html.length}`)
+
     const root = parse(html)
 
     // 페이지 제목 확인
     const title = root.querySelector('title')
     const titleText = getText(title)
+    console.log(`[Namuwiki Parser] Title: ${titleText}`)
 
     // 404 또는 존재하지 않는 문서 체크
     if (titleText.includes('이 문서가 없습니다') || titleText.includes('Not Found')) {
+      console.log(`[Namuwiki Parser] Document not found`)
       return null
     }
 
-    // 멤버 섹션 존재 여부로 아이돌 그룹 판단
-    const content = root.querySelector('.wiki-content') || root.querySelector('article')
-    if (!content) {
-      return null
-    }
+    // 나무위키 본문 영역 찾기 (Googlebot 응답은 wiki-paragraph, wiki-table-wrap 등을 사용)
+    // #app 내부에서 wiki 클래스들을 포함하는 영역을 찾음
+    const content =
+      root.querySelector('.wiki-content') ||
+      root.querySelector('article') ||
+      root.querySelector('#app') ||
+      root
 
+    // "멤버" 또는 "구성원" 키워드로 아이돌 그룹 판단
     const contentText = content.textContent || ''
-    // "멤버" 또는 "구성원" 섹션이 있는지 확인
     const hasMemberSection = contentText.includes('멤버') || contentText.includes('구성원')
+    console.log(`[Namuwiki Parser] Has member section: ${hasMemberSection}`)
+
     if (!hasMemberSection) {
       return null
     }
@@ -189,17 +200,22 @@ export async function getGroupMembersFromNamuwiki(
   // 캐시 확인
   const cached = groupMembersCache.get(cacheKey)
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    console.log(`[Namuwiki Parser] Cache hit for: ${groupName}`)
     return cached.data
   }
 
   try {
     const url = `${BASE_URL}/w/${encodeURIComponent(groupName.trim())}`
+    console.log(`[Namuwiki Parser] Fetching members for: ${url}`)
     const html = await fetchHtmlFromNamuwiki(url)
+    console.log(`[Namuwiki Parser] Members HTML length: ${html.length}`)
+
     const root = parse(html)
 
     // 페이지 제목에서 그룹명 추출
     const title = root.querySelector('title')
     const titleText = getText(title).replace(' - 나무위키', '').trim()
+    console.log(`[Namuwiki Parser] Members page title: ${titleText}`)
 
     // 404 체크
     if (titleText.includes('이 문서가 없습니다')) {
@@ -207,89 +223,131 @@ export async function getGroupMembersFromNamuwiki(
       return null
     }
 
-    // 나무위키 본문 영역 찾기
-    const content = root.querySelector('.wiki-content') || root.querySelector('article') || root
-
     const members: NamuwikiMember[] = []
     const seenNames = new Set<string>()
 
-    // 방법 1: 테이블에서 멤버 추출
-    const tables = content.querySelectorAll('table')
-    for (const table of tables) {
-      const rows = table.querySelectorAll('tr')
-      for (const row of rows) {
-        const cells = row.querySelectorAll('td, th')
-        for (const cell of cells) {
-          // 링크에서 이름 추출
-          const links = cell.querySelectorAll('a')
-          for (const link of links) {
-            const href = link.getAttribute('href') || ''
-            const text = getText(link)
+    // 제외할 일반 단어들 (아이돌 이름이 아닌 것들)
+    const excludeWords = new Set([
+      // 그룹/아이돌 관련
+      '걸그룹', '보이그룹', '아이돌', '멤버', '소속사', '데뷔', '활동', '음반', '응원법', '굿즈',
+      '팬덤', '유튜브', '갤러리', '역사', '여담', '토론', '직캠', '음악', '방송', '프로', '시상', '수상',
+      '응원봉', '콘서트', '팬미팅', '공연', '광고', '노래방', '화보', '키',
+      // 포지션
+      '댄스', '보컬', '랩', '래퍼', '메탈', '힙합', '연습생', '리더', '메인', '서브', '리드', '롤모델',
+      // 국가/지역
+      '대한민국', '한국', '한국인', '일본', '중국', '태국', '홍대', '삼일절',
+      // 일반 단어
+      '편집', '이동', '토론', '검색', '분류', '버블', '팝업', '시구', '년', '월', '일',
+      '올해의', '세상은', '불빛을', '기뻐', '패밀리', '록', '군사', '건물', '승리', '더',
+      '한문철의', '멜론차트', '미디어', '인조',
+      // 기업/미디어
+      '소니', '뉴시스', '한화', '키움', '타이거즈', '쏘스뮤직', '입점',
+      // 그룹명 자체도 제외
+      groupName.trim(),
+    ])
 
-            // 내부 링크이고 한글 이름인 경우
-            if (href.startsWith('/w/') && text && /[가-힣]/.test(text)) {
-              const koreanName = extractKoreanName(text)
+    // Googlebot 응답에서 wiki-link-internal 클래스를 가진 모든 링크 찾기
+    // 멤버 이름은 보통 /w/멤버이름 형식의 내부 링크로 표시됨
+    const allLinks = root.querySelectorAll('a.wiki-link-internal, a[href^="/w/"]')
+    console.log(`[Namuwiki Parser] Found ${allLinks.length} wiki links`)
 
-              // 중복 방지 및 그룹명과 동일한 경우 스킵
-              if (koreanName && !seenNames.has(koreanName) && koreanName !== groupName.trim()) {
-                // 일반적인 K-pop 이름 길이 체크 (1-6글자)
-                if (koreanName.length >= 1 && koreanName.length <= 6) {
-                  seenNames.add(koreanName)
+    for (const link of allLinks) {
+      const href = link.getAttribute('href') || ''
+      const titleAttr = link.getAttribute('title') || ''
+      const text = getText(link)
 
-                  const englishName = extractEnglishName(text)
-                  members.push({
-                    name_ko: koreanName,
-                    name_en: englishName,
-                  })
-                }
-              }
-            }
-          }
+      // /w/ 경로의 내부 링크만 처리
+      if (!href.startsWith('/w/')) continue
+
+      // 한글이 포함된 텍스트만 처리
+      if (!text || !/[가-힣]/.test(text)) continue
+
+      const koreanName = extractKoreanName(titleAttr || text)
+
+      // 필터링 조건
+      if (!koreanName) continue
+      if (seenNames.has(koreanName)) continue
+      if (excludeWords.has(koreanName)) continue
+      if (koreanName.length < 1 || koreanName.length > 4) continue // K-pop 이름은 보통 1-4글자
+      // 분류, 슬래시 경로, 년도 등 제외
+      if (href.includes('분류:') || href.includes('/') && !href.startsWith('/w/')) continue
+      // 숫자로만 이루어진 것 제외
+      if (/^\d+$/.test(koreanName)) continue
+
+      seenNames.add(koreanName)
+
+      // title 속성에서 영어 이름 추출 시도
+      const englishName = extractEnglishName(titleAttr || text)
+      members.push({
+        name_ko: koreanName,
+        name_en: englishName,
+      })
+    }
+
+    console.log(`[Namuwiki Parser] Extracted ${members.length} potential members:`, members.map(m => m.name_ko))
+
+    // 이름 빈도 분석: 여러 번 언급된 이름이 실제 멤버일 가능성이 높음
+    // K-pop 문서에서 멤버는 프로필 테이블, 포지션 테이블, 갤러리 등에서 반복 언급됨
+    const nameFrequency = new Map<string, number>()
+    for (const link of allLinks) {
+      const titleAttr = link.getAttribute('title') || ''
+      const text = getText(link)
+      const name = extractKoreanName(titleAttr || text)
+      // K-pop 이름은 1-3글자가 대부분 (옐, 지수, 리이나 등)
+      if (name && name.length >= 1 && name.length <= 3 && /^[가-힣]+$/.test(name)) {
+        if (!excludeWords.has(name)) {
+          nameFrequency.set(name, (nameFrequency.get(name) || 0) + 1)
         }
       }
     }
 
-    // 방법 2: 멤버 섹션의 리스트에서 추출 (테이블이 없는 경우)
-    if (members.length === 0) {
-      const listItems = content.querySelectorAll('li')
-      for (const item of listItems) {
-        const link = item.querySelector('a')
-        if (link) {
-          const href = link.getAttribute('href') || ''
-          const text = getText(link)
+    console.log(`[Namuwiki Parser] Name frequency:`, Object.fromEntries(nameFrequency))
 
-          if (href.startsWith('/w/') && text && /[가-힣]/.test(text)) {
-            const koreanName = extractKoreanName(text)
+    // 빈도가 높은 이름 (3회 이상 언급) + 2-3글자 한글 이름만 선택
+    const frequentNames = Array.from(nameFrequency.entries())
+      .filter(([name, count]) => count >= 3) // 최소 3번 이상 언급
+      .map(([name]) => name)
 
-            if (koreanName && !seenNames.has(koreanName) && koreanName !== groupName.trim()) {
-              if (koreanName.length >= 1 && koreanName.length <= 6) {
-                seenNames.add(koreanName)
+    console.log(`[Namuwiki Parser] Frequent names (3+ mentions):`, frequentNames)
 
-                const englishName = extractEnglishName(text)
-                members.push({
-                  name_ko: koreanName,
-                  name_en: englishName,
-                })
-              }
-            }
-          }
-        }
+    // 빈도 기반 필터링된 멤버만 유지
+    if (frequentNames.length >= 2 && frequentNames.length <= 15) {
+      const filteredMembers = members.filter(m => frequentNames.includes(m.name_ko))
+      console.log(`[Namuwiki Parser] Filtered by frequency: ${filteredMembers.length} members:`, filteredMembers.map(m => m.name_ko))
+
+      if (filteredMembers.length >= 2) {
+        members.length = 0
+        members.push(...filteredMembers)
       }
     }
 
-    // 멤버가 없으면 그룹이 아닌 것으로 판단
-    if (members.length === 0) {
+    // 여전히 너무 많으면 엄격한 필터 적용
+    if (members.length > 15) {
+      console.log(`[Namuwiki Parser] Still too many (${members.length}), applying strict filter`)
+      const filtered = members.filter(m => {
+        const len = m.name_ko.length
+        return len >= 2 && len <= 3 && /^[가-힣]+$/.test(m.name_ko)
+      })
+      members.length = 0
+      members.push(...filtered)
+    }
+
+    // 멤버가 없거나 너무 적으면 그룹이 아닌 것으로 판단
+    if (members.length < 2) {
+      console.log(`[Namuwiki Parser] Too few members (${members.length}), likely not an idol group`)
       groupMembersCache.set(cacheKey, { data: null, timestamp: Date.now() })
       return null
     }
 
-    // 영문 그룹명 추출 시도
+    // 영문 그룹명 추출 시도 (og:title 메타 태그에서)
     let groupNameEn: string | undefined
-    const contentText = content.textContent || ''
-    // 영문명 패턴: "IVE" 또는 "(IVE)" 형식
-    const englishGroupMatch = contentText.match(/\(([A-Z][A-Za-z\s]+)\)/)
-    if (englishGroupMatch) {
-      groupNameEn = englishGroupMatch[1].trim()
+    const ogTitle = root.querySelector('meta[property="og:title"]')
+    if (ogTitle) {
+      const ogContent = ogTitle.getAttribute('content') || ''
+      // 영문명이면 그대로 사용
+      if (/^[A-Za-z0-9\-\s]+$/.test(ogContent)) {
+        groupNameEn = ogContent
+      }
     }
 
     const result: NamuwikiMembersResult = {
@@ -300,6 +358,7 @@ export async function getGroupMembersFromNamuwiki(
       source: 'namuwiki',
     }
 
+    console.log(`[Namuwiki Parser] Success: ${groupName} with ${members.length} members`)
     groupMembersCache.set(cacheKey, { data: result, timestamp: Date.now() })
     return result
   } catch (error) {
