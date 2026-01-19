@@ -39,6 +39,39 @@ interface InstagramSearchResult {
   author: string
 }
 
+/**
+ * Decode HTML entities in a string
+ */
+function decodeHtmlEntities(text: string): string {
+  const entities: Record<string, string> = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#039;': "'",
+    '&#39;': "'",
+    '&apos;': "'",
+    '&#x27;': "'",
+    '&#x2F;': '/',
+    '&nbsp;': ' ',
+  }
+
+  // First handle named/numeric entities
+  let result = text.replace(/&[#\w]+;/g, (entity) => entities[entity] || entity)
+
+  // Then handle hex entities like &#xd558;
+  result = result.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
+    String.fromCharCode(parseInt(hex, 16))
+  )
+
+  // Handle decimal entities like &#54616;
+  result = result.replace(/&#(\d+);/g, (_, dec) =>
+    String.fromCharCode(parseInt(dec, 10))
+  )
+
+  return result
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const query = searchParams.get('q')
@@ -82,15 +115,16 @@ export async function GET(request: NextRequest) {
 
     // Transform results to unified format
     const results: InstagramSearchResult[] = (items as unknown as ApifyHashtagPost[]).map((item) => {
-      // Truncate caption for title (first 50 chars)
-      const caption = item.caption || ''
+      // Decode HTML entities and truncate caption for title (first 50 chars)
+      const rawCaption = item.caption || ''
+      const caption = decodeHtmlEntities(rawCaption)
       const title = caption.length > 50 ? caption.substring(0, 50) + '...' : caption || `#${hashtag} 게시물`
 
       return {
         url: item.url || `https://www.instagram.com/p/${item.shortCode}/`,
         title,
         thumbnailUrl: item.displayUrl || null,
-        author: item.ownerUsername || hashtag,
+        author: decodeHtmlEntities(item.ownerUsername || hashtag),
       }
     })
 
