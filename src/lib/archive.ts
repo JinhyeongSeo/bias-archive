@@ -88,6 +88,19 @@ export async function saveToArchive(url: string): Promise<ArchiveSaveResult> {
       };
     }
 
+    // If message says "same snapshot had been made", it's already archived
+    // Check existing archive and return success
+    if (data.message && data.message.includes('same snapshot')) {
+      const availability = await checkWaybackAvailability(url);
+      if (availability.available && availability.url) {
+        return {
+          status: 'success',
+          archive_url: availability.url,
+          timestamp: availability.timestamp,
+        };
+      }
+    }
+
     // Success or pending
     const result: ArchiveSaveResult = {
       status: data.status === 'success' ? 'success' : 'pending',
