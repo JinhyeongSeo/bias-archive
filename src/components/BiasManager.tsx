@@ -19,6 +19,7 @@ interface KpopMember {
   id: string
   name: string
   name_original: string
+  hasSelcaOwner?: boolean
 }
 
 interface KpopMemberWithGroup {
