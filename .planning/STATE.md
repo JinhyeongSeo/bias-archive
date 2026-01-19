@@ -165,7 +165,7 @@ Progress: ███████████████████████�
 
 ### Pending Todos
 
-None.
+- [만료된 검색 캐시 정리 작업 추가](.planning/todos/pending/2026-01-19-add-search-cache-cleanup.md) (Area: database)
 
 ### Completed (Recently)
 
