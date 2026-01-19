@@ -702,9 +702,11 @@ Plans:
 - [x] 34-01: DB 스키마 및 archive.org API 모듈 ✓
 - [x] 34-02: 아카이브 API 라우트 및 자동 백업 ✓
 - [x] 34-03: UI 표시 및 폴백 시스템 ✓
+- [x] 34-04-FIX: 아카이브 시스템 단순화 (원본 페이지 URL만 저장) ✓
 
 **Details:**
 Phase 34 완료 - Internet Archive 백업 시스템 구현 완료 (2026-01-19)
+34-04-FIX: heye.kr Cloudflare 차단 문제 해결 - 미디어 URL 대신 원본 페이지 URL 아카이빙으로 단순화
 
 ## Progress
 
