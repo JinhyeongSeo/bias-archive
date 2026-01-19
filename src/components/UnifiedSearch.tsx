@@ -1311,21 +1311,7 @@ export function UnifiedSearch({
   // Load more results for a specific platform
   const handleLoadMore = async (platform: Platform) => {
     const currentData = platformResults.get(platform);
-    console.log(
-      "[handleLoadMore] platform:",
-      platform,
-      "currentData:",
-      currentData
-    );
     if (!currentData || currentData.isLoadingMore || !currentData.hasMore) {
-      console.log(
-        "[handleLoadMore] early return - currentData:",
-        !!currentData,
-        "isLoadingMore:",
-        currentData?.isLoadingMore,
-        "hasMore:",
-        currentData?.hasMore
-      );
       return;
     }
 
@@ -3070,24 +3056,7 @@ export function UnifiedSearch({
                               !platformData.isLoading && (
                                 <button
                                   type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    console.log(
-                                      "[LoadMore] clicked for platform:",
-                                      platformConfig.id,
-                                      "hasMore:",
-                                      platformData.hasMore
-                                    );
-                                    handleLoadMore(platformConfig.id);
-                                  }}
-                                  onTouchEnd={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    console.log(
-                                      "[LoadMore] touch for platform:",
-                                      platformConfig.id
-                                    );
+                                  onClick={() => {
                                     if (!platformData.isLoadingMore) {
                                       handleLoadMore(platformConfig.id);
                                     }
