@@ -1083,13 +1083,11 @@ export function UnifiedSearch({
       }
 
       // Defensive: handle undefined results
-      // Apply proxy for display - getProxiedImageUrl handles &amp; decoding internally
+      // Keep original URLs - proxy is applied at render time
       const results = ((data.results || []) as InstagramResult[]).map((item) => ({
         url: item.url,
         title: item.title,
-        thumbnailUrl: item.thumbnailUrl
-          ? getProxiedImageUrl(item.thumbnailUrl)
-          : null,
+        thumbnailUrl: item.thumbnailUrl,
         author: item.author,
         platform: "instagram" as Platform,
         isSaved: checkIfSaved(item.url),
