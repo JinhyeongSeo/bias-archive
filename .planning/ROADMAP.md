@@ -54,11 +54,14 @@ None
 - [x] **Phase 33: Unified Search Category Selection** - 통합 검색에서 카테고리별 선택 기능 추가 ✓
 - [x] **Phase 34: Internet Archive Backup** - 링크 백업 및 폴백 시스템 (archive.org 연동) ✓
 - [x] **Phase 35: Instagram Search** - Instagram 카테고리 추가 및 검색 기능 ✓
-- [ ] **Phase 36: Search & Parser Refactoring** - 검색/파서 코드 리팩토링 및 버그 수정
+- [x] **Phase 36: Search & Parser Refactoring** - 검색/파서 코드 리팩토링 및 버그 수정 ✓
 
 Plans:
 
 - [x] 33-01: 플랫폼별 선택 함수 및 UI 추가 ✓
+
+- [x] 36-01: 중복 코드 제거 및 타입 통일 ✓
+- [x] 36-02: Instagram 검색 API 버그 수정 ✓
 
 ## Phase Details
 
@@ -781,11 +784,11 @@ Phase 35 완료 - Instagram URL 파서 및 Apify 기반 검색 기능 구현 완
 
 Plans:
 
-- [ ] 36-01: 중복 코드 제거 및 타입 통일 (decodeHtmlEntities, ParsedMedia)
-- [ ] 36-02: Instagram 검색 API 버그 수정 및 검증
+- [x] 36-01: 중복 코드 제거 및 타입 통일 (decodeHtmlEntities, ParsedMedia) ✓
+- [x] 36-02: Instagram 검색 API 버그 수정 및 검증 ✓
 
 **Details:**
-[To be added after execution]
+Phase 36 완료 - 중복 코드 제거, 타입 통일, Instagram API 버그 수정 (2026-01-19)
 
 ## Progress
 
@@ -829,4 +832,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 33. Unified Search Category Selection | - | 1/1 | Complete | 2026-01-19 |
 | 34. Internet Archive Backup | - | 3/3 | Complete | 2026-01-19 |
 | 35. Instagram Search | - | 1/1 | Complete | 2026-01-19 |
-| 36. Search & Parser Refactoring | - | 0/2 | Planned | - |
+| 36. Search & Parser Refactoring | - | 2/2 | Complete | 2026-01-19 |
