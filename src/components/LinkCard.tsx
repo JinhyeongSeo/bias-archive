@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Link, Tag, LinkMedia } from '@/types/database'
 import type { Platform } from '@/lib/metadata'
 import { TagEditor } from './TagEditor'
+import { ArchiveStatus, type ArchiveStatusType } from './ArchiveStatus'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
 import { getProxiedImageUrl, getProxiedVideoUrl, isVideoUrl } from '@/lib/proxy'
 import { quickSpring } from '@/lib/animations'
@@ -82,6 +83,11 @@ export function LinkCard({
   const [starred, setStarred] = useState<boolean>(link.starred || false)
   const [savingMemo, setSavingMemo] = useState(false)
   const [togglingStarred, setTogglingStarred] = useState(false)
+  const [isArchiving, setIsArchiving] = useState(false)
+  const [archiveStatus, setArchiveStatus] = useState<ArchiveStatusType>(
+    (link.archive_status as ArchiveStatusType) || null
+  )
+  const [archiveUrl, setArchiveUrl] = useState<string | null>(link.archive_url || null)
   const { getTagDisplayName } = useNameLanguage()
 
   const platform = (link.platform || 'other') as Platform
@@ -148,6 +154,39 @@ export function LinkCard({
     setTags(newTags)
     onTagsChange?.(link.id, newTags)
   }
+
+  const handleArchive = useCallback(async () => {
+    setIsArchiving(true)
+    try {
+      const response = await fetch(`/api/links/${link.id}/archive`, {
+        method: 'POST',
+      })
+
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
+
+      if (response.status === 501) {
+        // Archive not configured, silently ignore
+        console.log('Archive feature not configured')
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to archive')
+      }
+
+      const data = await response.json()
+      setArchiveStatus(data.archive_status as ArchiveStatusType)
+      setArchiveUrl(data.archive_url || null)
+    } catch (error) {
+      console.error('Archive error:', error)
+      setArchiveStatus('failed')
+    } finally {
+      setIsArchiving(false)
+    }
+  }, [link.id, locale])
 
   const handleDelete = async () => {
     if (!showConfirm) {
@@ -389,6 +428,15 @@ export function LinkCard({
 
         {/* Actions */}
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Archive status button */}
+          <ArchiveStatus
+            status={archiveStatus}
+            archiveUrl={archiveUrl}
+            onArchive={handleArchive}
+            isArchiving={isArchiving}
+            size="sm"
+          />
+
           {/* Starred button */}
           <motion.button
             onClick={handleToggleStarred}
@@ -740,6 +788,15 @@ export function LinkCard({
 
       {/* Actions */}
       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Archive status button */}
+        <ArchiveStatus
+          status={archiveStatus}
+          archiveUrl={archiveUrl}
+          onArchive={handleArchive}
+          isArchiving={isArchiving}
+          size="sm"
+        />
+
         {/* Starred button */}
         <motion.button
           onClick={handleToggleStarred}
