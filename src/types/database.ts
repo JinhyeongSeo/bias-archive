@@ -100,8 +100,7 @@ export type Database = {
           memo: string | null
           starred: boolean
           archive_status: string | null
-          archive_url: string | null
-          archived_thumbnail_url: string | null
+          archived_url: string | null
           archive_job_id: string | null
           archived_at: string | null
           created_at: string
@@ -121,8 +120,7 @@ export type Database = {
           memo?: string | null
           starred?: boolean
           archive_status?: string | null
-          archive_url?: string | null
-          archived_thumbnail_url?: string | null
+          archived_url?: string | null
           archive_job_id?: string | null
           archived_at?: string | null
           created_at?: string
@@ -142,8 +140,7 @@ export type Database = {
           memo?: string | null
           starred?: boolean
           archive_status?: string | null
-          archive_url?: string | null
-          archived_thumbnail_url?: string | null
+          archived_url?: string | null
           archive_job_id?: string | null
           archived_at?: string | null
           updated_at?: string
@@ -219,7 +216,6 @@ export type Database = {
           media_type: 'image' | 'video' | 'gif'
           position: number
           user_id: string | null
-          archived_url: string | null
           created_at: string
         }
         Insert: {
@@ -229,7 +225,6 @@ export type Database = {
           media_type: 'image' | 'video' | 'gif'
           position?: number
           user_id?: string | null
-          archived_url?: string | null
           created_at?: string
         }
         Update: {
@@ -239,7 +234,6 @@ export type Database = {
           media_type?: 'image' | 'video' | 'gif'
           position?: number
           user_id?: string | null
-          archived_url?: string | null
         }
         Relationships: [
           {
