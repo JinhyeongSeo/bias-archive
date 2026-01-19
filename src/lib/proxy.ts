@@ -5,7 +5,7 @@
  */
 
 // Domains that require proxy due to hotlink protection
-const HOTLINK_PROTECTED_DOMAINS = ['heye.kr', 'kgirls.net', 'twimg.com']
+const HOTLINK_PROTECTED_DOMAINS = ['heye.kr', 'kgirls.net', 'twimg.com', 'cdninstagram.com']
 
 // Video proxy URL (Cloudflare Worker)
 // Falls back to original URL if not set (graceful degradation)

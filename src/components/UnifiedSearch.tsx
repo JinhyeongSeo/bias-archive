@@ -2224,6 +2224,11 @@ export function UnifiedSearch({
         };
       }
 
+      // Instagram: media가 없으면 thumbnailUrl을 media로 변환 (뷰어 지원)
+      if (metadata.platform === 'instagram' && !metadata.media && metadata.thumbnailUrl) {
+        metadata.media = [{ type: 'image', url: metadata.thumbnailUrl }];
+      }
+
       const saveResponse = await fetch("/api/links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

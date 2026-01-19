@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
       return {
         url: item.url || `https://www.instagram.com/p/${item.shortCode}/`,
         title,
-        thumbnailUrl: item.displayUrl || null,
+        thumbnailUrl: item.displayUrl ? decodeHtmlEntities(item.displayUrl) : null,
         author: decodeHtmlEntities(item.ownerUsername || hashtag),
       }
     })

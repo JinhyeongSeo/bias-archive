@@ -152,6 +152,8 @@ export async function parseInstagram(url: string): Promise<VideoMetadata> {
       platform: 'instagram',
       originalDate: null,
       authorName,
+      // Include thumbnailUrl as media for viewer support
+      media: thumbnailUrl ? [{ type: 'image', url: thumbnailUrl }] : undefined,
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
