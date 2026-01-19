@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { ApifyClient } from 'apify-client'
+import { decodeHtmlEntities } from '@/lib/utils/decodeHtmlEntities'
 
 // Extend max duration for Apify actor execution (Vercel Hobby: max 60s)
 export const maxDuration = 60
@@ -52,39 +53,6 @@ interface InstagramSearchResult {
   thumbnailUrl: string | null
   author: string
   media?: MediaItem[]  // All images/videos for carousel support
-}
-
-/**
- * Decode HTML entities in a string
- */
-function decodeHtmlEntities(text: string): string {
-  const entities: Record<string, string> = {
-    '&amp;': '&',
-    '&lt;': '<',
-    '&gt;': '>',
-    '&quot;': '"',
-    '&#039;': "'",
-    '&#39;': "'",
-    '&apos;': "'",
-    '&#x27;': "'",
-    '&#x2F;': '/',
-    '&nbsp;': ' ',
-  }
-
-  // First handle named/numeric entities
-  let result = text.replace(/&[#\w]+;/g, (entity) => entities[entity] || entity)
-
-  // Then handle hex entities like &#xd558;
-  result = result.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
-    String.fromCharCode(parseInt(hex, 16))
-  )
-
-  // Handle decimal entities like &#54616;
-  result = result.replace(/&#(\d+);/g, (_, dec) =>
-    String.fromCharCode(parseInt(dec, 10))
-  )
-
-  return result
 }
 
 export async function GET(request: NextRequest) {

@@ -4,6 +4,7 @@
  */
 
 import type { VideoMetadata } from './index'
+import { decodeHtmlEntities } from '@/lib/utils/decodeHtmlEntities'
 
 /**
  * Extract post ID and type from Instagram URL
@@ -186,24 +187,4 @@ export async function parseInstagram(url: string): Promise<VideoMetadata> {
   } finally {
     clearTimeout(timeoutId)
   }
-}
-
-/**
- * Decode HTML entities in a string
- */
-function decodeHtmlEntities(text: string): string {
-  const entities: Record<string, string> = {
-    '&amp;': '&',
-    '&lt;': '<',
-    '&gt;': '>',
-    '&quot;': '"',
-    '&#039;': "'",
-    '&#39;': "'",
-    '&apos;': "'",
-    '&#x27;': "'",
-    '&#x2F;': '/',
-    '&nbsp;': ' ',
-  }
-
-  return text.replace(/&[#\w]+;/g, (entity) => entities[entity] || entity)
 }
