@@ -63,6 +63,7 @@ export async function saveToArchive(url: string): Promise<ArchiveSaveResult> {
       headers: {
         Authorization: `LOW ${accessKey}:${secretKey}`,
         'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
       },
       body: formData.toString(),
       signal: controller.signal,
@@ -133,6 +134,7 @@ export async function checkArchiveStatus(
         method: 'GET',
         headers: {
           Authorization: `LOW ${accessKey}:${secretKey}`,
+          Accept: 'application/json',
         },
         signal: controller.signal,
       }
