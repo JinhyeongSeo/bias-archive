@@ -14,7 +14,7 @@ import {
   quickSpring,
 } from '@/lib/animations'
 
-type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'selca'
+type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'selca' | 'instagram'
 type YouTubeOrder = 'relevance' | 'date' | 'viewCount'
 type YouTubePeriod = '' | 'today' | 'week' | 'month' | 'year'
 
@@ -51,6 +51,14 @@ interface SelcaResult {
   title: string
   thumbnailUrl: string
   author: string
+}
+
+interface InstagramResult {
+  url: string
+  title: string
+  thumbnailUrl: string | null
+  author: string
+  media?: { type: 'image' | 'video'; url: string }[]
 }
 
 interface EnrichedResult {
@@ -369,6 +377,29 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     }))
   }
 
+  const searchInstagram = async (searchQuery: string): Promise<EnrichedResult[]> => {
+    const response = await fetch(`/api/search/instagram?q=${encodeURIComponent(searchQuery)}`)
+    const data = await response.json()
+
+    if (!response.ok) {
+      if (data.notConfigured) {
+        setNotConfigured(true)
+        throw new Error('Instagram API가 설정되지 않았습니다')
+      }
+      throw new Error(data.error || 'Instagram 검색 실패')
+    }
+
+    return (data.results as InstagramResult[]).map(item => ({
+      url: item.url,
+      title: item.title,
+      thumbnailUrl: item.thumbnailUrl,
+      author: item.author,
+      platform: 'instagram' as Platform,
+      isSaved: checkIfSaved(item.url),
+      isSaving: false,
+    }))
+  }
+
   const handleSearch = async () => {
     if (!query.trim()) return
 
@@ -387,9 +418,13 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         searchResults = await searchHeye(query, 1)
       } else if (platform === 'kgirls') {
         searchResults = await searchKgirls(query, 1)
-      } else {
+      } else if (platform === 'selca') {
         // Initial selca search (no maxTimeId)
         searchResults = await searchSelca(query)
+      } else if (platform === 'instagram') {
+        searchResults = await searchInstagram(query)
+      } else {
+        searchResults = []
       }
       setResults(searchResults)
     } catch (err) {
@@ -658,6 +693,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         return 'bg-pink-100 dark:bg-pink-900/50 text-pink-600 dark:text-pink-400'
       case 'selca':
         return 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
+      case 'instagram':
+        return 'bg-gradient-to-r from-purple-100 via-pink-100 to-orange-100 dark:from-purple-900/50 dark:via-pink-900/50 dark:to-orange-900/50 text-pink-600 dark:text-pink-400'
       default:
         return 'bg-zinc-100 dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400'
     }
@@ -675,6 +712,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         return 'kgirls.net'
       case 'selca':
         return 'Selca'
+      case 'instagram':
+        return 'Instagram'
       default:
         return p
     }
@@ -783,6 +822,17 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                 >
                   Selca
                 </motion.button>
+                <motion.button
+                  onClick={() => handlePlatformChange('instagram')}
+                  className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                    platform === 'instagram'
+                      ? 'bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-orange-500/20 text-pink-700 dark:text-pink-300 ring-2 ring-pink-500/20'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
+                  {...pressScale}
+                >
+                  Instagram
+                </motion.button>
               </div>
 
           {/* Platform Notice - fixed height container, hidden for youtube */}
@@ -821,6 +871,11 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                 {platform === 'selca' && (
                   <p className="h-full flex items-center text-sm text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-4 rounded-lg">
                     selca.kastden.org 아이돌별 미디어 검색
+                  </p>
+                )}
+                {platform === 'instagram' && (
+                  <p className="h-full flex items-center text-sm text-pink-600 dark:text-pink-400 bg-gradient-to-r from-purple-50 via-pink-50 to-orange-50 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-orange-900/20 px-4 rounded-lg">
+                    Instagram 해시태그 검색 (예: 카리나, IVE)
                   </p>
                 )}
               </div>
@@ -976,13 +1031,13 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                         />
                       </div>
 
-                      {/* Thumbnail - larger size, heye/kgirls use top crop for face visibility */}
+                      {/* Thumbnail - larger size, heye/kgirls/instagram use top crop for face visibility */}
                       {result.thumbnailUrl ? (
                         isVideoUrl(result.thumbnailUrl) ? (
                           <video
                             src={getProxiedVideoUrl(result.thumbnailUrl)}
                             className={`w-32 h-20 object-cover rounded-lg flex-shrink-0 ${
-                              result.platform === 'heye' || result.platform === 'kgirls' ? 'object-top' : ''
+                              result.platform === 'heye' || result.platform === 'kgirls' || result.platform === 'instagram' ? 'object-top' : ''
                             }`}
                             muted
                             playsInline
@@ -994,7 +1049,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                             src={getProxiedImageUrl(result.thumbnailUrl)}
                             alt=""
                             className={`w-32 h-20 object-cover rounded-lg flex-shrink-0 ${
-                              result.platform === 'heye' || result.platform === 'kgirls' ? 'object-top' : ''
+                              result.platform === 'heye' || result.platform === 'kgirls' || result.platform === 'instagram' ? 'object-top' : ''
                             }`}
                           />
                         )

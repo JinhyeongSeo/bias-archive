@@ -15,6 +15,7 @@ const platformColors: Record<Platform, string> = {
   heye: 'bg-orange-500 dark:bg-orange-600',
   kgirls: 'bg-pink-500 dark:bg-pink-600',
   selca: 'bg-purple-500 dark:bg-purple-600',
+  instagram: 'bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500',
   other: 'bg-zinc-500 dark:bg-zinc-600',
 }
 

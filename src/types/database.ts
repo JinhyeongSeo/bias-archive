@@ -249,7 +249,7 @@ export type Database = {
         Row: {
           id: string
           query: string
-          platform: 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca'
+          platform: 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca' | 'instagram'
           results: unknown[]
           next_cursor: string | null
           next_page_token: string | null
@@ -261,7 +261,7 @@ export type Database = {
         Insert: {
           id?: string
           query: string
-          platform: 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca'
+          platform: 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca' | 'instagram'
           results: unknown[]
           next_cursor?: string | null
           next_page_token?: string | null
@@ -273,7 +273,7 @@ export type Database = {
         Update: {
           id?: string
           query?: string
-          platform?: 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca'
+          platform?: 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca' | 'instagram'
           results?: unknown[]
           next_cursor?: string | null
           next_page_token?: string | null
@@ -289,7 +289,7 @@ export type Database = {
           id: string
           user_id: string
           query: string
-          platform: 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca'
+          platform: 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca' | 'instagram'
           displayed_index: number
           viewed_at: string
         }
@@ -297,7 +297,7 @@ export type Database = {
           id?: string
           user_id: string
           query: string
-          platform: 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca'
+          platform: 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca' | 'instagram'
           displayed_index?: number
           viewed_at?: string
         }
@@ -305,7 +305,7 @@ export type Database = {
           id?: string
           user_id?: string
           query?: string
-          platform?: 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca'
+          platform?: 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca' | 'instagram'
           displayed_index?: number
           viewed_at?: string
         }

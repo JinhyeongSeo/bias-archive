@@ -23,6 +23,7 @@ const platformLabels: Record<Platform, string> = {
   heye: 'heye.kr',
   kgirls: 'kgirls.net',
   selca: 'selca.kastden.org',
+  instagram: 'Instagram',
   other: '웹사이트',
 }
 
@@ -33,6 +34,7 @@ const platformColors: Record<Platform, string> = {
   heye: 'bg-[--color-heye]',
   kgirls: 'bg-[--color-kgirls]',
   selca: 'bg-[--color-selca]',
+  instagram: 'bg-[--color-instagram]',
   other: 'bg-muted-foreground',
 }
 
