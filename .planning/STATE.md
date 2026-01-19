@@ -163,6 +163,7 @@ Progress: ███████████████████████�
 ### Pending Todos
 
 - [Twitter 검색 결과 URL 제목 저장 버그 (미해결)](.planning/todos/pending/2026-01-16-twitter-search-url-title-bug-v2.md) (Area: api)
+- [하이키 그룹 검색 결과 없음 버그](.planning/todos/pending/2026-01-19-highkey-group-search-no-results.md) (Area: api)
 
 ### Completed (Recently)
 
