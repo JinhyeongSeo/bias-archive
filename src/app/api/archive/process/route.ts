@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { createAdminClient } from '@/lib/supabase-admin';
 import {
   saveToArchive,
   checkWaybackAvailability,
@@ -54,16 +54,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Reset stale pending items (older than 5 minutes) back to queued
     const staleThreshold = new Date(Date.now() - STALE_PENDING_MINUTES * 60 * 1000).toISOString();
-    const { count: resetCount } = await supabase
+    const { data: resetData } = await supabase
       .from('links')
       .update({ archive_status: 'queued' })
       .eq('archive_status', 'pending')
       .lt('updated_at', staleThreshold)
-      .select('*', { count: 'exact', head: true });
+      .select('id');
+
+    const resetCount = resetData?.length || 0;
 
     if (resetCount && resetCount > 0) {
       console.log(`[Archive] Reset ${resetCount} stale pending items to queued`);
@@ -111,7 +113,7 @@ export async function POST(request: NextRequest) {
           .from('links')
           .update({
             archive_status: archivedUrl ? 'archived' : 'failed',
-            archived_url: archivedUrl,
+            archive_url: archivedUrl,
             archived_at: archivedUrl ? new Date().toISOString() : null,
           })
           .eq('id', link.id);
@@ -161,7 +163,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { count: queuedCount } = await supabase
       .from('links')
