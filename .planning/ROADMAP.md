@@ -602,6 +602,42 @@ Plans:
 **Details:**
 Phase complete - currentPage 계산 수정 및 페이지 정보 UI 추가
 
+### Phase 32: Namuwiki Fallback Search
+
+**Goal**: selca.kastden.org에 없는 아이돌 그룹/멤버를 나무위키에서 폴백 검색하여 자동 추가
+**Depends on**: Phase 31
+**Research**: Complete (나무위키 이용약관/robots.txt 조사 완료)
+**Plans**: 1
+
+**배경:**
+
+- selca.kastden.org에 등록되지 않은 아이돌이 존재
+- 수동 입력 시 그룹 정보까지 다 입력해야 해서 번거로움
+- 나무위키에서 그룹 페이지 파싱 시 멤버 목록 자동 추출 가능
+
+**조사 결과:**
+
+- robots.txt: `/w/` 경로 Allow (문서 페이지 크롤링 허용)
+- 라이선스: CC BY-NC-SA 2.0 KR (비영리, 출처 표시 시 사용 가능)
+- 명시적 금지 조항: 이용약관에서 크롤링 명시적 금지 없음
+- 주의: 서버 부담 최소화 필요, 캐시 활용 권장
+
+**기능 설명:**
+
+1. selca.kastden.org에서 먼저 검색
+2. 결과 없으면 나무위키에서 그룹 페이지 파싱 시도
+   - 그룹 페이지 URL: `https://namu.wiki/w/{그룹명}`
+   - 멤버 테이블에서 한글/영어 이름 추출
+3. 그래도 없으면 수동 입력 폼 제공 (최후 수단)
+4. 출처 표시: 나무위키 데이터 사용 시 출처 명시
+
+Plans:
+
+- [x] 32-01: 나무위키 파서 모듈 + API 폴백 + UI 출처 표시 ✓
+
+**Details:**
+selca → namuwiki 폴백 검색 구현, 출처 배지 UI 추가
+
 ## Progress
 
 **Execution Order:**
@@ -640,3 +676,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 29. Selca Refactoring | - | 1/1 | Complete | 2026-01-16 |
 | 30. Selca Infinite Scroll | - | 1/1 | Complete | 2026-01-16 |
 | 31. External Search Pagination | - | 1/1 | Complete | 2026-01-16 |
+| 32. Namuwiki Fallback Search | - | 1/1 | Complete | 2026-01-19 |

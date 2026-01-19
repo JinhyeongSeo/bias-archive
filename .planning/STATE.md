@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-13)
 
 **Core value:** 링크 정리가 핵심. URL을 넣으면 메타데이터를 자동 추출하고 태그를 붙여 깔끔하게 저장되는 것.
-**Current focus:** Phase 31-01 완료 - heye/kgirls/kgirls-issue 외부 검색 페이지네이션 수정
+**Current focus:** Phase 32-01 완료 - selca에 없는 아이돌 나무위키 폴백 검색
 **Production URL:** https://bias-archive-flax.vercel.app
 
 ## Current Position
 
-Phase: 31 of 31 (External Search Pagination)
+Phase: 32 of 32 (Namuwiki Fallback Search)
 Plan: 1 of 1 completed
 Status: Complete
-Last activity: 2026-01-16 — Completed 31-01-PLAN.md
+Last activity: 2026-01-19 — Completed 32-01-PLAN.md
 
-Progress: ████████████████████████████ 100% (31/31 phases complete)
+Progress: ████████████████████████████████ 100% (32/32 phases complete)
 
 **Milestone Complete!**
 
@@ -23,9 +23,9 @@ Progress: ███████████████████████�
 
 **Velocity:**
 
-- Total plans completed: 47
+- Total plans completed: 48
 - Average duration: ~8 min
-- Total execution time: ~372 min
+- Total execution time: ~376 min
 
 **By Phase:**
 
@@ -63,11 +63,12 @@ Progress: ███████████████████████�
 | 29. Selca Refactoring | 1 | 9 min | 9 min |
 | 30. Selca Infinite Scroll | 1 | 5 min | 5 min |
 | 31. External Search Pagination | 1 | 2 min | 2 min |
+| 32. Namuwiki Fallback Search | 1 | 4 min | 4 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 28-02 (~11m), 29-01 (9m), 30-01 (5m), 31-01 (2m)
-- Trend: Phase 31-01 완료! heye/kgirls/kgirls-issue 외부 검색 페이지네이션 수정.
+- Last 5 plans: 29-01 (9m), 30-01 (5m), 31-01 (2m), 32-01 (4m)
+- Trend: Phase 32-01 완료! selca에 없는 아이돌 나무위키 폴백 검색 구현.
 
 ## Accumulated Context
 
@@ -123,6 +124,10 @@ Progress: ███████████████████████�
 - selca max_time_id 기반 페이지네이션 (단방향, 다음 페이지만 가능)
 - extractMediaId로 미디어 ID 추출 (/original/, /thumb/ 패턴)
 - heye/kgirls/kgirls-issue 외부 검색: 캐시의 currentPage를 우선 사용하여 다음 페이지 계산
+- 나무위키 폴백 검색: selca에 없는 그룹은 나무위키에서 멤버 추출
+- namuwiki: 접두사로 그룹 ID 식별 (selca slug와 구분)
+- 나무위키 멤버는 hasSelcaOwner=false (selca 검색 불가)
+- UI에 출처 배지 표시 (selca/namuwiki 구분)
 
 ### Roadmap Evolution
 
@@ -149,6 +154,7 @@ Progress: ███████████████████████�
 - Phase 29 added: Selca Refactoring (selca 관련 코드 리팩토링, 꼬인 로직 정리) ✓
 - Phase 30 added: Selca Infinite Scroll (selca.kastden.org 무한 스크롤 페이지네이션 구현) ✓
 - Phase 31 added: External Search Pagination (heye, kgirls, kgirls-issue 외부 검색 페이지네이션) ✓
+- Phase 32 added: Namuwiki Fallback Search (selca에 없는 아이돌 나무위키 폴백 검색) ✓
 
 ### Deferred Issues
 
@@ -169,8 +175,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-16
-Stopped at: Phase 31-01 completed (heye/kgirls/kgirls-issue 외부 검색 페이지네이션)
+Last session: 2026-01-19
+Stopped at: Phase 32-01 completed (selca에 없는 아이돌 나무위키 폴백 검색)
 Resume file: None
 
 **Next recommended action:** 마일스톤 완료 또는 새 기능 추가
