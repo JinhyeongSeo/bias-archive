@@ -100,7 +100,7 @@ export type Database = {
           memo: string | null
           starred: boolean
           archive_status: string | null
-          archived_url: string | null
+          archive_url: string | null
           archive_job_id: string | null
           archived_at: string | null
           created_at: string
@@ -120,7 +120,7 @@ export type Database = {
           memo?: string | null
           starred?: boolean
           archive_status?: string | null
-          archived_url?: string | null
+          archive_url?: string | null
           archive_job_id?: string | null
           archived_at?: string | null
           created_at?: string
@@ -140,7 +140,7 @@ export type Database = {
           memo?: string | null
           starred?: boolean
           archive_status?: string | null
-          archived_url?: string | null
+          archive_url?: string | null
           archive_job_id?: string | null
           archived_at?: string | null
           updated_at?: string

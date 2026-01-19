@@ -68,10 +68,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // If already archived, return existing status
-    if (link.archive_status === 'archived' && link.archived_url) {
+    if (link.archive_status === 'archived' && link.archive_url) {
       return NextResponse.json({
         status: 'archived',
-        archived_url: link.archived_url,
+        archive_url: link.archive_url,
         archived_at: link.archived_at,
       });
     }
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Update link with archive status
     const updateData = {
       archive_status: archivedUrl ? 'archived' : 'failed',
-      archived_url: archivedUrl,
+      archive_url: archivedUrl,
       archived_at: archivedUrl ? new Date().toISOString() : null,
     };
 
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       status: updateData.archive_status,
-      archived_url: archivedUrl,
+      archive_url: archivedUrl,
       archived_at: updateData.archived_at,
     });
   } catch (error) {
@@ -184,7 +184,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Return current status
     return NextResponse.json({
       status: link.archive_status || null,
-      archived_url: link.archived_url,
+      archive_url: link.archive_url,
       archived_at: link.archived_at,
     });
   } catch (error) {

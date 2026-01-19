@@ -88,7 +88,7 @@ export function LinkCard({
     (link.archive_status as ArchiveStatusType) || null
   )
   const [archivedUrl, setArchivedUrl] = useState<string | null>(
-    link.archived_url || null
+    link.archive_url || null
   )
   const [imageError, setImageError] = useState(false)
   const { getTagDisplayName } = useNameLanguage()
@@ -198,7 +198,7 @@ export function LinkCard({
 
         if (data.status === 'archived') {
           setArchiveStatus('archived')
-          setArchivedUrl(data.archived_url || null)
+          setArchivedUrl(data.archive_url || null)
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current)
             pollIntervalRef.current = null
@@ -268,7 +268,7 @@ export function LinkCard({
       // API returns 'status' field, not 'archive_status'
       const newStatus = data.status as ArchiveStatusType
       setArchiveStatus(newStatus)
-      setArchivedUrl(data.archived_url || null)
+      setArchivedUrl(data.archive_url || null)
 
       // If pending, start polling for completion
       if (newStatus === 'pending') {
