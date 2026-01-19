@@ -165,9 +165,11 @@ Progress: ███████████████████████�
 
 ### Pending Todos
 
-- [만료된 검색 캐시 정리 작업 추가](.planning/todos/pending/2026-01-19-add-search-cache-cleanup.md) (Area: database)
+None.
 
 ### Completed (Recently)
+
+- [만료된 검색 캐시 정리 작업 추가](.planning/todos/done/2026-01-19-add-search-cache-cleanup.md) (Area: database)
 
 - [Twitter 검색 중 캐시된 결과 표시 차단 버그](.planning/todos/done/2026-01-19-twitter-search-blocks-cached-results.md) (Area: ui)
 - [Twitter 검색 결과 URL 제목 저장 버그](.planning/todos/done/2026-01-16-twitter-search-url-title-bug-v2.md) (Area: api)

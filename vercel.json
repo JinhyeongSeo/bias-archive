@@ -4,5 +4,11 @@
     "src/app/api/archive/process/route.ts": {
       "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-cache",
+      "schedule": "0 18 * * *"
+    }
+  ]
 }
