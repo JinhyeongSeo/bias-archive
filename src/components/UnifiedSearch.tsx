@@ -553,6 +553,7 @@ export function UnifiedSearch({
       setSelectedUrls(new Set());
       setCachedResults(new Map());
       setShowCached(new Map());
+      setIsSearching(false);
     }
     return () => {
       document.body.style.overflow = "";
