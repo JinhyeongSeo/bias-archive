@@ -1896,12 +1896,43 @@ export function UnifiedSearch({
           break;
         }
         case "instagram": {
-          // Instagram: No pagination support in MVP, just return empty
-          // Future: Could implement cursor-based pagination if Apify supports it
-          searchResult = {
-            results: [],
-            hasMore: false,
-          };
+          // Check cache first (Instagram has no API pagination, but can show more from cache)
+          const instaCacheEntry = await getSearchCache(query);
+          const instaCache = instaCacheEntry?.platforms.instagram;
+          const instaCachedResults = instaCache?.results ?? [];
+
+          // 현재 화면에 표시된 URL들
+          const instaDisplayedUrls = new Set(
+            currentData.results.map((r) => r.url)
+          );
+          // 캐시에서 아직 표시되지 않은 결과만 필터링
+          const instaUnshownInCache = instaCachedResults.filter(
+            (r) => !instaDisplayedUrls.has(r.url)
+          );
+
+          if (instaUnshownInCache.length > 0) {
+            // Use cached results
+            const toDisplay = instaUnshownInCache.slice(0, RESULTS_PER_PLATFORM);
+            searchResult = {
+              results: toDisplay.map((r) => ({
+                ...r,
+                isSaved: checkIfSaved(r.url),
+                isSaving: false,
+              })),
+              hasMore: instaUnshownInCache.length > RESULTS_PER_PLATFORM,
+            };
+            // Update cache displayedIndex
+            void updatePlatformCache(query, "instagram", {
+              ...instaCache!,
+              displayedIndex: localDisplayedCount + toDisplay.length,
+            });
+          } else {
+            // No more cached results, Instagram API doesn't support pagination
+            searchResult = {
+              results: [],
+              hasMore: false,
+            };
+          }
           break;
         }
         default:
