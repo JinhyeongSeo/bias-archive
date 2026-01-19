@@ -12,6 +12,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ApifyClient } from 'apify-client'
 
+// Extend max duration for Apify actor execution (Vercel Hobby: max 60s)
+export const maxDuration = 60
+
 interface ApifyInstagramResult {
   type: string
   id: string
@@ -71,7 +74,7 @@ export async function GET(request: NextRequest) {
     const { items } = await client.dataset(run.defaultDatasetId).listItems()
 
     // Transform results to unified format
-    const results: InstagramSearchResult[] = (items as ApifyInstagramResult[]).map((item) => {
+    const results: InstagramSearchResult[] = (items as unknown as ApifyInstagramResult[]).map((item) => {
       // For user search results
       if (item.type === 'user' || item.username) {
         return {
