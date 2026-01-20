@@ -1,5 +1,7 @@
-import { supabase } from "./supabase";
+import { supabase as browserClient } from "./supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
+  Database,
   Link,
   LinkInsert,
   LinkUpdate,
@@ -14,17 +16,19 @@ export type { Link, LinkInsert, LinkUpdate, LinkMedia, LinkMediaInsert };
  * Create a new link
  * @param data - Link data to insert
  * @param userId - Optional user ID for authenticated users
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function createLink(
   data: LinkInsert,
-  userId?: string | null
+  userId?: string | null,
+  client: SupabaseClient<Database> = browserClient
 ): Promise<Link> {
   const insertData = {
     ...data,
     user_id: userId || null,
   };
 
-  const { data: link, error } = await supabase
+  const { data: link, error } = await client
     .from("links")
     .insert([insertData])
     .select()
@@ -40,9 +44,14 @@ export async function createLink(
 /**
  * Get all links, optionally filtered by bias_id
  * Sorted by created_at descending (newest first)
+ * @param biasId - Optional bias ID to filter by
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function getLinks(biasId?: string): Promise<Link[]> {
-  let query = supabase
+export async function getLinks(
+  biasId?: string,
+  client: SupabaseClient<Database> = browserClient
+): Promise<Link[]> {
+  let query = client
     .from("links")
     .select("*")
     .order("created_at", { ascending: false });
@@ -62,9 +71,14 @@ export async function getLinks(biasId?: string): Promise<Link[]> {
 
 /**
  * Get a single link by ID
+ * @param id - Link ID
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function getLinkById(id: string): Promise<Link | null> {
-  const { data, error } = await supabase
+export async function getLinkById(
+  id: string,
+  client: SupabaseClient<Database> = browserClient
+): Promise<Link | null> {
+  const { data, error } = await client
     .from("links")
     .select("*")
     .eq("id", id)
@@ -83,9 +97,14 @@ export async function getLinkById(id: string): Promise<Link | null> {
 
 /**
  * Delete a link by ID
+ * @param id - Link ID
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function deleteLink(id: string): Promise<void> {
-  const { error } = await supabase.from("links").delete().eq("id", id);
+export async function deleteLink(
+  id: string,
+  client: SupabaseClient<Database> = browserClient
+): Promise<void> {
+  const { error } = await client.from("links").delete().eq("id", id);
 
   if (error) {
     throw error;
@@ -94,9 +113,14 @@ export async function deleteLink(id: string): Promise<void> {
 
 /**
  * Check if a URL already exists in the database
+ * @param url - URL to check
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function checkDuplicateUrl(url: string): Promise<boolean> {
-  const { data, error } = await supabase
+export async function checkDuplicateUrl(
+  url: string,
+  client: SupabaseClient<Database> = browserClient
+): Promise<boolean> {
+  const { data, error } = await client
     .from("links")
     .select("id")
     .eq("url", url)
@@ -139,10 +163,14 @@ export interface MediaData {
 
 /**
  * Create link media entries for a given link
+ * @param linkId - Link ID
+ * @param mediaList - List of media to add
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function createLinkMedia(
   linkId: string,
-  mediaList: MediaData[]
+  mediaList: MediaData[],
+  client: SupabaseClient<Database> = browserClient
 ): Promise<LinkMedia[]> {
   if (mediaList.length === 0) return [];
 
@@ -153,7 +181,7 @@ export async function createLinkMedia(
     position: index,
   }));
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("link_media")
     .insert(mediaInserts)
     .select();
@@ -168,10 +196,12 @@ export async function createLinkMedia(
 /**
  * Get all links with their associated tags and media
  * Sorted by created_at descending (newest first)
+ * @param biasId - Optional bias ID to filter by
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function getLinksWithTags(
   biasId?: string,
-  client = supabase
+  client: SupabaseClient<Database> = browserClient
 ): Promise<LinkWithTagsAndMedia[]> {
   let query = client
     .from("links")
@@ -223,10 +253,12 @@ export async function getLinksWithTags(
  * Search and filter links with their associated tags and media
  * Supports text search, tag filtering, and platform filtering
  * Sorted by created_at descending (newest first)
+ * @param params - Search parameters
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function searchLinksWithTags(
   params: SearchLinksParams,
-  client = supabase
+  client: SupabaseClient<Database> = browserClient
 ): Promise<LinkWithTagsAndMedia[]> {
   const { biasId, search, tagIds, platform } = params;
 
@@ -324,11 +356,14 @@ export async function searchLinksWithTags(
 
 /**
  * Update a link's memo or starred status
+ * @param id - Link ID
+ * @param data - Update data
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function updateLink(
   id: string,
   data: { memo?: string | null; starred?: boolean },
-  client = supabase
+  client: SupabaseClient<Database> = browserClient
 ): Promise<Link> {
   const { data: link, error } = await client
     .from("links")
@@ -349,10 +384,12 @@ export async function updateLink(
 
 /**
  * Toggle starred status for a link
+ * @param id - Link ID
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function toggleLinkStarred(
   id: string,
-  client = supabase
+  client: SupabaseClient<Database> = browserClient
 ): Promise<Link> {
   // First get current starred status
   const { data: currentLink, error: fetchError } = await client
@@ -372,10 +409,12 @@ export async function toggleLinkStarred(
 
 /**
  * Get starred links with tags and media
+ * @param biasId - Optional bias ID to filter by
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function getStarredLinks(
   biasId?: string,
-  client = supabase
+  client: SupabaseClient<Database> = browserClient
 ): Promise<LinkWithTagsAndMedia[]> {
   let query = client
     .from("links")
@@ -428,11 +467,12 @@ export async function getStarredLinks(
  * Get links saved on this day in past years ("On This Day" feature)
  * Matches month and day of original_date or created_at with today's date
  * @param yearsAgo - How many years back to look (default: 1)
+ * @param client - Optional Supabase client (defaults to browser client)
  * @returns Links from this day in past years, with tags
  */
 export async function getLinksOnThisDay(
   yearsAgo: number = 1,
-  client = supabase
+  client: SupabaseClient<Database> = browserClient
 ): Promise<LinkWithTagsAndMedia[]> {
   const today = new Date();
   const targetMonth = today.getMonth() + 1; // JavaScript months are 0-indexed
