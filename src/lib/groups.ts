@@ -1,13 +1,17 @@
-import { supabase } from "./supabase";
-import type { Group, GroupInsert } from "@/types/database";
+import { supabase as browserClient } from "./supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Group, GroupInsert } from "@/types/database";
 
 export type { Group, GroupInsert };
 
 /**
  * Get all groups
  * Sorted by sort_order ascending (NULLS LAST), then name ascending as fallback
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function getGroups(client = supabase): Promise<Group[]> {
+export async function getGroups(
+  client: SupabaseClient<Database> = browserClient
+): Promise<Group[]> {
   const { data, error } = await client
     .from("groups")
     .select("*")
@@ -23,10 +27,12 @@ export async function getGroups(client = supabase): Promise<Group[]> {
 
 /**
  * Get a single group by ID
+ * @param id - Group ID
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function getGroup(
   id: string,
-  client = supabase
+  client: SupabaseClient<Database> = browserClient
 ): Promise<Group | null> {
   const { data, error } = await client
     .from("groups")
@@ -46,10 +52,12 @@ export async function getGroup(
 
 /**
  * Get a group by name (matches name, name_en, or name_ko)
+ * @param name - Group name
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function getGroupByName(
   name: string,
-  client = supabase
+  client: SupabaseClient<Database> = browserClient
 ): Promise<Group | null> {
   const nameLower = name.toLowerCase();
 
@@ -72,14 +80,18 @@ export async function getGroupByName(
 
 /**
  * Create a new group
+ * @param name - Group name
+ * @param nameEn - Optional English name
+ * @param nameKo - Optional Korean name
  * @param userId - Optional user ID for authenticated users
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function createGroup(
   name: string,
   nameEn?: string | null,
   nameKo?: string | null,
   userId?: string | null,
-  client = supabase
+  client: SupabaseClient<Database> = browserClient
 ): Promise<Group> {
   const insertData: GroupInsert = {
     name,
@@ -88,7 +100,7 @@ export async function createGroup(
     user_id: userId || null,
   };
 
-  const { data, error } = await (client || supabase)
+  const { data, error } = await client
     .from("groups")
     .insert([insertData])
     .select()
@@ -104,14 +116,18 @@ export async function createGroup(
 /**
  * Get or create a group by name
  * Returns existing group if found by name/name_en/name_ko, otherwise creates new
+ * @param name - Group name
+ * @param nameEn - Optional English name
+ * @param nameKo - Optional Korean name
  * @param userId - Optional user ID for authenticated users (used when creating)
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function getOrCreateGroup(
   name: string,
   nameEn?: string | null,
   nameKo?: string | null,
   userId?: string | null,
-  client = supabase
+  client: SupabaseClient<Database> = browserClient
 ): Promise<Group> {
   // Try to find existing group by any name field
   const existing = await getGroupByName(name, client);
@@ -141,10 +157,11 @@ export async function getOrCreateGroup(
 /**
  * Reorder groups by updating their sort_order values
  * @param orderedIds - Array of group IDs in desired order
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function reorderGroups(
   orderedIds: string[],
-  client = supabase
+  client: SupabaseClient<Database> = browserClient
 ): Promise<void> {
   // Update each group with its new sort_order (1-indexed)
   const updates = orderedIds.map((id, index) => ({
@@ -162,10 +179,6 @@ export async function reorderGroups(
   // Check for any errors
   const errors = results.filter((result) => result.error);
   if (errors.length > 0) {
-    console.error(
-      "Errors updating group sort_order:",
-      errors.map((e) => e.error)
-    );
     throw new Error(`Failed to update ${errors.length} group(s)`);
   }
 }
