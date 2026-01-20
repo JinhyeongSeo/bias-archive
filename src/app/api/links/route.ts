@@ -4,6 +4,10 @@ import type { LinkInsert, MediaData, LinkMediaInsert } from "@/lib/links";
 import { getBiases } from "@/lib/biases";
 import { extractAutoTags, combineTextForTagExtraction } from "@/lib/autoTag";
 import { createClient } from "@/lib/supabase-server";
+import { createLogger } from "@/lib/logger";
+import { handleApiError, badRequest, unauthorized, ApiError } from "@/lib/api-error";
+
+const logger = createLogger("Links API");
 
 /**
  * GET /api/links
@@ -38,11 +42,7 @@ export async function GET(request: NextRequest) {
     );
     return NextResponse.json(links);
   } catch (error) {
-    console.error("Error fetching links:", error);
-    return NextResponse.json(
-      { error: "링크 목록을 가져오는데 실패했습니다" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -61,10 +61,7 @@ export async function POST(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json(
-        { error: "로그인이 필요합니다" },
-        { status: 401 }
-      );
+      unauthorized();
     }
 
     const body = await request.json();
@@ -83,17 +80,14 @@ export async function POST(request: NextRequest) {
 
     // Validate required field
     if (!url || typeof url !== "string") {
-      return NextResponse.json({ error: "URL은 필수입니다" }, { status: 400 });
+      badRequest("URL은 필수입니다");
     }
 
     // Validate URL format
     try {
       new URL(url);
     } catch {
-      return NextResponse.json(
-        { error: "유효하지 않은 URL입니다" },
-        { status: 400 }
-      );
+      badRequest("유효하지 않은 URL입니다");
     }
 
     // Check for duplicate URL using authenticated client
@@ -104,10 +98,7 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (existingLinks && existingLinks.length > 0) {
-      return NextResponse.json(
-        { error: "이미 저장된 URL입니다" },
-        { status: 409 }
-      );
+      throw new ApiError(409, "이미 저장된 URL입니다", "CONFLICT");
     }
 
     // Create link with authenticated server client
@@ -159,7 +150,7 @@ export async function POST(request: NextRequest) {
         }
       } catch (error) {
         // Log but don't fail the request if media save fails
-        console.error("Error saving link media:", error);
+        logger.error("Error saving link media:", error);
       }
     }
 
@@ -216,7 +207,7 @@ export async function POST(request: NextRequest) {
         ) {
           // console.log(`Link tag already exists for link ${link.id} and tag ${tag?.id}. Skipping.`);
         } else {
-          console.error(`Error linking tag "${tagName}":`, error);
+          logger.error(`Error linking tag "${tagName}":`, error);
         }
       }
     }
@@ -235,10 +226,6 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error creating link:", error);
-    return NextResponse.json(
-      { error: "링크를 저장하는데 실패했습니다" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

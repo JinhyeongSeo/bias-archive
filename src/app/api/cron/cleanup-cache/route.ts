@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Cleanup Cache Cron')
 
 const CACHE_TTL_HOURS = 24
 
@@ -21,25 +24,22 @@ export async function GET(request: NextRequest) {
 
     const cutoffDate = new Date(Date.now() - CACHE_TTL_HOURS * 60 * 60 * 1000).toISOString()
 
-    // Delete expired search_cache entries
     const { count: cacheCount, error: cacheError } = await supabase
       .from('search_cache')
       .delete()
       .lt('cached_at', cutoffDate)
-      .select('*', { count: 'exact', head: true })
 
     if (cacheError) throw cacheError
 
-    // Delete expired search_viewed entries
+    // Delete expired user_search_viewed entries
     const { count: viewedCount, error: viewedError } = await supabase
-      .from('search_viewed')
+      .from('user_search_viewed')
       .delete()
       .lt('viewed_at', cutoffDate)
-      .select('*', { count: 'exact', head: true })
 
     if (viewedError) throw viewedError
 
-    console.log(`Cleanup complete: ${cacheCount ?? 0} cache, ${viewedCount ?? 0} viewed entries deleted`)
+    logger.debug(`Cleanup complete: ${cacheCount ?? 0} cache, ${viewedCount ?? 0} viewed entries deleted`)
 
     return NextResponse.json({
       success: true,

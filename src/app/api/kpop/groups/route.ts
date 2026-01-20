@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchGroups } from '@/lib/parsers/selca'
 import { searchGroupFromNamuwiki, getGroupMembersFromNamuwiki } from '@/lib/parsers/namuwiki'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('K-pop Groups API')
 
 /**
  * API 응답용 그룹 타입 (source 필드 포함)
@@ -57,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. 한글 검색어이거나 영문 검색에서 결과 없음 → namuwiki에서 검색
-    console.log(`[K-pop Groups API] Searching namuwiki for: ${trimmedQuery}`)
+    logger.debug(`Searching namuwiki for: ${trimmedQuery}`)
 
     const namuwikiGroup = await searchGroupFromNamuwiki(trimmedQuery)
 
@@ -69,7 +72,7 @@ export async function GET(request: NextRequest) {
 
       // 3. 영문명이 있으면 selca에서 재검색 시도
       if (englishName) {
-        console.log(`[K-pop Groups API] Found English name: ${englishName}, searching selca...`)
+        logger.debug(`Found English name: ${englishName}, searching selca...`)
         const selcaGroups = await searchGroups(englishName)
 
         if (selcaGroups.length > 0) {
@@ -110,7 +113,7 @@ export async function GET(request: NextRequest) {
     // 6. 결과 없음
     return NextResponse.json({ groups: [] })
   } catch (error) {
-    console.error('Error searching K-pop groups:', error)
+    logger.error('Error searching K-pop groups:', error)
     return NextResponse.json(
       { error: '그룹 검색에 실패했습니다' },
       { status: 500 }

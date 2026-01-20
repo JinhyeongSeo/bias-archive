@@ -5,6 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import * as cheerio from 'cheerio'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Kgirls Search API')
 
 interface KgirlsSearchResult {
   url: string
@@ -82,7 +85,7 @@ export async function GET(request: NextRequest) {
       const absoluteUrl = `https://www.kgirls.net${src}`
       thumbnails.push(convertThumbnailToLarger(absoluteUrl))
     }
-    console.log('[Kgirls Search] Found thumbnails:', thumbnails.length)
+    logger.debug('Found thumbnails:', thumbnails.length)
 
     // Collect all post IDs in order using regex
     const postIds: string[] = []
@@ -94,7 +97,7 @@ export async function GET(request: NextRequest) {
         postIds.push(postId)
       }
     }
-    console.log('[Kgirls Search] Found postIds:', postIds.length)
+    logger.debug('Found postIds:', postIds.length)
 
     // Build results by matching postIds with thumbnails (same order)
     postIds.forEach((postId, index) => {
@@ -125,7 +128,7 @@ export async function GET(request: NextRequest) {
         author: '',
       })
     })
-    console.log('[Kgirls Search] Final results:', results.length, 'with thumbnails:', results.filter(r => r.thumbnailUrl).length)
+    logger.debug('Final results:', results.length, 'with thumbnails:', results.filter(r => r.thumbnailUrl).length)
 
     // Extract total pages from pagination
     // XE CMS pagination typically uses numbered links
@@ -174,7 +177,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(responseData)
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
-    console.error('[Kgirls Search] Error:', errorMessage, error)
+    logger.error(`Error: ${errorMessage}`, error)
     return NextResponse.json(
       { error: `kgirls.net 검색 중 오류: ${errorMessage}` },
       { status: 500 }

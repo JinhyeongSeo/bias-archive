@@ -5,6 +5,9 @@ import {
   checkWaybackAvailability,
   getWaybackUrl,
 } from '@/lib/archive';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('Archive Process API');
 
 // Process limit per call - increased since we only archive page URLs now (1 API call per link)
 const ITEMS_PER_BATCH = 10;
@@ -32,8 +35,8 @@ async function archivePageUrl(url: string): Promise<string | null> {
     if (result.status === 'pending') {
       return getWaybackUrl(url);
     }
-  } catch (error) {
-    console.error(`Error archiving page URL ${url}:`, error);
+    } catch (error) {
+    logger.error(`Error archiving page URL ${url}:`, error);
   }
 
   return null;
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
     const resetCount = resetData?.length || 0;
 
     if (resetCount && resetCount > 0) {
-      console.log(`[Archive] Reset ${resetCount} stale pending items to queued`);
+      logger.debug(`Reset ${resetCount} stale pending items to queued`);
     }
 
     // Get queued links (oldest first) - no need to fetch link_media anymore
@@ -80,7 +83,7 @@ export async function POST(request: NextRequest) {
       .limit(ITEMS_PER_BATCH);
 
     if (fetchError) {
-      console.error('Error fetching queued links:', fetchError);
+      logger.error('Error fetching queued links:', fetchError);
       return NextResponse.json(
         { error: 'Failed to fetch queue' },
         { status: 500 }
@@ -124,7 +127,7 @@ export async function POST(request: NextRequest) {
         // Rate limit between links
         await delay(DELAY_BETWEEN_REQUESTS);
       } catch (error) {
-        console.error(`Error processing link ${link.id}:`, error);
+        logger.error(`Error processing link ${link.id}:`, error);
 
         // Mark as failed
         await supabase
@@ -149,7 +152,7 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error) {
-    console.error('Error processing archive queue:', error);
+    logger.error('Error processing archive queue:', error);
     return NextResponse.json(
       { error: 'Failed to process queue' },
       { status: 500 }
@@ -186,7 +189,7 @@ export async function GET() {
       archived: archivedCount || 0,
     });
   } catch (error) {
-    console.error('Error getting queue status:', error);
+    logger.error('Error getting queue status:', error);
     return NextResponse.json(
       { error: 'Failed to get queue status' },
       { status: 500 }

@@ -12,6 +12,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { parse } from 'node-html-parser'
 import { searchMembers, fetchHtmlFromSelca } from '@/lib/parsers/selca'
 import { SelcaSearchResult, SelcaSearchResponse } from '@/lib/selca-types'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Selca Search API')
 
 const BASE_URL = 'https://selca.kastden.org'
 
@@ -52,7 +55,7 @@ export async function GET(request: NextRequest) {
       // 그룹은 slug 형식이 단순함 (예: "nmixx", "aespa")
       slug = query.toLowerCase()
       displayName = query
-      console.log(`[Selca Search API] Group search: "${slug}"`)
+      logger.debug(`Group search: "${slug}"`)
     }
     // 멤버 검색인 경우
     else {
@@ -62,11 +65,11 @@ export async function GET(request: NextRequest) {
         // Query is already a slug - use it directly (Bias.selca_slug 활용)
         slug = query
         displayName = query.replace(/_/g, ' ')
-        console.log(`[Selca Search API] Using slug directly: "${slug}"`)
+        logger.debug(`Using slug directly: "${slug}"`)
       } else {
         // Query is not a slug - search for matching idol
         // NOTE: searchMembers는 @deprecated, 타임아웃 가능성 있음
-        console.log(`[Selca Search API] Searching for idol: "${query}"`)
+        logger.debug(`Searching for idol: "${query}"`)
         const idols = await searchMembers(query)
 
         if (idols.length === 0) {
@@ -162,7 +165,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(responseData)
   } catch (error) {
-    console.error('[Selca Search] Error:', error)
+    logger.error(error)
 
     if (error instanceof Error) {
       if (error.message.includes('HTTP 404')) {

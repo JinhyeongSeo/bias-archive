@@ -8,6 +8,9 @@
  */
 
 import { parse, HTMLElement } from 'node-html-parser'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Namuwiki Parser')
 
 const BASE_URL = 'https://namu.wiki'
 // Cloudflare Workers 프록시 URL (Vercel에서 직접 접근 시 403 차단됨)
@@ -86,7 +89,7 @@ async function fetchHtmlFromNamuwiki(url: string): Promise<string> {
   try {
     // Cloudflare Workers 프록시를 통해 요청
     const proxyUrl = `${PROXY_URL}?url=${encodeURIComponent(url)}`
-    console.log(`[Namuwiki Parser] Fetching via proxy: ${proxyUrl}`)
+    logger.debug(`Fetching via proxy: ${proxyUrl}`)
 
     const response = await fetch(proxyUrl, {
       signal: controller.signal,
@@ -142,20 +145,20 @@ export async function searchGroupFromNamuwiki(groupName: string): Promise<Namuwi
 
   try {
     const url = `${BASE_URL}/w/${encodeURIComponent(normalizedName)}`
-    console.log(`[Namuwiki Parser] Fetching: ${url}`)
+    logger.debug(`Fetching: ${url}`)
     const html = await fetchHtmlFromNamuwiki(url)
-    console.log(`[Namuwiki Parser] HTML length: ${html.length}`)
+    logger.debug(`HTML length: ${html.length}`)
 
     const root = parse(html)
 
     // 페이지 제목 확인
     const title = root.querySelector('title')
     const titleText = getText(title)
-    console.log(`[Namuwiki Parser] Title: ${titleText}`)
+    logger.debug(`Title: ${titleText}`)
 
     // 404 또는 존재하지 않는 문서 체크
     if (titleText.includes('이 문서가 없습니다') || titleText.includes('Not Found')) {
-      console.log(`[Namuwiki Parser] Document not found`)
+      logger.debug(`Document not found`)
       return null
     }
 
@@ -170,7 +173,7 @@ export async function searchGroupFromNamuwiki(groupName: string): Promise<Namuwi
     // "멤버" 또는 "구성원" 키워드로 아이돌 그룹 판단
     const contentText = content.textContent || ''
     const hasMemberSection = contentText.includes('멤버') || contentText.includes('구성원')
-    console.log(`[Namuwiki Parser] Has member section: ${hasMemberSection}`)
+    logger.debug(`Has member section: ${hasMemberSection}`)
 
     if (!hasMemberSection) {
       return null
@@ -182,7 +185,7 @@ export async function searchGroupFromNamuwiki(groupName: string): Promise<Namuwi
       memberCount: 0, // 실제 멤버 조회 시 업데이트
     }
   } catch (error) {
-    console.error(`[Namuwiki Parser] Error searching group ${groupName}:`, error)
+    logger.error(`Error searching group ${groupName}:`, error)
     return null
   }
 }
@@ -198,22 +201,22 @@ export async function getGroupMembersFromNamuwiki(
   // 캐시 확인
   const cached = groupMembersCache.get(cacheKey)
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    console.log(`[Namuwiki Parser] Cache hit for: ${groupName}`)
+    logger.debug(`Cache hit for: ${groupName}`)
     return cached.data
   }
 
   try {
     const url = `${BASE_URL}/w/${encodeURIComponent(groupName.trim())}`
-    console.log(`[Namuwiki Parser] Fetching members for: ${url}`)
+    logger.debug(`Fetching members for: ${url}`)
     const html = await fetchHtmlFromNamuwiki(url)
-    console.log(`[Namuwiki Parser] Members HTML length: ${html.length}`)
+    logger.debug(`Members HTML length: ${html.length}`)
 
     const root = parse(html)
 
     // 페이지 제목에서 그룹명 추출
     const title = root.querySelector('title')
     const titleText = getText(title).replace(' - 나무위키', '').trim()
-    console.log(`[Namuwiki Parser] Members page title: ${titleText}`)
+    logger.debug(`Members page title: ${titleText}`)
 
     // 404 체크
     if (titleText.includes('이 문서가 없습니다')) {
@@ -247,7 +250,7 @@ export async function getGroupMembersFromNamuwiki(
     // Googlebot 응답에서 wiki-link-internal 클래스를 가진 모든 링크 찾기
     // 멤버 이름은 보통 /w/멤버이름 형식의 내부 링크로 표시됨
     const allLinks = root.querySelectorAll('a.wiki-link-internal, a[href^="/w/"]')
-    console.log(`[Namuwiki Parser] Found ${allLinks.length} wiki links`)
+    logger.debug(`Found ${allLinks.length} wiki links`)
 
     for (const link of allLinks) {
       const href = link.getAttribute('href') || ''
@@ -282,7 +285,7 @@ export async function getGroupMembersFromNamuwiki(
       })
     }
 
-    console.log(`[Namuwiki Parser] Extracted ${members.length} potential members:`, members.map(m => m.name_ko))
+    logger.debug(`Extracted ${members.length} potential members:`, members.map(m => m.name_ko))
 
     // 이름 빈도 분석: 여러 번 언급된 이름이 실제 멤버일 가능성이 높음
     // K-pop 문서에서 멤버는 프로필 테이블, 포지션 테이블, 갤러리 등에서 반복 언급됨
@@ -299,19 +302,19 @@ export async function getGroupMembersFromNamuwiki(
       }
     }
 
-    console.log(`[Namuwiki Parser] Name frequency:`, Object.fromEntries(nameFrequency))
+    logger.debug(`Name frequency:`, Object.fromEntries(nameFrequency))
 
     // 빈도가 높은 이름 (3회 이상 언급) + 2-3글자 한글 이름만 선택
     const frequentNames = Array.from(nameFrequency.entries())
       .filter(([name, count]) => count >= 3) // 최소 3번 이상 언급
       .map(([name]) => name)
 
-    console.log(`[Namuwiki Parser] Frequent names (3+ mentions):`, frequentNames)
+    logger.debug(`Frequent names (3+ mentions):`, frequentNames)
 
     // 빈도 기반 필터링된 멤버만 유지
     if (frequentNames.length >= 2 && frequentNames.length <= 15) {
       const filteredMembers = members.filter(m => frequentNames.includes(m.name_ko))
-      console.log(`[Namuwiki Parser] Filtered by frequency: ${filteredMembers.length} members:`, filteredMembers.map(m => m.name_ko))
+      logger.debug(`Filtered by frequency: ${filteredMembers.length} members:`, filteredMembers.map(m => m.name_ko))
 
       if (filteredMembers.length >= 2) {
         members.length = 0
@@ -321,7 +324,7 @@ export async function getGroupMembersFromNamuwiki(
 
     // 여전히 너무 많으면 엄격한 필터 적용
     if (members.length > 15) {
-      console.log(`[Namuwiki Parser] Still too many (${members.length}), applying strict filter`)
+      logger.debug(`Still too many (${members.length}), applying strict filter`)
       const filtered = members.filter(m => {
         const len = m.name_ko.length
         return len >= 2 && len <= 3 && /^[가-힣]+$/.test(m.name_ko)
@@ -332,7 +335,7 @@ export async function getGroupMembersFromNamuwiki(
 
     // 멤버가 없거나 너무 적으면 그룹이 아닌 것으로 판단
     if (members.length < 2) {
-      console.log(`[Namuwiki Parser] Too few members (${members.length}), likely not an idol group`)
+      logger.debug(`Too few members (${members.length}), likely not an idol group`)
       groupMembersCache.set(cacheKey, { data: null, timestamp: Date.now() })
       return null
     }
@@ -356,11 +359,11 @@ export async function getGroupMembersFromNamuwiki(
       source: 'namuwiki',
     }
 
-    console.log(`[Namuwiki Parser] Success: ${groupName} with ${members.length} members`)
+    logger.debug(`Success: ${groupName} with ${members.length} members`)
     groupMembersCache.set(cacheKey, { data: result, timestamp: Date.now() })
     return result
   } catch (error) {
-    console.error(`[Namuwiki Parser] Error fetching members for ${groupName}:`, error)
+    logger.error(`Error fetching members for ${groupName}:`, error)
     groupMembersCache.set(cacheKey, { data: null, timestamp: Date.now() })
     return null
   }

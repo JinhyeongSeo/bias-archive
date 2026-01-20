@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getGroupMembers, searchGroups } from '@/lib/parsers/selca'
 import { getGroupMembersFromNamuwiki } from '@/lib/parsers/namuwiki'
 import type { KpopMember } from '@/lib/selca-types'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('K-pop Members API')
 
 /**
  * 이름 정규화 (비교용)
@@ -29,7 +32,7 @@ export async function GET(
     // namuwiki: 접두사인 경우 나무위키에서 조회
     if (groupId.startsWith('namuwiki:')) {
       const groupName = groupId.replace('namuwiki:', '')
-      console.log(`[K-pop Members API] Fetching from namuwiki: ${groupName}`)
+      logger.debug(`Fetching from namuwiki: ${groupName}`)
 
       const namuwikiResult = await getGroupMembersFromNamuwiki(groupName)
 
@@ -45,14 +48,14 @@ export async function GET(
       const englishName = namuwikiResult.groupNameEn
 
       if (englishName) {
-        console.log(`[K-pop Members API] Searching selca for: ${englishName}`)
+        logger.debug(`Searching selca for: ${englishName}`)
         const selcaGroups = await searchGroups(englishName)
 
         if (selcaGroups.length > 0) {
           // selca 그룹의 멤버 목록 가져오기
           const selcaResult = await getGroupMembers(selcaGroups[0].id)
           selcaMembers = selcaResult.members
-          console.log(`[K-pop Members API] Found ${selcaMembers.length} selca members`)
+          logger.debug(`Found ${selcaMembers.length} selca members`)
         }
       }
 
@@ -126,7 +129,7 @@ export async function GET(
       source: 'selca',
     })
   } catch (error) {
-    console.error('Error fetching group members:', error)
+    logger.error('Error fetching group members:', error)
     return NextResponse.json(
       { error: '그룹 멤버 조회에 실패했습니다' },
       { status: 500 }

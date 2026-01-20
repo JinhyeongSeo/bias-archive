@@ -15,6 +15,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ApifyClient } from 'apify-client'
 import { decodeHtmlEntities } from '@/lib/utils/decodeHtmlEntities'
 import type { ParsedMedia } from '@/lib/parsers'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Instagram Search API')
 
 // Extend max duration for Apify actor execution (Vercel Hobby: max 60s)
 export const maxDuration = 60
@@ -75,7 +78,7 @@ export async function GET(request: NextRequest) {
   const hashtag = query.replace(/^#/, '')
 
   try {
-    console.log(`[Instagram Search] Calling Apify Hashtag Scraper for: #${hashtag}`)
+    logger.debug(`Calling Apify Hashtag Scraper for: #${hashtag}`)
     const client = new ApifyClient({ token: apiToken })
 
     // Run Instagram Hashtag Scraper actor
@@ -97,7 +100,7 @@ export async function GET(request: NextRequest) {
 
     // Handle empty results from Apify
     if (!items || items.length === 0) {
-      console.log(`[Instagram Search] No results found for: #${hashtag}`)
+      logger.debug(`No results found for: #${hashtag}`)
       return NextResponse.json({
         results: [],
         hasMore: false,
@@ -150,7 +153,7 @@ export async function GET(request: NextRequest) {
       hasMore,
     })
   } catch (error) {
-    console.error('[Instagram Search] Error:', error)
+    logger.error(error)
 
     if (error instanceof Error) {
       // Handle Apify-specific errors
