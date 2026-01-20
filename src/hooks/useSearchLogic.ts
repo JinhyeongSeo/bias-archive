@@ -168,7 +168,14 @@ export function useSearchLogic({ query, savedUrls, biases, groups, enabledPlatfo
 
   const searchSelca = async (q: string, page: number = 1, maxTimeId?: string): Promise<SearchResultBase> => {
     const nq = q.trim().toLowerCase();
-    const mb = biases.find(b => b.name.toLowerCase() === nq || b.name_en?.toLowerCase() === nq || b.name_ko?.toLowerCase() === nq);
+    // removeKoreanSurname 적용한 값으로도 비교 (드롭다운 선택 시 "홍은채" → "은채"로 변환됨)
+    const mb = biases.find(b => {
+      const nameMatch = b.name.toLowerCase() === nq || b.name_en?.toLowerCase() === nq || b.name_ko?.toLowerCase() === nq;
+      if (nameMatch) return true;
+      // 성 제거된 이름으로도 비교
+      const nameKoWithoutSurname = b.name_ko ? removeKoreanSurname(b.name_ko).toLowerCase() : null;
+      return nameKoWithoutSurname === nq;
+    });
     const mg = groups.find(g => g.name.toLowerCase() === nq || g.name_en?.toLowerCase() === nq || g.name_ko?.toLowerCase() === nq);
     let qtu = q, st: 'member' | 'group' = 'member';
     if (mb) { if (mb.selca_slug === null) throw new Error('Selca 콘텐츠 없음'); if (mb.selca_slug) qtu = mb.selca_slug; }
