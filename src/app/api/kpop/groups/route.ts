@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
 import { searchGroups } from '@/lib/parsers/selca'
 import { searchGroupFromNamuwiki, getGroupMembersFromNamuwiki } from '@/lib/parsers/namuwiki'
 import { createLogger } from '@/lib/logger'

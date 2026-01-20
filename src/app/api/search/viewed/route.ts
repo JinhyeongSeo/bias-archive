@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import { handleApiError, badRequest, unauthorized } from '@/lib/api-error'
-
-type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca' | 'instagram'
+import type { SearchCachePlatform } from '@/types/index'
 
 /**
  * GET /api/search/viewed?query=...
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { query, platform, displayedIndex } = body as {
       query: string
-      platform: Platform
+      platform: SearchCachePlatform
       displayedIndex: number
     }
 

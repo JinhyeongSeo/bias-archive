@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest} from "next/server";
+import { NextResponse } from "next/server";
 import { searchLinksWithTags } from "@/lib/links";
 import type { LinkInsert, MediaData, LinkMediaInsert } from "@/lib/links";
 import { getBiases } from "@/lib/biases";

@@ -91,13 +91,16 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
   ) || []
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentIndex(initialIndex)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMediaIndex(0)
     dragY.set(0)
     dragX.set(0)
   }, [initialIndex, dragX, dragY])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMediaIndex(0)
   }, [currentIndex])
 

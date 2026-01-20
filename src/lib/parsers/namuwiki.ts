@@ -7,7 +7,8 @@
  * @module namuwiki
  */
 
-import { parse, HTMLElement } from 'node-html-parser'
+import type { HTMLElement } from 'node-html-parser';
+import { parse } from 'node-html-parser'
 import { createLogger } from '@/lib/logger'
 
 const logger = createLogger('Namuwiki Parser')
@@ -128,7 +129,7 @@ function extractEnglishName(text: string): string | undefined {
  */
 function extractKoreanName(text: string): string {
   // 괄호 및 내용 제거
-  let cleaned = text.replace(/\([^)]*\)/g, '').trim()
+  const cleaned = text.replace(/\([^)]*\)/g, '').trim()
   // 한글만 추출
   const koreanMatch = cleaned.match(/[가-힣]+/)
   return koreanMatch ? koreanMatch[0] : cleaned

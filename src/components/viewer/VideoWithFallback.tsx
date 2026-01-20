@@ -34,7 +34,9 @@ export function VideoWithFallback({
   }, [hasMoreFallbacks]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTryCount(0);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus('loading');
   }, [url]);
 

@@ -12,6 +12,7 @@ export function YouTubeEmbed({ videoId, title, isActive }: YouTubeEmbedProps) {
 
   useEffect(() => {
     if (!isActive) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setControlsEnabled(false);
     }
   }, [isActive]);

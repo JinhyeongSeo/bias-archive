@@ -1,6 +1,7 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import type { ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useLocale } from 'next-intl'
 import type { Bias } from '@/types/database'
 import { useRefresh } from '@/contexts/RefreshContext'

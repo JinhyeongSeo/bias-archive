@@ -1,4 +1,4 @@
-import type { Platform } from './platforms';
+import type { Platform, EnrichedResult } from './platforms';
 
 /**
  * Common search parameters for links
@@ -8,6 +8,23 @@ export interface SearchParams {
   search?: string;
   tagIds?: string[];
   platform?: string;
+}
+
+/**
+ * Search results state for a single platform
+ */
+export interface PlatformResults {
+  platform: Platform;
+  results: EnrichedResult[];
+  hasMore: boolean;
+  isLoading: boolean;
+  isLoadingMore: boolean;
+  error: string | null;
+  currentPage: number;
+  currentOffset: number; // For heye/kgirls pagination within page
+  nextPageToken?: string; // For YouTube pagination
+  nextCursor?: string; // For Twitter (ScrapeBadger) pagination
+  nextMaxTimeId?: string; // For selca pagination
 }
 
 /**
@@ -34,3 +51,4 @@ export interface BatchTagUpdateRequest {
 export interface ReorderRequest {
   orderedIds: string[];
 }
+

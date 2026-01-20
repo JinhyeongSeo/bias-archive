@@ -8,10 +8,11 @@
  * - 이름 검색: searchMembers 호출 후 매칭 (타임아웃 가능성)
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
 import { parse } from 'node-html-parser'
 import { searchMembers, fetchHtmlFromSelca } from '@/lib/parsers/selca'
-import { SelcaSearchResult, SelcaSearchResponse } from '@/lib/selca-types'
+import type { SelcaSearchResult, SelcaSearchResponse } from '@/lib/selca-types'
 import { createLogger } from '@/lib/logger'
 import { handleApiError, badRequest, notFound } from '@/lib/api-error'
 

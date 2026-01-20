@@ -11,7 +11,8 @@
  * - Caching is handled client-side via Supabase (like other platforms)
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
 import { ApifyClient } from 'apify-client'
 import { decodeHtmlEntities } from '@/lib/utils/decodeHtmlEntities'
 import type { ParsedMedia } from '@/lib/parsers'

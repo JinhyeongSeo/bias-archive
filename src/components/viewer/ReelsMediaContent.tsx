@@ -1,4 +1,5 @@
-import { motion, useMotionValue, useTransform } from 'framer-motion';
+import type { useMotionValue, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
 import type { Link, Tag, LinkMedia } from '@/types/database';
 import type { Platform } from '@/lib/metadata';

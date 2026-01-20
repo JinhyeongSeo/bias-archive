@@ -1,4 +1,4 @@
-import type { Bias } from '@/types/database'
+import type { Bias } from '@/types/index'
 
 /**
  * Auto tag extraction utility

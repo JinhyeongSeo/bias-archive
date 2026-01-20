@@ -30,7 +30,14 @@ interface MemberSelectorProps {
     selcaGroupSlug?: string;
     source?: 'selca' | 'namuwiki';
   } | null;
-  setSelectedGroup: (group: any) => void;
+  setSelectedGroup: (group: {
+    id: string;
+    name: string;
+    nameOriginal: string;
+    hasSelcaGroup?: boolean;
+    selcaGroupSlug?: string;
+    source?: 'selca' | 'namuwiki';
+  } | null) => void;
   handleGroupSelect: (group: KpopGroup) => void;
   isLoadingMembers: boolean;
   groupMembers: KpopMember[];

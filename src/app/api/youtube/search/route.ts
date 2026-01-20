@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { searchYouTube, YouTubeSearchOptions } from '@/lib/youtube'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
+import type { YouTubeSearchOptions } from '@/lib/youtube';
+import { searchYouTube } from '@/lib/youtube'
 import { handleApiError, badRequest } from '@/lib/api-error'
 
 type OrderType = 'relevance' | 'date' | 'viewCount' | 'rating'

@@ -11,9 +11,9 @@ import {
   parseKgirls,
   parseGeneric,
   parseInstagram,
-  type Platform,
   type VideoMetadata,
 } from './parsers'
+import type { Platform } from '@/types/index'
 
 // Re-export types for backward compatibility
 export type { Platform }

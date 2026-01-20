@@ -3,7 +3,8 @@
  * Searches kgirls.net community boards (mgall, issue) and returns post listings with pagination
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
 import * as cheerio from 'cheerio'
 import { createLogger } from '@/lib/logger'
 import { handleApiError, badRequest } from '@/lib/api-error'

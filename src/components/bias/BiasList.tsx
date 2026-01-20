@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import type { DropResult } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import type { Bias, BiasWithGroup, Group } from '@/types/database';
 import { quickSpring, pressScale } from '@/lib/animations';
 

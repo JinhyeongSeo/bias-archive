@@ -5,18 +5,7 @@
  * - 24시간 TTL
  */
 
-type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca' | 'instagram'
-
-interface EnrichedResult {
-  url: string
-  title: string
-  thumbnailUrl: string | null
-  author: string
-  platform: Platform
-  publishedAt?: string
-  isSaved: boolean
-  isSaving: boolean
-}
+import type { Platform, EnrichedResult } from '@/types/index'
 
 export interface CachedPlatformResult {
   results: EnrichedResult[]

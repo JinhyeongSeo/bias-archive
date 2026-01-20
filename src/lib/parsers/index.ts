@@ -3,14 +3,9 @@
  * Central export for all parser modules
  */
 
-export type Platform = 'youtube' | 'twitter' | 'weverse' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca' | 'instagram' | 'other' | 'generic'
+import type { Platform, MediaType, ParsedMedia } from '@/types/index'
 
-export type MediaType = 'image' | 'video' | 'gif'
-
-export interface ParsedMedia {
-  url: string
-  type: MediaType
-}
+export type { Platform, MediaType, ParsedMedia }
 
 export interface VideoMetadata {
   title: string | null

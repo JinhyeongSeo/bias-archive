@@ -84,6 +84,7 @@ export function useMediaViewer({ items, initialIndex = 0 }: UseMediaViewerOption
         const img = new window.Image();
         img.src = getProxiedImageUrl(items[idx].media_url);
       });
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoadedImages(prev => new Set([...prev, ...toPreload]));
     }
   }, [currentIndex, items, loadedImages]);

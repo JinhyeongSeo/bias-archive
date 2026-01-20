@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import type { Tag } from '@/types/database'
 import { handleApiError, badRequest, notFound, unauthorized } from '@/lib/api-error'

@@ -10,13 +10,31 @@ export type Platform =
   | 'kgirls-issue' 
   | 'selca' 
   | 'instagram'
-  | 'generic';
+  | 'generic'
+  | 'other';
+
+/**
+ * Platforms supported by the search cache
+ */
+export type SearchCachePlatform = 
+  | 'youtube' 
+  | 'twitter' 
+  | 'heye' 
+  | 'kgirls' 
+  | 'kgirls-issue' 
+  | 'selca' 
+  | 'instagram';
+
+/**
+ * Media types supported
+ */
+export type MediaType = 'image' | 'video' | 'gif';
 
 /**
  * Common media type for parsed results
  */
 export interface ParsedMedia {
-  type: 'image' | 'video' | 'gif';
+  type: MediaType;
   url: string;
 }
 
@@ -44,7 +62,48 @@ export interface TwitterResult {
 }
 
 /**
- * Community search results (Heye, Kgirls)
+ * Heye search result item
+ */
+export interface HeyeResult {
+  url: string;
+  title: string;
+  thumbnailUrl: string | null;
+  author: string;
+}
+
+/**
+ * Kgirls search result item
+ */
+export interface KgirlsResult {
+  url: string;
+  title: string;
+  thumbnailUrl: string | null;
+  author: string;
+}
+
+/**
+ * Selca search result item
+ */
+export interface SelcaResult {
+  url: string;
+  title: string;
+  thumbnailUrl: string;
+  author: string;
+}
+
+/**
+ * Instagram search result item
+ */
+export interface InstagramResult {
+  url: string;
+  title: string;
+  thumbnailUrl: string | null;
+  author: string;
+  media?: ParsedMedia[];
+}
+
+/**
+ * Community search results (Heye, Kgirls) - Generic interface
  */
 export interface CommunitySearchResult {
   url: string;

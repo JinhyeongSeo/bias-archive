@@ -1,10 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import { handleApiError, badRequest, unauthorized } from '@/lib/api-error'
-
-type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca' | 'instagram'
-
-const CACHE_TTL_HOURS = 24
+import type { SearchCachePlatform } from '@/types/index'
 
 /**
  * GET /api/search/cache?query=...&platform=...
@@ -14,7 +12,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('query')?.trim().toLowerCase()
-    const platform = searchParams.get('platform') as Platform | null
+    const platform = searchParams.get('platform') as SearchCachePlatform | null
 
     if (!query) {
       badRequest('query parameter is required')
@@ -27,7 +25,7 @@ export async function GET(request: NextRequest) {
       .from('search_cache')
       .select('*')
       .eq('query', query)
-      .gte('cached_at', new Date(Date.now() - CACHE_TTL_HOURS * 60 * 60 * 1000).toISOString())
+      .gte('cached_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
 
     if (platform) {
       dbQuery = dbQuery.eq('platform', platform)
@@ -76,7 +74,7 @@ export async function POST(request: NextRequest) {
       hasMore = true,
     } = body as {
       query: string
-      platform: Platform
+      platform: SearchCachePlatform
       results: unknown[]
       nextCursor?: string
       nextPageToken?: string

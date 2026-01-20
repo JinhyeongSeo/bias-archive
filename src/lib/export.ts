@@ -1,6 +1,6 @@
 import { supabase as browserClient } from './supabase'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database, Bias, Tag, LinkMedia } from '@/types/database'
+import type { Database, Bias, Tag, LinkMedia } from '@/types/index'
 import type { LinkWithTagsAndMedia } from './links'
 
 /**
