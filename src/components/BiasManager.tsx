@@ -1,12 +1,15 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
+import type { DropResult } from '@hello-pangea/dnd'
 import { motion } from 'framer-motion'
-import type { Bias, BiasWithGroup, Group } from '@/types/database'
+import type { Bias, BiasWithGroup, Group } from '@/types/index'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
 import { useLocale } from 'next-intl'
-import { quickSpring, pressScale } from '@/lib/animations'
+import { pressScale } from '@/lib/animations'
+import { BiasList } from './bias/BiasList'
+import { MemberSelector } from './bias/MemberSelector'
+import { BiasForm } from './bias/BiasForm'
 
 interface KpopGroup {
   id: string
@@ -105,15 +108,13 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   const searchAbortRef = useRef<AbortController | null>(null)
 
   // Load collapsed groups from localStorage
-  // Default: all groups collapsed (stored value tracks which are EXPANDED)
   useEffect(() => {
     try {
       const stored = localStorage.getItem(COLLAPSED_GROUPS_KEY)
       if (stored) {
-        // stored contains expanded groups, so collapsed = all groups - expanded
         const expandedGroups = new Set<string>(JSON.parse(stored))
         const allGroupIds = new Set(localGroups.map(g => g.id))
-        allGroupIds.add('ungrouped') // include ungrouped
+        allGroupIds.add('ungrouped')
         const collapsed = new Set<string>()
         for (const id of allGroupIds) {
           if (!expandedGroups.has(id)) {
@@ -122,7 +123,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         }
         setCollapsedGroups(collapsed)
       } else {
-        // No stored preference: collapse all groups by default
         const allGroupIds = new Set(localGroups.map(g => g.id))
         allGroupIds.add('ungrouped')
         setCollapsedGroups(allGroupIds)
@@ -139,13 +139,11 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       groupMap.set(group.id, group)
     }
 
-    // Create BiasWithGroup objects (use localBiases for optimistic updates)
     const biasesWithGroups: BiasWithGroup[] = localBiases.map((bias) => ({
       ...bias,
       group: bias.group_id ? groupMap.get(bias.group_id) ?? null : null,
     }))
 
-    // Group by group_id
     const grouped = new Map<string | null, BiasWithGroup[]>()
 
     for (const bias of biasesWithGroups) {
@@ -156,10 +154,8 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       grouped.get(groupId)!.push(bias)
     }
 
-    // Convert to array with group info
     const result: GroupedBiases[] = []
 
-    // Add groups in localGroups order (respects sort_order from server)
     for (const group of localGroups) {
       if (grouped.has(group.id)) {
         result.push({
@@ -169,7 +165,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       }
     }
 
-    // Add ungrouped biases at the end
     if (grouped.has(null)) {
       result.push({
         group: null,
@@ -180,16 +175,14 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     return result
   }, [localBiases, localGroups])
 
-  // Save expanded groups to localStorage (inverted logic for default-collapsed)
   const toggleGroupCollapse = useCallback((groupId: string) => {
     setCollapsedGroups((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(groupId)) {
-        newSet.delete(groupId) // expanding
+        newSet.delete(groupId)
       } else {
-        newSet.add(groupId) // collapsing
+        newSet.add(groupId)
       }
-      // Save expanded groups (inverse of collapsed) to localStorage
       try {
         const allGroupIds = new Set(localGroups.map(g => g.id))
         allGroupIds.add('ungrouped')
@@ -207,7 +200,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     })
   }, [localGroups])
 
-  // Get display name for group based on language mode
   const getGroupDisplayName = useCallback((group: Group): string => {
     const effectiveLanguage: 'en' | 'ko' = nameLanguage === 'auto'
       ? (locale === 'ko' ? 'ko' : 'en')
@@ -220,19 +212,13 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     }
   }, [nameLanguage, locale])
 
-  // Handle drag end for reordering biases or groups
   const handleDragEnd = useCallback(async (result: DropResult) => {
     const { source, destination, type } = result
 
-    // Dropped outside a valid droppable
     if (!destination) return
-
-    // Dropped in the same position
     if (source.droppableId === destination.droppableId && source.index === destination.index) return
 
-    // Handle group reordering
     if (type === 'GROUP') {
-      // Only reorder actual groups (not ungrouped)
       const groupsOnly = groupedBiases.filter(g => g.group !== null)
       if (source.index >= groupsOnly.length || destination.index >= groupsOnly.length) return
 
@@ -240,7 +226,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       const [movedGroup] = reorderedGroups.splice(source.index, 1)
       reorderedGroups.splice(destination.index, 0, movedGroup)
 
-      // Optimistic update
       setLocalGroups(reorderedGroups)
       setIsReordering(true)
 
@@ -254,38 +239,30 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
 
         if (!response.ok) {
           setLocalGroups(groups)
-          console.error('Failed to save group reorder')
         } else {
           onBiasReordered?.()
         }
       } catch (error) {
         setLocalGroups(groups)
-        console.error('Error saving group reorder:', error)
       } finally {
         setIsReordering(false)
       }
       return
     }
 
-    // Handle bias reordering within a group
-    // Dropped in a different group - not allowed
     if (source.droppableId !== destination.droppableId) return
 
-    // Find the group's biases
-    const groupBiases = groupedBiases.find(
+    const groupBiasesResult = groupedBiases.find(
       (g) => (g.group?.id || 'ungrouped') === source.droppableId
     )?.biases
 
-    if (!groupBiases) return
+    if (!groupBiasesResult) return
 
-    // Reorder within the group
-    const reorderedGroupBiases = Array.from(groupBiases)
+    const reorderedGroupBiases = Array.from(groupBiasesResult)
     const [movedItem] = reorderedGroupBiases.splice(source.index, 1)
     reorderedGroupBiases.splice(destination.index, 0, movedItem)
 
-    // Build new full bias list maintaining other groups' order
     const newLocalBiases = localBiases.map((bias) => {
-      // Find if this bias is in the reordered group
       const newIndex = reorderedGroupBiases.findIndex((b) => b.id === bias.id)
       if (newIndex !== -1) {
         return { ...bias, sort_order: newIndex }
@@ -293,24 +270,18 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       return bias
     })
 
-    // Sort by the new order within groups
     newLocalBiases.sort((a, b) => {
-      // Same group? Sort by new sort_order
       if (a.group_id === b.group_id) {
         return (a.sort_order ?? 0) - (b.sort_order ?? 0)
       }
-      // Different groups - maintain original relative order
       return 0
     })
 
-    // Optimistic update
     setLocalBiases(newLocalBiases)
     setIsReordering(true)
 
     try {
-      // Get ordered IDs for ALL biases in the affected group
       const orderedIds = reorderedGroupBiases.map((b) => b.id)
-
       const response = await fetch('/api/biases/reorder', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -318,36 +289,28 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       })
 
       if (!response.ok) {
-        // Rollback on failure
         setLocalBiases(biases)
-        console.error('Failed to save reorder')
       } else {
-        // Notify parent to refresh data
         onBiasReordered?.()
       }
     } catch (error) {
-      // Rollback on error
       setLocalBiases(biases)
-      console.error('Error saving reorder:', error)
     } finally {
       setIsReordering(false)
     }
   }, [groupedBiases, localBiases, localGroups, biases, groups, onBiasReordered])
 
-  // Debounced group search with abort controller to prevent race conditions
-  const searchGroups = useCallback(async (query: string) => {
+  const searchGroupsFunc = useCallback(async (query: string) => {
     if (!query.trim()) {
       setGroupResults([])
       setShowDropdown(false)
       return
     }
 
-    // Abort any previous request
     if (searchAbortRef.current) {
       searchAbortRef.current.abort()
     }
 
-    // Create new abort controller for this request
     const abortController = new AbortController()
     searchAbortRef.current = abortController
 
@@ -358,34 +321,27 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       })
       if (response.ok) {
         const data = await response.json()
-        // Only update if this request wasn't aborted
         if (!abortController.signal.aborted) {
           setGroupResults(data.groups || [])
           setShowDropdown(true)
         }
       }
     } catch (error) {
-      // Ignore abort errors
       if (error instanceof Error && error.name === 'AbortError') {
         return
       }
-      console.error('Error searching groups:', error)
     } finally {
-      // Only update isSearching if this request wasn't aborted
       if (!abortController.signal.aborted) {
         setIsSearching(false)
       }
     }
   }, [])
 
-  // Handle group query change with debounce
   useEffect(() => {
-    // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
     }
 
-    // Abort any in-flight request when query changes
     if (searchAbortRef.current) {
       searchAbortRef.current.abort()
       searchAbortRef.current = null
@@ -393,7 +349,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
 
     if (groupQuery.trim()) {
       searchTimeoutRef.current = setTimeout(() => {
-        searchGroups(groupQuery)
+        searchGroupsFunc(groupQuery)
       }, 300)
     } else {
       setGroupResults([])
@@ -405,14 +361,12 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current)
       }
-      // Also abort on cleanup
       if (searchAbortRef.current) {
         searchAbortRef.current.abort()
       }
     }
-  }, [groupQuery, searchGroups])
+  }, [groupQuery, searchGroupsFunc])
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -427,7 +381,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Debounced member search for individual add form
   const searchMembersFunc = useCallback(async (query: string) => {
     if (!query.trim()) {
       setMemberSearchResults([])
@@ -450,7 +403,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     }
   }, [])
 
-  // Handle name input change with debounced member search
   useEffect(() => {
     if (memberSearchTimeoutRef.current) {
       clearTimeout(memberSearchTimeoutRef.current)
@@ -472,14 +424,13 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     }
   }, [name, isFormOpen, searchMembersFunc])
 
-  // Handle member selection from autocomplete
   function handleMemberSelect(member: KpopMemberWithGroup) {
-    setName(member.name_original) // Korean name as display name
-    setNameEn(member.name) // English name
-    setNameKo(member.name_original) // Korean name
-    setSelcaSlug(member.id) // selca.kastden.org slug
+    setName(member.name_original)
+    setNameEn(member.name)
+    setNameKo(member.name_original)
+    setSelcaSlug(member.id)
     if (member.group) {
-      setGroupName(member.group.name_original) // Korean group name
+      setGroupName(member.group.name_original)
       setSelectedGroupInfo({
         name: member.group.name,
         nameEn: member.group.name,
@@ -492,7 +443,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     setMemberSearchResults([])
   }
 
-  // Fetch members when group is selected
   async function handleGroupSelect(group: KpopGroup) {
     setGroupQuery('')
     setShowDropdown(false)
@@ -503,16 +453,14 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       if (response.ok) {
         const data = await response.json()
         setGroupMembers(data.members || [])
-        // Select all members by default
         setSelectedMembers(new Set(data.members?.map((m: KpopMember) => m.id) || []))
-        // Set group with selca info and source from API response
         setSelectedGroup({
           id: group.id,
           name: group.name,
           nameOriginal: group.name_original,
           hasSelcaGroup: data.hasSelcaGroup,
           selcaGroupSlug: data.selcaGroupSlug,
-          source: data.source || group.source, // API response or fallback to group source
+          source: data.source || group.source,
         })
       } else {
         setSelectedGroup({
@@ -523,7 +471,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         })
       }
     } catch (error) {
-      console.error('Error fetching group members:', error)
       setSelectedGroup({
         id: group.id,
         name: group.name,
@@ -535,7 +482,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     }
   }
 
-  // Toggle member selection
   function toggleMember(memberId: string) {
     setSelectedMembers((prev) => {
       const newSet = new Set(prev)
@@ -548,7 +494,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     })
   }
 
-  // Select/deselect all members
   function toggleAllMembers() {
     if (selectedMembers.size === groupMembers.length) {
       setSelectedMembers(new Set())
@@ -557,7 +502,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
     }
   }
 
-  // Batch add selected members
   async function handleBatchAdd() {
     if (selectedMembers.size === 0 || !selectedGroup) return
 
@@ -566,11 +510,10 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
       const membersToAdd = groupMembers
         .filter((m) => selectedMembers.has(m.id))
         .map((m) => ({
-          name: m.name_original, // display name (Korean for tag matching)
+          name: m.name_original,
           groupName: selectedGroup.nameOriginal,
-          nameEn: m.name, // English name from kpopnet
-          nameKo: m.name_original, // Korean name from kpopnet
-          // selca_slug는 Selca owner가 있는 경우에만 저장 (없으면 검색 불가)
+          nameEn: m.name,
+          nameKo: m.name_original,
           selcaSlug: m.hasSelcaOwner ? m.id : null,
         }))
 
@@ -583,7 +526,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
             name: selectedGroup.name,
             nameEn: selectedGroup.name,
             nameKo: selectedGroup.nameOriginal,
-            // selca_slug는 Selca group이 있는 경우에만 저장
             selcaSlug: selectedGroup.hasSelcaGroup ? selectedGroup.selcaGroupSlug : null,
           },
         }),
@@ -607,14 +549,12 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         alert(error.error || '일괄 추가에 실패했습니다')
       }
     } catch (error) {
-      console.error('Error batch adding members:', error)
       alert('일괄 추가에 실패했습니다')
     } finally {
       setIsBatchAdding(false)
     }
   }
 
-  // Reset group mode
   function resetGroupMode() {
     setIsGroupMode(false)
     setGroupQuery('')
@@ -627,9 +567,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-
     if (!name.trim()) return
-
     setIsLoading(true)
     try {
       const response = await fetch('/api/biases', {
@@ -664,7 +602,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         alert(error.error || '최애 추가에 실패했습니다')
       }
     } catch (error) {
-      console.error('Error adding bias:', error)
       alert('최애 추가에 실패했습니다')
     } finally {
       setIsLoading(false)
@@ -672,21 +609,14 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   }
 
   async function handleDelete(id: string, biasName: string) {
-    if (!confirm(`"${biasName}"을(를) 삭제하시겠습니까?`)) {
-      return
-    }
-
+    if (!confirm(`"${biasName}"을(를) 삭제하시겠습니까?`)) return
     setDeletingId(id)
     try {
-      const response = await fetch(`/api/biases/${id}`, {
-        method: 'DELETE',
-      })
-
+      const response = await fetch(`/api/biases/${id}`, { method: 'DELETE' })
       if (response.status === 401) {
         window.location.href = `/${locale}/login`
         return
       }
-
       if (response.ok) {
         onBiasDeleted()
       } else {
@@ -694,7 +624,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         alert(error.error || '삭제에 실패했습니다')
       }
     } catch (error) {
-      console.error('Error deleting bias:', error)
       alert('삭제에 실패했습니다')
     } finally {
       setDeletingId(null)
@@ -702,27 +631,16 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   }
 
   async function handleDeleteGroup(groupId: string, groupName: string) {
-    if (!confirm(`"${groupName}" 그룹과 그 안의 모든 멤버를 삭제하시겠습니까?`)) {
-      return
-    }
-
-    // Ask if user wants to delete related links too
+    if (!confirm(`"${groupName}" 그룹과 그 안의 모든 멤버를 삭제하시겠습니까?`)) return
     const deleteLinks = confirm('관련 링크도 함께 삭제하시겠습니까?\n\n"확인" - 이 그룹/멤버로 태그된 링크도 삭제\n"취소" - 그룹/멤버만 삭제 (링크는 유지)')
-
     setDeletingGroupId(groupId)
     try {
-      const url = deleteLinks
-        ? `/api/groups/${groupId}?deleteLinks=true`
-        : `/api/groups/${groupId}`
-      const response = await fetch(url, {
-        method: 'DELETE',
-      })
-
+      const url = deleteLinks ? `/api/groups/${groupId}?deleteLinks=true` : `/api/groups/${groupId}`
+      const response = await fetch(url, { method: 'DELETE' })
       if (response.status === 401) {
         window.location.href = `/${locale}/login`
         return
       }
-
       if (response.ok) {
         onBiasDeleted()
       } else {
@@ -730,7 +648,6 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         alert(error.error || '그룹 삭제에 실패했습니다')
       }
     } catch (error) {
-      console.error('Error deleting group:', error)
       alert('그룹 삭제에 실패했습니다')
     } finally {
       setDeletingGroupId(null)
@@ -739,543 +656,66 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
 
   return (
     <div className="space-y-2">
-      {/* Grouped bias list with drag and drop */}
       {groupedBiases.length > 0 && (
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="groups-list" type="GROUP">
-            {(groupsProvided) => (
-              <div
-                ref={groupsProvided.innerRef}
-                {...groupsProvided.droppableProps}
-                className="space-y-1"
-              >
-                {groupedBiases.map(({ group, biases: groupBiases }, groupIndex) => {
-                  const groupId = group?.id || 'ungrouped'
-                  const isCollapsed = collapsedGroups.has(groupId)
-                  const groupDisplayName = group ? getGroupDisplayName(group) : '그룹 없음'
-                  const isUngrouped = group === null
-
-                  // Ungrouped items are not draggable as a group
-                  if (isUngrouped) {
-                    return (
-                      <div key={groupId}>
-                        {/* Ungrouped header - not draggable */}
-                        <motion.button
-                          type="button"
-                          onClick={() => toggleGroupCollapse(groupId)}
-                          className="w-full flex items-center gap-1 px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-accent rounded-md transition-colors"
-                          {...pressScale}
-                        >
-                          <motion.svg
-                            className="w-3 h-3"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            animate={{ rotate: isCollapsed ? 0 : 90 }}
-                            transition={quickSpring}
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </motion.svg>
-                          <span>{groupDisplayName}</span>
-                          <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">
-                            ({groupBiases.length})
-                          </span>
-                        </motion.button>
-
-                        {/* Ungrouped members - Droppable area */}
-                        {!isCollapsed && (
-                          <Droppable droppableId={groupId} type="BIAS">
-                            {(provided, snapshot) => (
-                              <ul
-                                ref={provided.innerRef}
-                                {...provided.droppableProps}
-                                className={`ml-4 space-y-0.5 min-h-[2rem] rounded-md transition-colors ${
-                                  snapshot.isDraggingOver ? 'bg-pink-50 dark:bg-pink-900/20' : ''
-                                }`}
-                              >
-                                {groupBiases.map((bias, index) => (
-                                  <Draggable key={bias.id} draggableId={bias.id} index={index}>
-                                    {(provided, snapshot) => (
-                                      <li
-                                        ref={provided.innerRef}
-                                        {...provided.draggableProps}
-                                        className={`flex items-center justify-between group px-2 py-1 text-sm text-foreground rounded-md transition-all ${
-                                          snapshot.isDragging
-                                            ? 'bg-card shadow-lg ring-2 ring-primary/50'
-                                            : 'hover:bg-accent'
-                                        }`}
-                                      >
-                                        <div
-                                          {...provided.dragHandleProps}
-                                          className="flex items-center gap-1 flex-1 min-w-0 cursor-grab active:cursor-grabbing"
-                                        >
-                                          <svg
-                                            className="w-4 h-4 text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                          >
-                                            <circle cx="9" cy="6" r="1.5" />
-                                            <circle cx="15" cy="6" r="1.5" />
-                                            <circle cx="9" cy="12" r="1.5" />
-                                            <circle cx="15" cy="12" r="1.5" />
-                                            <circle cx="9" cy="18" r="1.5" />
-                                            <circle cx="15" cy="18" r="1.5" />
-                                          </svg>
-                                          <span className="truncate">{getDisplayName(bias)}</span>
-                                        </div>
-                                        <motion.button
-                                          onClick={() => handleDelete(bias.id, getDisplayName(bias))}
-                                          disabled={deletingId === bias.id}
-                                          className="opacity-0 group-hover:opacity-100 ml-2 p-0.5 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50 flex-shrink-0"
-                                          title="삭제"
-                                          whileTap={{ scale: 0.85 }}
-                                          transition={quickSpring}
-                                        >
-                                          {deletingId === bias.id ? (
-                                            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                            </svg>
-                                          ) : (
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                          )}
-                                        </motion.button>
-                                      </li>
-                                    )}
-                                  </Draggable>
-                                ))}
-                                {provided.placeholder}
-                              </ul>
-                            )}
-                          </Droppable>
-                        )}
-                      </div>
-                    )
-                  }
-
-                  // Draggable group
-                  return (
-                    <Draggable key={groupId} draggableId={`group-${groupId}`} index={groupIndex}>
-                      {(groupDragProvided, groupDragSnapshot) => (
-                        <div
-                          ref={groupDragProvided.innerRef}
-                          {...groupDragProvided.draggableProps}
-                          className={`rounded-md transition-all ${
-                            groupDragSnapshot.isDragging ? 'bg-zinc-50 dark:bg-zinc-800/50 shadow-lg ring-2 ring-pink-500/30' : ''
-                          }`}
-                        >
-                          {/* Group header with drag handle */}
-                          <div className="flex items-center group">
-                            <div
-                              {...groupDragProvided.dragHandleProps}
-                              className="p-1 cursor-grab active:cursor-grabbing md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                            >
-                              <svg
-                                className="w-4 h-4 text-zinc-400 dark:text-zinc-500"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                              >
-                                <circle cx="9" cy="6" r="1.5" />
-                                <circle cx="15" cy="6" r="1.5" />
-                                <circle cx="9" cy="12" r="1.5" />
-                                <circle cx="15" cy="12" r="1.5" />
-                                <circle cx="9" cy="18" r="1.5" />
-                                <circle cx="15" cy="18" r="1.5" />
-                              </svg>
-                            </div>
-                            <motion.button
-                              type="button"
-                              onClick={() => toggleGroupCollapse(groupId)}
-                              className="flex-1 flex items-center gap-1 px-1 py-1 text-sm font-medium text-muted-foreground hover:bg-accent rounded-md transition-colors"
-                              {...pressScale}
-                            >
-                              <motion.svg
-                                className="w-3 h-3"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                animate={{ rotate: isCollapsed ? 0 : 90 }}
-                                transition={quickSpring}
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </motion.svg>
-                              <span>{groupDisplayName}</span>
-                              <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">
-                                ({groupBiases.length})
-                              </span>
-                            </motion.button>
-                            <motion.button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDeleteGroup(group!.id, groupDisplayName)
-                              }}
-                              disabled={deletingGroupId === group!.id}
-                              className="md:opacity-0 md:group-hover:opacity-100 p-1 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50 flex-shrink-0"
-                              title="그룹 삭제"
-                              whileTap={{ scale: 0.85 }}
-                              transition={quickSpring}
-                            >
-                              {deletingGroupId === group!.id ? (
-                                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                </svg>
-                              ) : (
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              )}
-                            </motion.button>
-                          </div>
-
-                          {/* Group members - Droppable area */}
-                          {!isCollapsed && (
-                            <Droppable droppableId={groupId} type="BIAS">
-                              {(provided, snapshot) => (
-                                <ul
-                                  ref={provided.innerRef}
-                                  {...provided.droppableProps}
-                                  className={`ml-6 space-y-0.5 min-h-[2rem] rounded-md transition-colors ${
-                                    snapshot.isDraggingOver ? 'bg-pink-50 dark:bg-pink-900/20' : ''
-                                  }`}
-                                >
-                                  {groupBiases.map((bias, index) => (
-                                    <Draggable key={bias.id} draggableId={bias.id} index={index}>
-                                      {(provided, snapshot) => (
-                                        <li
-                                          ref={provided.innerRef}
-                                          {...provided.draggableProps}
-                                          className={`flex items-center justify-between group px-2 py-1 text-sm text-foreground rounded-md transition-all ${
-                                            snapshot.isDragging
-                                              ? 'bg-card shadow-lg ring-2 ring-primary/50'
-                                              : 'hover:bg-accent'
-                                          }`}
-                                        >
-                                          {/* Drag handle */}
-                                          <div
-                                            {...provided.dragHandleProps}
-                                            className="flex items-center gap-1 flex-1 min-w-0 cursor-grab active:cursor-grabbing"
-                                          >
-                                            <svg
-                                              className="w-4 h-4 text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                              viewBox="0 0 24 24"
-                                              fill="currentColor"
-                                            >
-                                              <circle cx="9" cy="6" r="1.5" />
-                                              <circle cx="15" cy="6" r="1.5" />
-                                              <circle cx="9" cy="12" r="1.5" />
-                                              <circle cx="15" cy="12" r="1.5" />
-                                              <circle cx="9" cy="18" r="1.5" />
-                                              <circle cx="15" cy="18" r="1.5" />
-                                            </svg>
-                                            <span className="truncate">{getDisplayName(bias)}</span>
-                                          </div>
-                                          <motion.button
-                                            onClick={() => handleDelete(bias.id, getDisplayName(bias))}
-                                            disabled={deletingId === bias.id}
-                                            className="opacity-0 group-hover:opacity-100 ml-2 p-0.5 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-opacity disabled:opacity-50 flex-shrink-0"
-                                            title="삭제"
-                                            whileTap={{ scale: 0.85 }}
-                                            transition={quickSpring}
-                                          >
-                                            {deletingId === bias.id ? (
-                                              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                              </svg>
-                                            ) : (
-                                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                              </svg>
-                                            )}
-                                          </motion.button>
-                                        </li>
-                                      )}
-                                    </Draggable>
-                                  ))}
-                                  {provided.placeholder}
-                                </ul>
-                              )}
-                            </Droppable>
-                          )}
-                        </div>
-                      )}
-                    </Draggable>
-                  )
-                })}
-                {groupsProvided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
+        <BiasList
+          groupedBiases={groupedBiases}
+          collapsedGroups={collapsedGroups}
+          toggleGroupCollapse={toggleGroupCollapse}
+          getGroupDisplayName={getGroupDisplayName}
+          getDisplayName={getDisplayName}
+          handleDelete={handleDelete}
+          handleDeleteGroup={handleDeleteGroup}
+          handleDragEnd={handleDragEnd}
+          deletingId={deletingId}
+          deletingGroupId={deletingGroupId}
+        />
       )}
 
-      {/* Empty state */}
       {biases.length === 0 && !isFormOpen && !isGroupMode && (
         <p className="text-sm text-zinc-400 dark:text-zinc-500 px-2">
           아직 최애가 없습니다
         </p>
       )}
 
-      {/* Group mode UI */}
       {isGroupMode && (
-        <div className="space-y-2 pt-2">
-          {!selectedGroup ? (
-            // Group search
-            <div className="relative" ref={dropdownRef}>
-              <input
-                type="text"
-                value={groupQuery}
-                onChange={(e) => setGroupQuery(e.target.value)}
-                placeholder="그룹명 검색 (예: IVE, 아이브)"
-                className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
-                autoFocus
-              />
-              {isSearching && (
-                <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                  <svg className="w-4 h-4 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                </div>
-              )}
-              {/* Dropdown results */}
-              {showDropdown && groupResults.length > 0 && (
-                <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {groupResults.map((group) => (
-                    <li key={group.id}>
-                      <button
-                        type="button"
-                        onClick={() => handleGroupSelect(group)}
-                        className="w-full px-2 py-1.5 text-left text-sm hover:bg-accent text-foreground"
-                      >
-                        <span className="font-medium">{group.name}</span>
-                        {group.name_original !== group.name && (
-                          <span className="text-muted-foreground ml-1">
-                            ({group.name_original})
-                          </span>
-                        )}
-                        <span className="text-muted-foreground ml-1 text-xs">
-                          {group.memberCount}명
-                        </span>
-                        {/* Source badge */}
-                        {group.source === 'selca' && (
-                          <span className="ml-1 px-1 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded">
-                            selca
-                          </span>
-                        )}
-                        {group.source === 'namuwiki' && (
-                          <span className="ml-1 px-1 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded">
-                            나무위키
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {showDropdown && groupResults.length === 0 && groupQuery.trim() && !isSearching && (
-                <div className="absolute z-10 w-full mt-1 px-2 py-1.5 bg-card border border-border rounded-md shadow-lg text-sm text-muted-foreground">
-                  검색 결과가 없습니다
-                </div>
-              )}
-            </div>
-          ) : (
-            // Member selection
-            <div className="space-y-2">
-              <div className="flex items-center justify-between px-2">
-                <span className="text-sm font-medium text-foreground">
-                  {selectedGroup.name}
-                  {selectedGroup.nameOriginal !== selectedGroup.name && (
-                    <span className="text-muted-foreground ml-1 font-normal">
-                      ({selectedGroup.nameOriginal})
-                    </span>
-                  )}
-                  {/* Source badge for selected group */}
-                  {selectedGroup.source === 'selca' && (
-                    <span className="ml-1 px-1 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded">
-                      selca
-                    </span>
-                  )}
-                  {selectedGroup.source === 'namuwiki' && (
-                    <span className="ml-1 px-1 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded">
-                      나무위키
-                    </span>
-                  )}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedGroup(null)
-                    setGroupMembers([])
-                    setSelectedMembers(new Set())
-                  }}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  다른 그룹 선택
-                </button>
-              </div>
-
-              {/* Namuwiki source notice */}
-              {selectedGroup.source === 'namuwiki' && (
-                <div className="px-2 py-1.5 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-md">
-                  <span className="font-medium">안내:</span> 나무위키에서 가져온 데이터입니다. 외부 검색(selca) 기능이 제한됩니다.
-                </div>
-              )}
-
-              {isLoadingMembers ? (
-                <div className="flex items-center justify-center py-4">
-                  <svg className="w-5 h-5 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                </div>
-              ) : (
-                <>
-                  {/* Select all toggle */}
-                  <div className="flex items-center px-2 py-1">
-                    <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground">
-                      <input
-                        type="checkbox"
-                        checked={selectedMembers.size === groupMembers.length && groupMembers.length > 0}
-                        onChange={toggleAllMembers}
-                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-                      />
-                      전체 선택 ({selectedMembers.size}/{groupMembers.length})
-                    </label>
-                  </div>
-
-                  {/* Member list */}
-                  <ul className="space-y-0.5 max-h-48 overflow-y-auto">
-                    {groupMembers.map((member) => (
-                      <li key={member.id}>
-                        <label className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-accent rounded text-sm">
-                          <input
-                            type="checkbox"
-                            checked={selectedMembers.has(member.id)}
-                            onChange={() => toggleMember(member.id)}
-                            className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-                          />
-                          <span className="text-foreground">{member.name}</span>
-                          {member.name_original !== member.name && (
-                            <span className="text-muted-foreground">
-                              ({member.name_original})
-                            </span>
-                          )}
-                        </label>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Group mode action buttons */}
-          <div className="flex gap-2">
-            {selectedGroup && (
-              <motion.button
-                type="button"
-                onClick={handleBatchAdd}
-                disabled={isBatchAdding || selectedMembers.size === 0}
-                className="flex-1 px-2 py-1.5 text-sm bg-pink-500 text-white rounded-md hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                {...pressScale}
-              >
-                {isBatchAdding ? '추가 중...' : `${selectedMembers.size}명 추가`}
-              </motion.button>
-            )}
-            <motion.button
-              type="button"
-              onClick={resetGroupMode}
-              className="px-2 py-1.5 text-sm text-muted-foreground bg-accent hover:bg-accent/80 rounded-md transition-colors"
-              {...pressScale}
-            >
-              취소
-            </motion.button>
-          </div>
-        </div>
+        <MemberSelector
+          isSearching={isSearching}
+          groupQuery={groupQuery}
+          setGroupQuery={setGroupQuery}
+          showDropdown={showDropdown}
+          groupResults={groupResults}
+          selectedGroup={selectedGroup}
+          setSelectedGroup={setSelectedGroup}
+          handleGroupSelect={handleGroupSelect}
+          isLoadingMembers={isLoadingMembers}
+          groupMembers={groupMembers}
+          selectedMembers={selectedMembers}
+          toggleMember={toggleMember}
+          toggleAllMembers={toggleAllMembers}
+          handleBatchAdd={handleBatchAdd}
+          isBatchAdding={isBatchAdding}
+          resetGroupMode={resetGroupMode}
+          dropdownRef={dropdownRef}
+        />
       )}
 
-      {/* Add form */}
       {isFormOpen && !isGroupMode && (
-        <form onSubmit={handleSubmit} className="space-y-2 pt-2">
-          {/* Name input with member autocomplete */}
-          <div className="relative" ref={memberDropdownRef}>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="이름 - 표시용 (필수)"
-              className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
-              autoFocus
-            />
-            {isSearchingMembers && (
-              <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                <svg className="w-4 h-4 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-              </div>
-            )}
-            {/* Member autocomplete dropdown */}
-            {showMemberDropdown && memberSearchResults.length > 0 && (
-              <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                {memberSearchResults.map((member) => (
-                  <li key={member.id}>
-                    <button
-                      type="button"
-                      onClick={() => handleMemberSelect(member)}
-                      className="w-full px-2 py-1.5 text-left text-sm hover:bg-accent text-foreground"
-                    >
-                      <span className="font-medium">{member.name}</span>
-                      {member.name_original !== member.name && (
-                        <span className="text-muted-foreground ml-1">
-                          ({member.name_original})
-                        </span>
-                      )}
-                      {member.group && (
-                        <span className="text-muted-foreground ml-1 text-xs">
-                          - {member.group.name_original}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <motion.button
-              type="submit"
-              disabled={isLoading || !name.trim()}
-              className="flex-1 px-2 py-1.5 text-sm bg-pink-500 text-white rounded-md hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              {...pressScale}
-            >
-              {isLoading ? '추가 중...' : '추가'}
-            </motion.button>
-            <motion.button
-              type="button"
-              onClick={() => {
-                setIsFormOpen(false)
-                setName('')
-                setGroupName('')
-                setNameEn('')
-                setNameKo('')
-                setMemberSearchResults([])
-                setShowMemberDropdown(false)
-              }}
-              className="px-2 py-1.5 text-sm text-muted-foreground bg-accent hover:bg-accent/80 rounded-md transition-colors"
-              {...pressScale}
-            >
-              취소
-            </motion.button>
-          </div>
-        </form>
+        <BiasForm
+          name={name}
+          setName={setName}
+          groupName={groupName}
+          setGroupName={setGroupName}
+          handleSubmit={handleSubmit}
+          isLoading={isLoading}
+          setIsFormOpen={setIsFormOpen}
+          isSearchingMembers={isSearchingMembers}
+          showMemberDropdown={showMemberDropdown}
+          memberSearchResults={memberSearchResults}
+          handleMemberSelect={handleMemberSelect}
+          memberDropdownRef={memberDropdownRef}
+        />
       )}
 
-      {/* Action buttons when no form is open */}
       {!isFormOpen && !isGroupMode && (
         <div className="flex flex-col gap-1">
           <motion.button
