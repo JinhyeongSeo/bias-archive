@@ -26,12 +26,21 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || undefined;
     const tagsParam = searchParams.get("tags") || undefined;
     const platform = searchParams.get("platform") || undefined;
+    const minimal = searchParams.get("minimal") === "true";
 
     // Parse tags parameter (comma-separated IDs)
     const tagIds = tagsParam ? tagsParam.split(",").filter(Boolean) : undefined;
 
     // Create server-side authenticated client
     const supabase = await createClient();
+
+    if (minimal) {
+      const { data, error } = await supabase
+        .from("links")
+        .select("url");
+      if (error) throw error;
+      return NextResponse.json(data);
+    }
 
     const links = await searchLinksWithTags(
       {

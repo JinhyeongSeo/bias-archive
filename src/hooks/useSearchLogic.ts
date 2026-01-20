@@ -73,9 +73,34 @@ export function useSearchLogic({ query, savedUrls, biases, groups, enabledPlatfo
   }, [KOREAN_SURNAMES]);
 
   const checkIfSaved = useCallback((url: string): boolean => {
-    const norm = (u: string) => u.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
-    const normalizedUrl = norm(url);
-    return savedUrls.some((savedUrl) => norm(savedUrl) === normalizedUrl);
+    const normalize = (u: string) => {
+      try {
+        const urlObj = new URL(u);
+        let host = urlObj.hostname.replace(/^www\./, '');
+        let path = urlObj.pathname.replace(/\/$/, '');
+        let search = urlObj.search;
+
+        if (host === 'youtube.com' || host === 'youtu.be') {
+          const v = urlObj.searchParams.get('v');
+          if (v) return `youtube:${v}`;
+          const shortsMatch = path.match(/^\/shorts\/([^/]+)/);
+          if (shortsMatch) return `youtube:${shortsMatch[1]}`;
+          if (host === 'youtu.be') return `youtube:${path.replace(/^\//, '')}`;
+        }
+
+        if (host === 'twitter.com' || host === 'x.com') {
+          const statusMatch = path.match(/\/status\/(\d+)/);
+          if (statusMatch) return `twitter:${statusMatch[1]}`;
+        }
+
+        return `${host}${path}${search}`.replace(/\/$/, "");
+      } catch {
+        return u.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+      }
+    };
+
+    const normalizedUrl = normalize(url);
+    return (savedUrls || []).some((savedUrl) => normalize(savedUrl) === normalizedUrl);
   }, [savedUrls]);
 
   const toggleShowCached = useCallback((platform: Platform) => {
@@ -296,6 +321,27 @@ export function useSearchLogic({ query, savedUrls, biases, groups, enabledPlatfo
   };
 
   useEffect(() => { clearExpiredCache(); }, []);
+
+  useEffect(() => {
+    setPlatformResults((prev) => {
+      const next = new Map(prev);
+      let changed = false;
+      for (const [platform, data] of next) {
+        const updatedResults = data.results.map((r) => {
+          const isSaved = checkIfSaved(r.url);
+          if (r.isSaved !== isSaved) {
+            changed = true;
+            return { ...r, isSaved };
+          }
+          return r;
+        });
+        if (changed) {
+          next.set(platform, { ...data, results: updatedResults });
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [savedUrls, checkIfSaved]);
 
   const markAsSaved = useCallback((url: string) => {
     setPlatformResults((prev) => {

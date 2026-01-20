@@ -27,13 +27,29 @@ function HomeContent() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
-  const [savedUrls, setSavedUrls] = useState<string[]>([])
+  const [allUrls, setAllUrls] = useState<string[]>([])
   const [isExternalSearchOpen, setIsExternalSearchOpen] = useState(false)
   const [isUnifiedSearchOpen, setIsUnifiedSearchOpen] = useState(false)
   const [layout, setLayout] = useState<LayoutType>('grid')
   const { isOpen: isMobileMenuOpen, close: closeMobileMenu } = useMobileMenu()
 
-  // Background archive queue processing (runs every 1 minute)
+  const fetchAllUrls = useCallback(async () => {
+    try {
+      const response = await fetch('/api/links?minimal=true')
+      if (response.ok) {
+        const links = await response.json()
+        setAllUrls(links.map((l: { url: string }) => l.url))
+      }
+    } catch (error) {
+      console.error('Error fetching all URLs:', error)
+    }
+  }, [])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchAllUrls()
+  }, [fetchAllUrls, refreshTrigger])
+
   useArchiveQueue()
 
   // Biases and groups for UnifiedSearch
@@ -106,14 +122,8 @@ function HomeContent() {
   }, [router, searchParams])
 
   const handleSave = () => {
-    // Increment to trigger LinkList refresh
     setRefreshTrigger((prev) => prev + 1)
-    // Archive queue will be processed automatically every 1 minute
   }
-
-  const handleLinksLoad = useCallback((urls: string[]) => {
-    setSavedUrls(urls)
-  }, [])
 
   return (
     <div className="flex">
@@ -160,7 +170,6 @@ function HomeContent() {
             searchQuery={searchQuery}
             tagId={selectedTagId}
             platform={selectedPlatform}
-            onLinksLoad={handleLinksLoad}
             layout={layout}
           />
         </div>
@@ -170,7 +179,7 @@ function HomeContent() {
       <ExternalSearch
         isOpen={isExternalSearchOpen}
         onClose={() => setIsExternalSearchOpen(false)}
-        savedUrls={savedUrls}
+        savedUrls={allUrls}
         onSave={handleSave}
       />
 
@@ -178,7 +187,7 @@ function HomeContent() {
       <UnifiedSearch
         isOpen={isUnifiedSearchOpen}
         onClose={() => setIsUnifiedSearchOpen(false)}
-        savedUrls={savedUrls}
+        savedUrls={allUrls}
         onSave={handleSave}
         biases={biases}
         groups={groups}
