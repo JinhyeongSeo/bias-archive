@@ -3,8 +3,6 @@
  * Only logs in development environment to reduce production bundle size
  */
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 /**

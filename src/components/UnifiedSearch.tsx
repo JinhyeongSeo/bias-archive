@@ -6,7 +6,6 @@ import { extractOriginalUrl } from "@/lib/proxy";
 import {
   modalOverlay,
   modalContent,
-  easeOutExpo,
 } from "@/lib/animations";
 import { useNameLanguage } from "@/contexts/NameLanguageContext";
 import { useTranslations, useLocale } from "next-intl";
@@ -62,7 +61,7 @@ export function UnifiedSearch({
   biases,
   groups,
 }: UnifiedSearchProps) {
-  const { getDisplayName, getTagDisplayName } = useNameLanguage();
+  const { getDisplayName } = useNameLanguage();
   const t = useTranslations("unifiedSearch");
   const locale = useLocale();
 
@@ -95,6 +94,8 @@ export function UnifiedSearch({
     handleLoadMore,
     toggleShowCached,
     removeKoreanSurname,
+    markAsSaved,
+    markAsSaving,
   } = useSearchLogic({ query, savedUrls, biases, groups, enabledPlatforms });
 
   const biasesWithGroups = useMemo((): BiasWithGroup[] => {
@@ -138,6 +139,7 @@ export function UnifiedSearch({
   useEffect(() => {
     if (isIdolDropdownOpen) {
       const allGroupIds = new Set(biasesWithGroups.map((b) => b.group_id).filter((id): id is string => id !== null));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCollapsedDropdownGroups(allGroupIds);
       if (dropdownButtonRef.current) {
         const rect = dropdownButtonRef.current.getBoundingClientRect();
@@ -150,9 +152,11 @@ export function UnifiedSearch({
     if (!selection) return;
     if (selection.type === "group") {
       const group = groups.find((g) => g.id === selection.id);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (group) setQuery(getGroupDisplayName(group));
     } else {
       const selectedBias = biases.find((b) => b.id === selection.id);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (selectedBias) setQuery(removeKoreanSurname(selectedBias.name_ko || selectedBias.name));
     }
   }, [selection, groups, biases, getGroupDisplayName, removeKoreanSurname]);
@@ -171,6 +175,7 @@ export function UnifiedSearch({
 
   const handleSaveResult = async (result: EnrichedResult) => {
     const { url, title, thumbnailUrl, author, platform, media } = result;
+    markAsSaving(url, true);
     try {
       const response = await fetch("/api/links", {
         method: "POST",
@@ -187,13 +192,16 @@ export function UnifiedSearch({
         }),
       });
 
-      if (response.ok) {
+      if (response.ok || response.status === 409) {
+        markAsSaved(url);
         onSave?.();
       } else {
+        markAsSaving(url, false);
         const data = await response.json();
         alert(data.error || "저장에 실패했습니다");
       }
     } catch (error) {
+      markAsSaving(url, false);
       alert("저장 중 오류가 발생했습니다");
     }
   };
@@ -216,6 +224,8 @@ export function UnifiedSearch({
     const allResultsList = Array.from(platformResults.values()).flatMap((r) => r.results);
     const selectedResults = allResultsList.filter((r) => selectedUrls.has(r.url));
 
+    selectedUrls.forEach(url => markAsSaving(url, true));
+
     for (const result of selectedResults) {
       try {
         const response = await fetch("/api/links", {
@@ -232,9 +242,15 @@ export function UnifiedSearch({
             media: result.media?.map((m: ParsedMedia) => ({ url: m.url, type: m.type })),
           }),
         });
-        if (response.ok) successCount++;
-        else failCount++;
+        if (response.ok || response.status === 409) {
+          markAsSaved(result.url);
+          successCount++;
+        } else {
+          markAsSaving(result.url, false);
+          failCount++;
+        }
       } catch {
+        markAsSaving(result.url, false);
         failCount++;
       }
     }

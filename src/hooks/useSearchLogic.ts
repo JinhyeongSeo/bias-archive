@@ -11,8 +11,7 @@ import type {
   KgirlsResult, 
   SelcaResult, 
   InstagramResult,
-  SearchCachePlatform,
-  ParsedMedia
+  SearchCachePlatform
 } from '@/types/index';
 import { 
   getSearchCache, 
@@ -194,8 +193,8 @@ export function useSearchLogic({ query, savedUrls, biases, groups, enabledPlatfo
       if (dIdx > 0) setCachedResults(prev => new Map(prev).set(platform, { results: cRes.slice(0, dIdx), displayedIndex: dIdx, currentPage: cached?.currentPage ?? 1, currentOffset: cached?.currentOffset ?? 0, hasMore: false, nextPageToken: cached?.nextPageToken, nextCursor: cached?.nextCursor, nextMaxTimeId: cached?.nextMaxTimeId }));
       setPlatformResults(prev => new Map(prev).set(platform, { platform, results: toDisplay, hasMore: hasMore || toSave.length > 0, isLoading: false, isLoadingMore: false, error: null, currentPage: 1, currentOffset: 0, nextPageToken, nextCursor, nextMaxTimeId }));
       void updatePlatformCache(query, platform as SearchCachePlatform, { results: [...cRes.slice(0, dIdx), ...toDisplay, ...toSave], displayedIndex: dIdx + toDisplay.length, nextPageToken, nextCursor, nextMaxTimeId, currentPage: 1, currentOffset: 0, hasMore });
-    } catch (e: any) {
-      setPlatformResults(prev => new Map(prev).set(platform, { platform, results: [], hasMore: false, isLoading: false, isLoadingMore: false, error: e.message || "검색 실패", currentPage: 1, currentOffset: 0 }));
+    } catch (e: unknown) {
+      setPlatformResults(prev => new Map(prev).set(platform, { platform, results: [], hasMore: false, isLoading: false, isLoadingMore: false, error: e instanceof Error ? e.message : "검색 실패", currentPage: 1, currentOffset: 0 }));
     }
   };
 
@@ -291,12 +290,54 @@ export function useSearchLogic({ query, savedUrls, biases, groups, enabledPlatfo
         res = { results: filtered.slice(0, RESULTS_PER_PLATFORM), hasMore: api.hasMore || filtered.length > RESULTS_PER_PLATFORM };
       } else return;
       setPlatformResults(prev => new Map(prev).set(p, { ...cur, results: [...cur.results, ...res.results], hasMore: res.hasMore, isLoadingMore: false, nextPageToken: res.nextPageToken, nextCursor: res.nextCursor, nextMaxTimeId: res.nextMaxTimeId }));
-    } catch (e: any) {
-      setPlatformResults(prev => new Map(prev).set(p, { ...cur, isLoadingMore: false, error: e.message }));
+    } catch (e: unknown) {
+      setPlatformResults(prev => new Map(prev).set(p, { ...cur, isLoadingMore: false, error: e instanceof Error ? e.message : "검색 실패" }));
     }
   };
 
   useEffect(() => { clearExpiredCache(); }, []);
 
-  return { platformResults, isSearching, selectedUrls, setSelectedUrls, isBatchSaving, setIsBatchSaving, cachedResults, showCached, handleSearch, handleLoadMore, toggleShowCached, checkIfSaved, removeKoreanSurname };
+  const markAsSaved = useCallback((url: string) => {
+    setPlatformResults((prev) => {
+      const next = new Map(prev);
+      for (const [platform, data] of next) {
+        const results = data.results.map((r) =>
+          r.url === url ? { ...r, isSaved: true, isSaving: false } : r
+        );
+        next.set(platform, { ...data, results });
+      }
+      return next;
+    });
+  }, []);
+
+  const markAsSaving = useCallback((url: string, isSaving: boolean) => {
+    setPlatformResults((prev) => {
+      const next = new Map(prev);
+      for (const [platform, data] of next) {
+        const results = data.results.map((r) =>
+          r.url === url ? { ...r, isSaving } : r
+        );
+        next.set(platform, { ...data, results });
+      }
+      return next;
+    });
+  }, []);
+
+  return { 
+    platformResults, 
+    isSearching, 
+    selectedUrls, 
+    setSelectedUrls, 
+    isBatchSaving, 
+    setIsBatchSaving, 
+    cachedResults, 
+    showCached, 
+    handleSearch, 
+    handleLoadMore, 
+    toggleShowCached, 
+    checkIfSaved, 
+    removeKoreanSurname,
+    markAsSaved,
+    markAsSaving
+  };
 }
