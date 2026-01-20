@@ -3,13 +3,12 @@
 import { useEffect, useCallback, useState, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion'
-import Image from 'next/image'
-import type { Link, Tag, LinkMedia } from '@/types/database'
-import type { Platform } from '@/lib/metadata'
+import type { Link, Tag, LinkMedia, Platform } from '@/types/index'
 import { downloadMedia, getFilenameFromUrl } from './EmbedViewer'
 import { useNameLanguage } from '@/contexts/NameLanguageContext'
 import { easeOutExpo } from '@/lib/animations'
 import { getProxiedImageUrl, getProxiedVideoUrl } from '@/lib/proxy'
+import { ReelsMediaContent } from './viewer/ReelsMediaContent'
 
 type LinkWithTags = Link & { tags: Tag[] }
 type LinkWithMedia = Link & { media?: LinkMedia[] }
@@ -32,434 +31,22 @@ function formatDate(dateString: string): string {
   })
 }
 
-// Snap threshold - when dragged past this percentage, snap to next/prev
-const SNAP_THRESHOLD = 0.3 // 30% of screen height
-
-// Extract YouTube video ID
-function extractYouTubeVideoId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([^&?/]+)/,
-    /youtube\.com\/v\/([^&?/]+)/,
-  ]
-  for (const pattern of patterns) {
-    const match = url.match(pattern)
-    if (match && match[1]) return match[1]
-  }
-  return null
-}
-
-// YouTube embed component - maximizes video size to fit screen
-// Controls are locked by default to allow drag/scroll navigation
-// User can unlock controls via toggle button to interact with YouTube player
-function YouTubeEmbed({ videoId, title, isActive }: { videoId: string; title: string | null; isActive: boolean }) {
-  const [controlsEnabled, setControlsEnabled] = useState(false)
-
-  // Reset controlsEnabled when video becomes inactive (user navigated away)
-  useEffect(() => {
-    if (!isActive) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state when video becomes inactive
-      setControlsEnabled(false)
-    }
-  }, [isActive])
-
-  return (
-    <div className="w-full h-full flex items-center justify-center p-4">
-      {/* Maximize to fill available space while maintaining 16:9 aspect ratio */}
-      <div className="w-full h-full max-h-[calc(100vh-180px)] flex items-center justify-center">
-        <div className="relative w-full aspect-video max-h-full" style={{ maxWidth: 'calc((100vh - 180px) * 16 / 9)' }}>
-          {isActive ? (
-            <>
-              <iframe
-                src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`}
-                title="YouTube video player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                className="w-full h-full rounded-lg"
-                style={{ pointerEvents: controlsEnabled ? 'auto' : 'none' }}
-              />
-              {/* Toggle button for controls - always clickable */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setControlsEnabled(prev => !prev)
-                }}
-                className={`absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all pointer-events-auto ${
-                  controlsEnabled
-                    ? 'bg-white/90 text-black hover:bg-white'
-                    : 'bg-black/60 text-white hover:bg-black/80'
-                }`}
-              >
-                {controlsEnabled ? (
-                  <>
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                    </svg>
-                    <span>컨트롤</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    <span>잠금</span>
-                  </>
-                )}
-              </button>
-            </>
-          ) : (
-            <div className="relative w-full h-full bg-black/50 rounded-lg">
-              <Image
-                src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
-                alt={title || 'YouTube thumbnail'}
-                fill
-                className="object-cover rounded-lg select-none pointer-events-none"
-                unoptimized
-                draggable={false}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Video component with fallback handling
-// isActive: whether this is the currently visible video
-function VideoWithFallback({ url, className, style, originalUrl, isActive = true }: { url: string; className?: string; style?: React.CSSProperties; originalUrl?: string; isActive?: boolean }) {
-  const [status, setStatus] = useState<'loading' | 'playing' | 'failed'>('loading')
-  const [tryCount, setTryCount] = useState(0)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const proxiedUrl = getProxiedVideoUrl(url)
-
-  // Try order: proxied URL first, then direct URL
-  const urls = proxiedUrl !== url ? [proxiedUrl, url] : [url]
-  const currentUrl = urls[Math.min(tryCount, urls.length - 1)]
-  const hasMoreFallbacks = tryCount < urls.length - 1
-
-  const handleError = useCallback(() => {
-    if (hasMoreFallbacks) {
-      console.log(`Video load failed for ${currentUrl}, trying fallback...`)
-      setTryCount(prev => prev + 1)
-    } else {
-      console.log(`All video sources failed for ${url}`)
-      setStatus('failed')
-    }
-  }, [currentUrl, hasMoreFallbacks, url])
-
-  // Reset state when URL changes
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state when URL changes
-    setTryCount(0)
-    setStatus('loading')
-  }, [url])
-
-  // Control play/pause based on isActive
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    if (isActive) {
-      video.play().catch(() => {})
-    } else {
-      video.pause()
-    }
-  }, [isActive])
-
-  // When video becomes ready, update status and play if active
-  const handleCanPlayInternal = useCallback(() => {
-    setStatus('playing')
-    if (isActive && videoRef.current) {
-      videoRef.current.play().catch(() => {})
-    }
-  }, [isActive])
-
-  // Show error state with link to original
-  if (status === 'failed') {
-    return (
-      <div className="flex flex-col items-center justify-center gap-4 text-white/70 p-8">
-        <svg className="w-16 h-16 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-        <p className="text-center text-sm">비디오를 불러올 수 없습니다</p>
-        <p className="text-center text-xs text-white/50">핫링크 보호로 인해 직접 재생이 제한됩니다</p>
-        {originalUrl && (
-          <a
-            href={originalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 hover:bg-white/30 text-white text-sm transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-            원본 사이트에서 보기
-          </a>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      <video
-        ref={videoRef}
-        key={`${url}-${tryCount}`}
-        src={currentUrl}
-        controls
-        autoPlay={isActive}
-        loop
-        playsInline
-        muted
-        preload="auto"
-        className={`${className} transition-opacity duration-200`}
-        style={{ ...style, opacity: status === 'playing' ? 1 : 0.3 }}
-        onError={handleError}
-        onCanPlay={handleCanPlayInternal}
-      />
-    </div>
-  )
-}
-
-// Single media item renderer (used by ReelsMediaContent for each visible media)
-function MediaItemRenderer({
-  media,
-  title,
-  originalUrl,
-  isActive
-}: {
-  media: LinkMedia
-  title: string | null
-  originalUrl: string
-  isActive: boolean
-}) {
-  const isVideo = media.media_type === 'video'
-
-  if (isVideo) {
-    return (
-      <VideoWithFallback
-        url={media.media_url}
-        className="max-w-full max-h-full object-contain"
-        style={{ maxHeight: 'calc(100vh - 200px)' }}
-        originalUrl={originalUrl}
-        isActive={isActive}
-      />
-    )
-  }
-
-  // Use explicit width/height instead of fill to avoid layout issues during animation
-  return (
-    <Image
-      src={getProxiedImageUrl(media.media_url)}
-      alt={title || 'Media'}
-      width={1920}
-      height={1080}
-      className="max-w-full max-h-[calc(100vh-200px)] w-auto h-auto object-contain select-none pointer-events-none"
-      priority
-      unoptimized
-      draggable={false}
-    />
-  )
-}
-
-// Full screen media content component
-function ReelsMediaContent({
-  link,
-  platform,
-  isActive = true,
-  mediaIndex = 0,
-  previewActiveMediaIndex,
-  onMediaIndexChange,
-  onAnimateToMedia,
-  dragX,
-  prevMediaX,
-  nextMediaX
-}: {
-  link: FullLink
-  platform: Platform
-  isActive?: boolean
-  mediaIndex?: number
-  previewActiveMediaIndex?: number | null
-  onMediaIndexChange?: (index: number) => void
-  onAnimateToMedia?: (direction: 'prev' | 'next') => void
-  dragX?: ReturnType<typeof useMotionValue<number>>
-  prevMediaX?: ReturnType<typeof useTransform<number, number>>
-  nextMediaX?: ReturnType<typeof useTransform<number, number>>
-}) {
-  // Get displayable media
-  const mediaItems = link.media?.filter(
-    m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video'
-  ) || []
-
-  // Clamp mediaIndex to valid range
-  const safeMediaIndex = Math.max(0, Math.min(mediaIndex, mediaItems.length - 1))
-
-  // YouTube: show embed (only when active to prevent multiple videos playing)
-  if (platform === 'youtube') {
-    const videoId = extractYouTubeVideoId(link.url)
-    if (videoId) {
-      return (
-        <YouTubeEmbed
-          videoId={videoId}
-          title={link.title}
-          isActive={isActive}
-        />
-      )
-    }
-  }
-
-  // Has media items (images/videos from Twitter, heye, kgirls, etc.)
-  if (mediaItems.length > 0) {
-    // Build visible media array (prev, current, next) - similar to visibleLinks pattern
-    // This ensures stable keys and prevents remounting when mediaIndex changes
-    const visibleMediaIndices: number[] = []
-    if (safeMediaIndex > 0) visibleMediaIndices.push(safeMediaIndex - 1)
-    visibleMediaIndices.push(safeMediaIndex)
-    if (safeMediaIndex < mediaItems.length - 1) visibleMediaIndices.push(safeMediaIndex + 1)
-
-    // Determine which media should be active based on preview state
-    // If previewActiveMediaIndex is set (dragged past 50%), that media becomes active
-    const activeMediaIdx = previewActiveMediaIndex !== null && previewActiveMediaIndex !== undefined
-      ? previewActiveMediaIndex
-      : safeMediaIndex
-
-    return (
-      <div className="relative w-full h-full overflow-hidden">
-        {/* Render visible media items with stable keys (by media URL) */}
-        {visibleMediaIndices.map((idx) => {
-          const media = mediaItems[idx]
-          const offset = idx - safeMediaIndex // -1=prev, 0=current, 1=next
-          // Choose x transform based on position relative to current
-          const xStyle = offset === -1 ? prevMediaX : offset === 0 ? dragX : nextMediaX
-
-          return (
-            <motion.div
-              key={media.media_url}
-              className="absolute inset-0 flex items-center justify-center"
-              style={{ x: xStyle }}
-            >
-              <MediaItemRenderer
-                media={media}
-                title={link.title}
-                originalUrl={link.url}
-                isActive={isActive && activeMediaIdx === idx}
-              />
-            </motion.div>
-          )
-        })}
-
-        {/* Media navigation for multiple items */}
-        {mediaItems.length > 1 && (
-          <>
-            {/* Prev button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                if (onAnimateToMedia && safeMediaIndex > 0) {
-                  onAnimateToMedia('prev')
-                } else if (onMediaIndexChange) {
-                  // Wrap around when no animation (or at first item)
-                  const newIndex = safeMediaIndex === 0 ? mediaItems.length - 1 : safeMediaIndex - 1
-                  onMediaIndexChange(newIndex)
-                }
-              }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-
-            {/* Next button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                if (onAnimateToMedia && safeMediaIndex < mediaItems.length - 1) {
-                  onAnimateToMedia('next')
-                } else if (onMediaIndexChange) {
-                  // Wrap around when no animation (or at last item)
-                  const newIndex = safeMediaIndex === mediaItems.length - 1 ? 0 : safeMediaIndex + 1
-                  onMediaIndexChange(newIndex)
-                }
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-
-            {/* Dots indicator */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-              {mediaItems.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    // Direct jump without animation for dots
-                    onMediaIndexChange?.(idx)
-                  }}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    idx === safeMediaIndex ? 'bg-white' : 'bg-white/50'
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* Counter - positioned below the close button area */}
-            <div className="absolute top-16 right-4 px-3 py-1 rounded-full bg-black/50 text-white text-sm z-10">
-              {safeMediaIndex + 1} / {mediaItems.length}
-            </div>
-          </>
-        )}
-      </div>
-    )
-  }
-
-  // Fallback: show thumbnail or placeholder
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      {link.thumbnail_url ? (
-        <div className="relative w-full h-full max-w-2xl">
-          <Image
-            src={getProxiedImageUrl(link.thumbnail_url)}
-            alt={link.title || 'Thumbnail'}
-            fill
-            className="object-contain select-none pointer-events-none"
-            priority
-            unoptimized
-            draggable={false}
-          />
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center text-white/50">
-          <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-          </svg>
-          <p className="text-sm">미디어를 불러올 수 없습니다</p>
-        </div>
-      )}
-    </div>
-  )
-}
+const SNAP_THRESHOLD = 0.3
 
 export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChange }: ReelsViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
-  const [mediaIndex, setMediaIndex] = useState(0) // Current media index within the current link
+  const [mediaIndex, setMediaIndex] = useState(0)
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
   const { getTagDisplayName } = useNameLanguage()
 
-  // Motion values for drag position
-  const dragY = useMotionValue(0) // Vertical: link navigation
-  const dragX = useMotionValue(0) // Horizontal: media navigation within link
+  const dragY = useMotionValue(0)
+  const dragX = useMotionValue(0)
   const containerHeight = useRef(0)
   const containerWidth = useRef(0)
-  // Track which axis is being used for this drag gesture
   const dragAxis = useRef<'x' | 'y' | null>(null)
 
-  // Transform for prev/next content positions (vertical swipe for links)
   const prevY = useTransform(dragY, (y) => {
     const height = containerHeight.current || (typeof window !== 'undefined' ? window.innerHeight : 800)
     return y - height
@@ -469,7 +56,6 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     return y + height
   })
 
-  // Transform for prev/next media positions (horizontal swipe within link)
   const prevMediaX = useTransform(dragX, (x) => {
     const width = containerWidth.current || (typeof window !== 'undefined' ? window.innerWidth : 400)
     return x - width
@@ -483,7 +69,6 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
   const prevLink = currentIndex > 0 ? links[currentIndex - 1] : null
   const nextLink = currentIndex < links.length - 1 ? links[currentIndex + 1] : null
 
-  // Visible links array for stable key-based rendering (prevents remounting on index change)
   const visibleLinks = useMemo(() => {
     const result: FullLink[] = []
     if (prevLink) result.push(prevLink)
@@ -492,7 +77,6 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     return result
   }, [prevLink, currentLink, nextLink])
 
-  // Get displayable media items for current link
   const currentMediaItems = useMemo(() =>
     currentLink?.media?.filter(
       m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video'
@@ -502,27 +86,21 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
   const hasPrevMedia = mediaIndex > 0
   const hasNextMedia = mediaIndex < mediaCount - 1
 
-  // Get downloadable media items
   const downloadableMedia = currentLink?.media?.filter(
     m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video'
   ) || []
 
-  // Reset index when initialIndex changes
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync state from prop
     setCurrentIndex(initialIndex)
     setMediaIndex(0)
     dragY.set(0)
     dragX.set(0)
   }, [initialIndex, dragX, dragY])
 
-  // Reset media index when current link changes
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset on index change
     setMediaIndex(0)
   }, [currentIndex])
 
-  // Update container dimensions
   useEffect(() => {
     if (containerRef.current) {
       containerHeight.current = containerRef.current.clientHeight
@@ -530,34 +108,24 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     }
   }, [isOpen])
 
-  // Pointer-based drag handling (instead of framer-motion drag which has issues)
   const isDragging = useRef(false)
-  const wasDragged = useRef(false) // Track if actual drag movement occurred
+  const wasDragged = useRef(false)
   const dragStartY = useRef(0)
   const dragStartX = useRef(0)
   const dragStartTime = useRef(0)
-  const lastY = useRef(0)
-  const lastX = useRef(0)
-  // Threshold to determine drag axis (in pixels)
   const AXIS_LOCK_THRESHOLD = 10
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     isDragging.current = true
-    wasDragged.current = false // Reset drag flag
+    wasDragged.current = false
     dragStartY.current = e.clientY
     dragStartX.current = e.clientX
     dragStartTime.current = Date.now()
-    lastY.current = e.clientY
-    lastX.current = e.clientX
-    dragAxis.current = null // Reset axis lock
-    // Capture pointer to track movements outside element
+    dragAxis.current = null
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
   }, [])
 
-  // Track which link should be "active" (playing) during drag
-  // When dragged past 50%, the next/prev link becomes active even before finger is lifted
   const [previewActiveIndex, setPreviewActiveIndex] = useState<number | null>(null)
-  // Track which media should be "active" during horizontal drag (for preview)
   const [previewActiveMediaIndex, setPreviewActiveMediaIndex] = useState<number | null>(null)
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -565,23 +133,18 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
 
     const deltaY = e.clientY - dragStartY.current
     const deltaX = e.clientX - dragStartX.current
-    lastY.current = e.clientY
-    lastX.current = e.clientX
     const height = containerHeight.current || window.innerHeight
 
-    // Determine axis lock if not yet set
     if (dragAxis.current === null) {
       const absX = Math.abs(deltaX)
       const absY = Math.abs(deltaY)
       if (absX > AXIS_LOCK_THRESHOLD || absY > AXIS_LOCK_THRESHOLD) {
         dragAxis.current = absX > absY ? 'x' : 'y'
-        wasDragged.current = true // Mark as dragged
+        wasDragged.current = true
       }
     }
 
-    // Apply drag based on locked axis
     if (dragAxis.current === 'y') {
-      // Vertical drag - link navigation
       if (deltaY > 0 && !prevLink) {
         dragY.set(deltaY * 0.2)
       } else if (deltaY < 0 && !nextLink) {
@@ -591,7 +154,6 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
       }
       dragX.set(0)
 
-      // Preview threshold for vertical
       const previewThreshold = height * 0.5
       if (deltaY < -previewThreshold && nextLink) {
         setPreviewActiveIndex(currentIndex + 1)
@@ -601,9 +163,7 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
         setPreviewActiveIndex(null)
       }
     } else if (dragAxis.current === 'x') {
-      // Horizontal drag - media navigation within current link
       const width = containerWidth.current || window.innerWidth
-      // Apply resistance at boundaries (first/last media)
       if (deltaX > 0 && !hasPrevMedia) {
         dragX.set(deltaX * 0.2)
       } else if (deltaX < 0 && !hasNextMedia) {
@@ -613,7 +173,6 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
       }
       dragY.set(0)
 
-      // Preview threshold for horizontal (50% of screen width)
       const previewThreshold = width * 0.5
       if (deltaX < -previewThreshold && hasNextMedia) {
         setPreviewActiveMediaIndex(mediaIndex + 1)
@@ -629,8 +188,7 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     if (!isDragging.current) return
     isDragging.current = false
     const currentAxis = dragAxis.current
-    dragAxis.current = null // Reset for next drag
-    // Don't reset previewActiveIndex here - it will be handled below based on navigation decision
+    dragAxis.current = null
     ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
 
     const height = containerHeight.current || window.innerHeight
@@ -641,7 +199,6 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     const velocityThreshold = 500
 
     if (currentAxis === 'y') {
-      // Vertical swipe
       const threshold = height * SNAP_THRESHOLD
       const velocity = deltaTime > 0 ? (deltaY / deltaTime) * 1000 : 0
       const shouldGoNext = (deltaY < -threshold || velocity < -velocityThreshold) && nextLink
@@ -679,21 +236,15 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
         })
       } else {
         setPreviewActiveIndex(null)
-        animate(dragY, 0, {
-          type: 'spring',
-          stiffness: 400,
-          damping: 40,
-        })
+        animate(dragY, 0, { type: 'spring', stiffness: 400, damping: 40 })
       }
     } else if (currentAxis === 'x') {
-      // Horizontal swipe - media navigation within current link
       const threshold = width * SNAP_THRESHOLD
       const velocity = deltaTime > 0 ? (deltaX / deltaTime) * 1000 : 0
       const shouldGoNextMedia = (deltaX < -threshold || velocity < -velocityThreshold) && hasNextMedia
       const shouldGoPrevMedia = (deltaX > threshold || velocity > velocityThreshold) && hasPrevMedia
 
       if (shouldGoNextMedia) {
-        // Swipe left -> next media: animate current out to left, then change index
         setPreviewActiveMediaIndex(mediaIndex + 1)
         animate(dragX, -width, {
           type: 'spring',
@@ -708,7 +259,6 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
           }
         })
       } else if (shouldGoPrevMedia) {
-        // Swipe right -> previous media: animate current out to right, then change index
         setPreviewActiveMediaIndex(mediaIndex - 1)
         animate(dragX, width, {
           type: 'spring',
@@ -723,16 +273,10 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
           }
         })
       } else {
-        // Snap back
         setPreviewActiveMediaIndex(null)
-        animate(dragX, 0, {
-          type: 'spring',
-          stiffness: 400,
-          damping: 40,
-        })
+        animate(dragX, 0, { type: 'spring', stiffness: 400, damping: 40 })
       }
     } else {
-      // No axis was locked (very short drag), just reset
       setPreviewActiveIndex(null)
       setPreviewActiveMediaIndex(null)
       animate(dragY, 0, { type: 'spring', stiffness: 400, damping: 40 })
@@ -743,34 +287,23 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
   const goToPrevious = useCallback(() => {
     if (currentIndex > 0) {
       const height = containerHeight.current || window.innerHeight
-      // Start from off-screen position, change index immediately, animate to center
       dragY.set(-height)
       setCurrentIndex(prev => prev - 1)
       onIndexChange?.(currentIndex - 1)
-      animate(dragY, 0, {
-        type: 'spring',
-        stiffness: 300,
-        damping: 30,
-      })
+      animate(dragY, 0, { type: 'spring', stiffness: 300, damping: 30 })
     }
   }, [currentIndex, dragY, onIndexChange])
 
   const goToNext = useCallback(() => {
     if (currentIndex < links.length - 1) {
       const height = containerHeight.current || window.innerHeight
-      // Start from off-screen position, change index immediately, animate to center
       dragY.set(height)
       setCurrentIndex(prev => prev + 1)
       onIndexChange?.(currentIndex + 1)
-      animate(dragY, 0, {
-        type: 'spring',
-        stiffness: 300,
-        damping: 30,
-      })
+      animate(dragY, 0, { type: 'spring', stiffness: 300, damping: 30 })
     }
   }, [currentIndex, dragY, links.length, onIndexChange])
 
-  // Animate to prev/next media within current link (for button clicks)
   const animateToMedia = useCallback((direction: 'prev' | 'next') => {
     const width = containerWidth.current || window.innerWidth
     if (direction === 'next' && hasNextMedia) {
@@ -804,10 +337,8 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     }
   }, [dragX, hasNextMedia, hasPrevMedia, mediaIndex])
 
-  // Handle keyboard navigation
   useEffect(() => {
     if (!isOpen) return
-
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
         case 'ArrowDown':
@@ -825,12 +356,10 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
           break
       }
     }
-
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, goToNext, goToPrevious, onClose])
 
-  // Handle mouse wheel navigation - accumulate scroll and navigate when stopped
   const wheelAccumulator = useRef(0)
   const wheelTimeout = useRef<NodeJS.Timeout | null>(null)
   const isAnimating = useRef(false)
@@ -839,25 +368,15 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     if (!isOpen) return
     const container = containerRef.current
     if (!container) return
-
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault()
-
-      // Don't accumulate while animating
       if (isAnimating.current) return
-
-      // Accumulate scroll delta
       wheelAccumulator.current += e.deltaY
-
-      // Clear previous timeout
       if (wheelTimeout.current) {
         clearTimeout(wheelTimeout.current)
       }
-
-      // Set new timeout - navigate when scrolling stops
       wheelTimeout.current = setTimeout(() => {
-        const threshold = 50 // Minimum accumulated scroll to trigger navigation
-
+        const threshold = 50
         if (wheelAccumulator.current > threshold && nextLink) {
           isAnimating.current = true
           goToNext()
@@ -867,22 +386,16 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
           goToPrevious()
           setTimeout(() => { isAnimating.current = false }, 400)
         }
-
-        // Reset accumulator
         wheelAccumulator.current = 0
-      }, 150) // Wait 150ms after last scroll event
+      }, 150)
     }
-
     container.addEventListener('wheel', handleWheel, { passive: false })
     return () => {
       container.removeEventListener('wheel', handleWheel)
-      if (wheelTimeout.current) {
-        clearTimeout(wheelTimeout.current)
-      }
+      if (wheelTimeout.current) clearTimeout(wheelTimeout.current)
     }
   }, [isOpen, goToNext, goToPrevious, nextLink, prevLink])
 
-  // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -892,13 +405,8 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     }
   }, [isOpen])
 
-  // Handle browser back button to close the viewer (mobile-friendly)
-  // Track if we pushed history state to avoid duplicate pushes
   const historyPushed = useRef(false)
-  // Store onClose in ref to avoid effect re-runs when onClose changes
   const onCloseRef = useRef(onClose)
-
-  // Update onClose ref when it changes
   useEffect(() => {
     onCloseRef.current = onClose
   }, [onClose])
@@ -908,31 +416,17 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
       historyPushed.current = false
       return
     }
-
-    // Only push history state once when opening
     if (!historyPushed.current) {
-      const state = { reelsViewerOpen: true }
-      window.history.pushState(state, '')
+      window.history.pushState({ reelsViewerOpen: true }, '')
       historyPushed.current = true
     }
-
-    // Handle the popstate event (back button)
-    const handlePopState = () => {
-      // Close the viewer when back button is pressed
-      onCloseRef.current()
-    }
-
+    const handlePopState = () => onCloseRef.current()
     window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [isOpen])
 
-    return () => {
-      window.removeEventListener('popstate', handlePopState)
-    }
-  }, [isOpen]) // Removed onClose from deps, using ref instead
-
-  // Separate cleanup effect for history when viewer closes
   useEffect(() => {
     return () => {
-      // On unmount, if we still have our history state, go back
       if (historyPushed.current && window.history.state?.reelsViewerOpen) {
         window.history.back()
         historyPushed.current = false
@@ -940,41 +434,27 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
     }
   }, [])
 
-  // Download all media with rate limiting
   const handleDownloadAll = async () => {
     if (downloadableMedia.length === 0 || isDownloading) return
-
     setIsDownloading(true)
     setDownloadProgress({ current: 0, total: downloadableMedia.length })
-
     for (let i = 0; i < downloadableMedia.length; i++) {
       const item = downloadableMedia[i]
-      const url = item.media_type === 'video'
-        ? getProxiedVideoUrl(item.media_url)
-        : getProxiedImageUrl(item.media_url)
+      const url = item.media_type === 'video' ? getProxiedVideoUrl(item.media_url) : getProxiedImageUrl(item.media_url)
       const filename = getFilenameFromUrl(item.media_url, i, item.media_type)
-
       await downloadMedia(url, filename)
       setDownloadProgress({ current: i + 1, total: downloadableMedia.length })
-
-      if (i < downloadableMedia.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500))
-      }
+      if (i < downloadableMedia.length - 1) await new Promise(resolve => setTimeout(resolve, 500))
     }
-
     setIsDownloading(false)
   }
 
-  // Handle backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
-    // Ignore click if it was a drag gesture
     if (wasDragged.current) {
       wasDragged.current = false
       return
     }
-    if (e.target === e.currentTarget) {
-      onClose()
-    }
+    if (e.target === e.currentTarget) onClose()
   }
 
   if (typeof window === 'undefined' || !currentLink) return null
@@ -991,7 +471,6 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
           transition={easeOutExpo}
           onClick={handleBackdropClick}
         >
-          {/* Close button - top right */}
           <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
             <div className="text-white/70 text-sm">
               {currentIndex + 1} / {links.length}
@@ -1008,7 +487,6 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
             </motion.button>
           </div>
 
-          {/* Main content area - Instagram Reels style swipeable */}
           <div
             className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing"
             onPointerDown={handlePointerDown}
@@ -1017,18 +495,13 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
             onPointerCancel={handlePointerUp}
             style={{ touchAction: 'none' }}
           >
-            {/* Render visible links with stable keys to prevent remounting */}
             {visibleLinks.map((link) => {
               const linkPlatform = (link.platform || 'other') as Platform
               const linkIndex = links.findIndex(l => l.id === link.id)
               const offset = linkIndex - currentIndex
-              // offset: -1=prev, 0=current, 1=next
               const yStyle = offset === -1 ? prevY : offset === 0 ? dragY : nextY
-              // If dragged past 50%, the preview link becomes active (starts playing)
-              // Otherwise, the current link is active
               const activeIndex = previewActiveIndex !== null ? previewActiveIndex : currentIndex
               const isActiveLink = linkIndex === activeIndex
-              // Only pass mediaIndex to current link
               const linkMediaIndex = offset === 0 ? mediaIndex : 0
 
               return (
@@ -1055,47 +528,32 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
             })}
           </div>
 
-          {/* Bottom overlay - gradient background (pointer-events-none for drag-through) */}
-          <div
-            className="absolute bottom-0 left-0 right-0 z-10 h-48 bg-gradient-to-t from-black/80 via-black/50 to-transparent pointer-events-none"
-          />
+          <div className="absolute bottom-0 left-0 right-0 z-10 h-48 bg-gradient-to-t from-black/80 via-black/50 to-transparent pointer-events-none" />
 
-          {/* Bottom overlay - content section */}
-          {/* pointer-events-none so drag passes through, buttons have pointer-events-auto */}
           <div
             className="absolute bottom-0 left-0 right-0 z-30 p-4 pb-8 pointer-events-none"
             style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
           >
-            {/* Title - no animation for instant response */}
             <h2 className="font-medium text-white text-base line-clamp-2 mb-1">
               {currentLink.title || '제목 없음'}
             </h2>
 
-            {/* Author & Date */}
             <div className="flex items-center gap-2 text-sm text-white/70 mb-3">
-              {currentLink.author_name && (
-                <span className="text-white/90">@{currentLink.author_name}</span>
-              )}
+              {currentLink.author_name && <span className="text-white/90">@{currentLink.author_name}</span>}
               <span>{formatDate(currentLink.created_at)}</span>
             </div>
 
-            {/* Tags */}
             {currentLink.tags && currentLink.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-4">
                 {currentLink.tags.map((tag) => (
-                  <span
-                    key={tag.id}
-                    className="px-2 py-0.5 text-xs rounded-full bg-white/20 text-white/90"
-                  >
+                  <span key={tag.id} className="px-2 py-0.5 text-xs rounded-full bg-white/20 text-white/90">
                     #{getTagDisplayName(tag.name)}
                   </span>
                 ))}
               </div>
             )}
 
-            {/* Action buttons - pointer-events-auto so buttons are clickable */}
             <div className="flex items-center gap-3 pointer-events-auto">
-              {/* Download all button */}
               {downloadableMedia.length > 0 && (
                 <motion.button
                   onClick={handleDownloadAll}
@@ -1122,7 +580,6 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
                 </motion.button>
               )}
 
-              {/* Open original link button */}
               <motion.a
                 href={currentLink.url}
                 target="_blank"
@@ -1131,19 +588,13 @@ export function ReelsViewer({ links, initialIndex, isOpen, onClose, onIndexChang
                 whileTap={{ scale: 0.95 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
                 원본
               </motion.a>
             </div>
           </div>
 
-          {/* Navigation hint - swipe up for next */}
           {links.length > 1 && currentIndex < links.length - 1 && (
             <motion.div
               className="absolute bottom-36 left-1/2 -translate-x-1/2 text-white/30 text-xs flex flex-col items-center gap-1 pointer-events-none"
