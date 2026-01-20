@@ -76,7 +76,7 @@ export function detectPlatform(url: string): Platform {
 
     // kgirls.net patterns
     if (hostname.includes('kgirls.net')) {
-      if (urlObj.pathname.startsWith('/issue')) {
+      if (urlObj.pathname.includes('/issue')) {
         return 'kgirls-issue'
       }
       return 'kgirls'
