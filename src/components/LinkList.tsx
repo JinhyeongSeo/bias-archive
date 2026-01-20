@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLocale, useTranslations } from 'next-intl'
 import type { Link, Tag } from '@/types/database'
@@ -11,6 +11,7 @@ import { BatchTagModal } from './BatchTagModal'
 import { ReelsViewer } from './ReelsViewer'
 import { useRefresh } from '@/contexts/RefreshContext'
 import { quickSpring, easeOutExpo } from '@/lib/animations'
+import { useLinkSelection } from '@/hooks/useLinkSelection'
 
 type LinkWithTags = Link & { tags: Tag[] }
 type LayoutType = 'grid' | 'list'
@@ -32,9 +33,19 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Selection mode state
-  const [selectionMode, setSelectionMode] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  // Selection hook
+  const linkIds = useMemo(() => links.map(l => l.id), [links])
+  const {
+    selectionMode,
+    setSelectionMode,
+    selectedIds,
+    setSelectedIds,
+    handleSelect,
+    handleSelectAll,
+    handleDeselectAll,
+    clearSelection
+  } = useLinkSelection({ itemIds: linkIds })
+
   const [batchModalMode, setBatchModalMode] = useState<'add' | 'remove' | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -87,30 +98,8 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
     setLinks((prev) => prev.filter((link) => link.id !== id))
   }
 
-  // Selection handlers
-  const handleSelect = (id: string, selected: boolean) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (selected) {
-        next.add(id)
-      } else {
-        next.delete(id)
-      }
-      return next
-    })
-  }
-
-  const handleSelectAll = () => {
-    setSelectedIds(new Set(links.map(l => l.id)))
-  }
-
-  const handleDeselectAll = () => {
-    setSelectedIds(new Set())
-  }
-
   const handleCancelSelection = () => {
-    setSelectionMode(false)
-    setSelectedIds(new Set())
+    clearSelection()
     setShowDeleteConfirm(false)
   }
 
@@ -136,8 +125,7 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
       if (response.ok) {
         // Remove deleted links from local state
         setLinks(prev => prev.filter(link => !selectedIds.has(link.id)))
-        setSelectedIds(new Set())
-        setSelectionMode(false)
+        clearSelection()
         refreshAll()
       }
     } catch (err) {
@@ -151,8 +139,7 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
   const handleBatchTagComplete = () => {
     // Refresh links to show updated tags
     fetchLinks()
-    setSelectedIds(new Set())
-    setSelectionMode(false)
+    clearSelection()
   }
 
   // Handle opening the reels viewer

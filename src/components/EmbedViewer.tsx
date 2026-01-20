@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Image from 'next/image'
 import type { Platform } from '@/lib/metadata'
 import type { LinkMedia } from '@/types/database'
 import { getProxiedImageUrl, getProxiedVideoUrl } from '@/lib/proxy'
+import { useMediaViewer } from '@/hooks/useMediaViewer'
 
 // Download a single media file
 export async function downloadMedia(url: string, filename: string): Promise<void> {
@@ -188,103 +189,21 @@ function TwitterEmbed({ tweetId }: { tweetId: string }) {
 
 // Media gallery component for images, GIFs, and videos
 function MediaGallery({ media }: { media: LinkMedia[] }) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
-  const containerRef = useRef<HTMLDivElement>(null)
-  const touchStartX = useRef<number | null>(null)
-  const touchStartY = useRef<number | null>(null)
-  const isSwiping = useRef(false)
   // Include images, GIFs, and videos
-  const items = media.filter(m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video')
+  const items = useMemo(() => 
+    media.filter(m => m.media_type === 'image' || m.media_type === 'gif' || m.media_type === 'video'),
+    [media]
+  )
 
-  const goToPrevious = useCallback(() => {
-    setCurrentIndex((prev) => (prev === 0 ? items.length - 1 : prev - 1))
-  }, [items.length])
-
-  const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev === items.length - 1 ? 0 : prev + 1))
-  }, [items.length])
-
-  // Touch swipe handlers
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX
-    touchStartY.current = e.touches[0].clientY
-    isSwiping.current = false
-  }, [])
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (touchStartX.current === null || touchStartY.current === null) return
-
-    const currentX = e.touches[0].clientX
-    const currentY = e.touches[0].clientY
-    const diffX = touchStartX.current - currentX
-    const diffY = touchStartY.current - currentY
-
-    // Determine if this is a horizontal swipe (more horizontal than vertical movement)
-    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
-      isSwiping.current = true
-      // Prevent vertical scrolling during horizontal swipe
-      e.preventDefault()
-    }
-  }, [])
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchStartX.current === null) return
-
-    const touchEndX = e.changedTouches[0].clientX
-    const diff = touchStartX.current - touchEndX
-    const threshold = 50 // Minimum swipe distance
-
-    if (isSwiping.current && Math.abs(diff) > threshold) {
-      if (diff > 0) {
-        // Swiped left -> next
-        goToNext()
-      } else {
-        // Swiped right -> previous
-        goToPrevious()
-      }
-    }
-
-    touchStartX.current = null
-    touchStartY.current = null
-    isSwiping.current = false
-  }, [goToNext, goToPrevious])
-
-  // Preload adjacent images (skip videos) - runs on mount and when index changes
-  useEffect(() => {
-    const toPreload: number[] = []
-    // Preload current, next 2 and previous 1 images
-    for (let offset = -1; offset <= 2; offset++) {
-      let idx = currentIndex + offset
-      if (idx < 0) idx = items.length + idx
-      if (idx >= items.length) idx = idx - items.length
-      // Only preload images/gifs, not videos
-      if (!loadedImages.has(idx) && items[idx] && items[idx].media_type !== 'video') {
-        toPreload.push(idx)
-      }
-    }
-
-    if (toPreload.length > 0) {
-      toPreload.forEach(idx => {
-        const img = new window.Image()
-        // Use proxied URL for preloading - same URL that will be rendered
-        img.src = getProxiedImageUrl(items[idx].media_url)
-      })
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Track preloaded images for optimization
-      setLoadedImages(prev => new Set([...prev, ...toPreload]))
-    }
-  }, [currentIndex, items, loadedImages])
-
-  // Handle keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') goToPrevious()
-      if (e.key === 'ArrowRight') goToNext()
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [goToPrevious, goToNext])
+  const {
+    currentIndex,
+    setCurrentIndex,
+    goToPrevious,
+    goToNext,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+  } = useMediaViewer({ items })
 
   if (items.length === 0) {
     return (
@@ -299,7 +218,6 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
 
   return (
     <div
-      ref={containerRef}
       className="relative w-full touch-pan-y"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
