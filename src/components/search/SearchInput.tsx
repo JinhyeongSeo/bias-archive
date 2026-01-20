@@ -13,7 +13,7 @@ interface SearchInputProps {
   groupedBiases: Map<string | null, BiasWithGroup[]>;
   collapsedDropdownGroups: Set<string>;
   toggleDropdownGroupCollapse: (groupId: string) => void;
-  handleSelection: (selection: { type: 'bias' | 'group', id: string }) => void;
+  handleSelection: (selection: { type: 'bias' | 'group', id: string } | null) => void;
   getGroupDisplayName: (group: Group) => string;
   getDisplayName: (bias: Bias) => string;
   dropdownRef: React.RefObject<HTMLDivElement | null>;
@@ -47,7 +47,9 @@ export function SearchInput({
         <button
           ref={dropdownButtonRef}
           onClick={() => setIsIdolDropdownOpen(!isIdolDropdownOpen)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl text-sm font-medium text-foreground hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-smooth"
+          className={`w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-zinc-800 border rounded-xl text-sm font-medium text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-smooth ${
+            isIdolDropdownOpen ? 'border-primary ring-2 ring-primary/20' : 'border-zinc-200 dark:border-zinc-700'
+          }`}
         >
           <span className="truncate">{getSelectionDisplayName()}</span>
           <svg
@@ -76,6 +78,16 @@ export function SearchInput({
               }}
             >
               <div className="p-2 space-y-1">
+                <button
+                  onClick={() => {
+                    handleSelection(null);
+                    setIsIdolDropdownOpen(false);
+                  }}
+                  className="w-full px-3 py-2 text-sm text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
+                >
+                  {t("noSelection")}
+                </button>
+
                 {Array.from(groupedBiases.entries()).map(([groupId, biasesInGroup]) => {
                   const group = biasesInGroup[0].group;
                   const isCollapsed = groupId ? collapsedDropdownGroups.has(groupId) : false;
@@ -86,7 +98,10 @@ export function SearchInput({
                         <>
                           <div className="flex items-center gap-1">
                             <button
-                              onClick={() => toggleDropdownGroupCollapse(group.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleDropdownGroupCollapse(group.id);
+                              }}
                               className="p-1 hover:bg-accent rounded transition-colors"
                             >
                               <motion.svg
@@ -100,7 +115,10 @@ export function SearchInput({
                               </motion.svg>
                             </button>
                             <button
-                              onClick={() => handleSelection({ type: 'group', id: group.id })}
+                              onClick={() => {
+                                handleSelection({ type: 'group', id: group.id });
+                                setIsIdolDropdownOpen(false);
+                              }}
                               className="flex-1 text-left px-2 py-1.5 text-xs font-bold text-muted-foreground hover:text-primary transition-colors uppercase tracking-wider"
                             >
                               {getGroupDisplayName(group)}
@@ -111,7 +129,10 @@ export function SearchInput({
                               {biasesInGroup.map((bias) => (
                                 <button
                                   key={bias.id}
-                                  onClick={() => handleSelection({ type: 'bias', id: bias.id })}
+                                  onClick={() => {
+                                    handleSelection({ type: 'bias', id: bias.id });
+                                    setIsIdolDropdownOpen(false);
+                                  }}
                                   className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-accent text-foreground transition-colors"
                                 >
                                   {getDisplayName(bias)}
@@ -125,7 +146,10 @@ export function SearchInput({
                           {biasesInGroup.map((bias) => (
                             <button
                               key={bias.id}
-                              onClick={() => handleSelection({ type: 'bias', id: bias.id })}
+                              onClick={() => {
+                                handleSelection({ type: 'bias', id: bias.id });
+                                setIsIdolDropdownOpen(false);
+                              }}
                               className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-accent text-foreground transition-colors font-medium"
                             >
                               {getDisplayName(bias)}
@@ -149,7 +173,7 @@ export function SearchInput({
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onSearch()}
           placeholder={t('searchPlaceholder')}
-          className="w-full px-4 py-3 bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
+          className="w-full px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
           {query && (
@@ -184,7 +208,7 @@ export function SearchInput({
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <span>{t('search')}</span>
+            <span>{t('searchButton')}</span>
           </>
         )}
       </motion.button>
