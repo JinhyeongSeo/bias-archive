@@ -1,5 +1,6 @@
-import { supabase } from './supabase'
-import type { Bias, Tag, LinkMedia } from '@/types/database'
+import { supabase as browserClient } from './supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database, Bias, Tag, LinkMedia } from '@/types/database'
 import type { LinkWithTagsAndMedia } from './links'
 
 /**
@@ -37,10 +38,13 @@ export interface ImportResult {
 
 /**
  * Export all archive data as a structured JSON object
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function exportAllData(): Promise<ExportData> {
+export async function exportAllData(
+  client: SupabaseClient<Database> = browserClient
+): Promise<ExportData> {
   // Fetch biases
-  const { data: biases, error: biasesError } = await supabase
+  const { data: biases, error: biasesError } = await client
     .from('biases')
     .select('*')
     .order('created_at', { ascending: false })
@@ -50,7 +54,7 @@ export async function exportAllData(): Promise<ExportData> {
   }
 
   // Fetch tags
-  const { data: tags, error: tagsError } = await supabase
+  const { data: tags, error: tagsError } = await client
     .from('tags')
     .select('*')
     .order('name', { ascending: true })
@@ -60,7 +64,7 @@ export async function exportAllData(): Promise<ExportData> {
   }
 
   // Fetch links with tags and media
-  const { data: linksRaw, error: linksError } = await supabase
+  const { data: linksRaw, error: linksError } = await client
     .from('links')
     .select(`
       *,
@@ -161,8 +165,15 @@ export function validateImportData(data: unknown): ExportData | null {
 
 /**
  * Import archive data, handling duplicates by skipping existing entries
+ * @param data - Export data to import
+ * @param userId - Optional user ID for the imported records
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function importData(data: ExportData): Promise<ImportResult> {
+export async function importData(
+  data: ExportData,
+  userId?: string | null,
+  client: SupabaseClient<Database> = browserClient
+): Promise<ImportResult> {
   const result: ImportResult = {
     imported: { biases: 0, tags: 0, links: 0 },
     skipped: { biases: 0, tags: 0, links: 0 },
@@ -177,7 +188,7 @@ export async function importData(data: ExportData): Promise<ImportResult> {
   for (const bias of data.biases) {
     try {
       // Check if bias with same name exists
-      const { data: existing } = await supabase
+      const { data: existing } = await client
         .from('biases')
         .select('id')
         .eq('name', bias.name)
@@ -187,11 +198,12 @@ export async function importData(data: ExportData): Promise<ImportResult> {
         biasIdMap.set(bias.id, existing[0].id)
         result.skipped.biases++
       } else {
-        const { data: newBias, error } = await supabase
+        const { data: newBias, error } = await client
           .from('biases')
           .insert({
             name: bias.name,
             group_name: bias.group_name,
+            user_id: userId || null,
           })
           .select()
           .single()
@@ -212,7 +224,7 @@ export async function importData(data: ExportData): Promise<ImportResult> {
   for (const tag of data.tags) {
     try {
       // Check if tag with same name exists
-      const { data: existing } = await supabase
+      const { data: existing } = await client
         .from('tags')
         .select('id')
         .eq('name', tag.name)
@@ -222,9 +234,9 @@ export async function importData(data: ExportData): Promise<ImportResult> {
         tagIdMap.set(tag.id, existing[0].id)
         result.skipped.tags++
       } else {
-        const { data: newTag, error } = await supabase
+        const { data: newTag, error } = await client
           .from('tags')
-          .insert({ name: tag.name })
+          .insert({ name: tag.name, user_id: userId || null })
           .select()
           .single()
 
@@ -244,7 +256,7 @@ export async function importData(data: ExportData): Promise<ImportResult> {
   for (const link of data.links) {
     try {
       // Check if link with same URL exists
-      const { data: existing } = await supabase
+      const { data: existing } = await client
         .from('links')
         .select('id')
         .eq('url', link.url)
@@ -258,7 +270,7 @@ export async function importData(data: ExportData): Promise<ImportResult> {
       // Resolve bias_id to new ID
       const newBiasId = link.bias_id ? biasIdMap.get(link.bias_id) : null
 
-      const { data: newLink, error: linkError } = await supabase
+      const { data: newLink, error: linkError } = await client
         .from('links')
         .insert({
           url: link.url,
@@ -269,6 +281,7 @@ export async function importData(data: ExportData): Promise<ImportResult> {
           original_date: link.original_date,
           author_name: link.author_name,
           bias_id: newBiasId || null,
+          user_id: userId || null,
         })
         .select()
         .single()
@@ -286,9 +299,10 @@ export async function importData(data: ExportData): Promise<ImportResult> {
           const newTagId = tagIdMap.get(tag.id)
           if (newTagId) {
             try {
-              await supabase.from('link_tags').insert({
+              await client.from('link_tags').insert({
                 link_id: newLink.id,
                 tag_id: newTagId,
+                user_id: userId || null,
               })
             } catch {
               // Ignore duplicate link-tag associations
@@ -301,11 +315,12 @@ export async function importData(data: ExportData): Promise<ImportResult> {
       if (link.media && link.media.length > 0) {
         for (const media of link.media) {
           try {
-            await supabase.from('link_media').insert({
+            await client.from('link_media').insert({
               link_id: newLink.id,
               media_url: media.media_url,
               media_type: media.media_type,
               position: media.position,
+              user_id: userId || null,
             })
           } catch (error) {
             result.errors.push(`Media for "${link.url}": ${String(error)}`)
