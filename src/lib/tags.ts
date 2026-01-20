@@ -1,13 +1,17 @@
-import { supabase } from "./supabase";
-import type { Tag, TagInsert, LinkTag, LinkTagInsert } from "@/types/database";
+import { supabase as browserClient } from "./supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Tag, TagInsert, LinkTag, LinkTagInsert } from "@/types/database";
 
 export type { Tag, TagInsert, LinkTag, LinkTagInsert };
 
 /**
  * Get all tags
  * Sorted by name ascending (alphabetical)
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function getTags(client = supabase): Promise<Tag[]> {
+export async function getTags(
+  client: SupabaseClient<Database> = browserClient
+): Promise<Tag[]> {
   const { data, error } = await client
     .from("tags")
     .select("*")
@@ -22,9 +26,14 @@ export async function getTags(client = supabase): Promise<Tag[]> {
 
 /**
  * Get a tag by name
+ * @param name - Tag name
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function getTagByName(name: string): Promise<Tag | null> {
-  const { data, error } = await supabase
+export async function getTagByName(
+  name: string,
+  client: SupabaseClient<Database> = browserClient
+): Promise<Tag | null> {
+  const { data, error } = await client
     .from("tags")
     .select("*")
     .eq("name", name)
@@ -44,14 +53,17 @@ export async function getTagByName(name: string): Promise<Tag | null> {
 /**
  * Create a new tag
  * If tag with same name exists, returns the existing tag
+ * @param name - Tag name
  * @param userId - Optional user ID for authenticated users
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function createTag(
   name: string,
-  userId?: string | null
+  userId?: string | null,
+  client: SupabaseClient<Database> = browserClient
 ): Promise<Tag> {
   // Check if tag already exists
-  const existingTag = await getTagByName(name);
+  const existingTag = await getTagByName(name, client);
   if (existingTag) {
     return existingTag;
   }
@@ -61,7 +73,7 @@ export async function createTag(
     user_id: userId || null,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("tags")
     .insert([insertData])
     .select()
@@ -77,20 +89,28 @@ export async function createTag(
 /**
  * Get or create a tag by name
  * Returns existing tag if found, creates new one if not
+ * @param name - Tag name
  * @param userId - Optional user ID for authenticated users (used when creating)
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function getOrCreateTag(
   name: string,
-  userId?: string | null
+  userId?: string | null,
+  client: SupabaseClient<Database> = browserClient
 ): Promise<Tag> {
-  return createTag(name, userId);
+  return createTag(name, userId, client);
 }
 
 /**
  * Delete a tag by ID
+ * @param id - Tag ID
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function deleteTag(id: string): Promise<void> {
-  const { error } = await supabase.from("tags").delete().eq("id", id);
+export async function deleteTag(
+  id: string,
+  client: SupabaseClient<Database> = browserClient
+): Promise<void> {
+  const { error } = await client.from("tags").delete().eq("id", id);
 
   if (error) {
     throw error;
@@ -100,17 +120,24 @@ export async function deleteTag(id: string): Promise<void> {
 /**
  * Add a tag to a link
  * Creates the link_tags association
+ * @param linkId - Link ID
+ * @param tagId - Tag ID
+ * @param client - Optional Supabase client (defaults to browser client)
+ * @param userId - Optional user ID for the link_tag association
  */
 export async function addTagToLink(
   linkId: string,
-  tagId: string
+  tagId: string,
+  client: SupabaseClient<Database> = browserClient,
+  userId?: string | null
 ): Promise<LinkTag> {
   const insertData: LinkTagInsert = {
     link_id: linkId,
     tag_id: tagId,
+    user_id: userId || null,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("link_tags")
     .insert([insertData])
     .select()
@@ -119,7 +146,7 @@ export async function addTagToLink(
   if (error) {
     // Ignore duplicate key error (already linked)
     if (error.code === "23505") {
-      return { link_id: linkId, tag_id: tagId, user_id: null };
+      return { link_id: linkId, tag_id: tagId, user_id: userId || null };
     }
     throw error;
   }
@@ -129,12 +156,16 @@ export async function addTagToLink(
 
 /**
  * Remove a tag from a link
+ * @param linkId - Link ID
+ * @param tagId - Tag ID
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function removeTagFromLink(
   linkId: string,
-  tagId: string
+  tagId: string,
+  client: SupabaseClient<Database> = browserClient
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await client
     .from("link_tags")
     .delete()
     .eq("link_id", linkId)
@@ -147,9 +178,14 @@ export async function removeTagFromLink(
 
 /**
  * Get all tags for a specific link
+ * @param linkId - Link ID
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function getTagsForLink(linkId: string): Promise<Tag[]> {
-  const { data, error } = await supabase
+export async function getTagsForLink(
+  linkId: string,
+  client: SupabaseClient<Database> = browserClient
+): Promise<Tag[]> {
+  const { data, error } = await client
     .from("link_tags")
     .select("tag_id, tags(*)")
     .eq("link_id", linkId);
@@ -167,10 +203,13 @@ export async function getTagsForLink(linkId: string): Promise<Tag[]> {
 /**
  * Get all tags that are in use (linked to at least one link)
  * Sorted by name ascending (alphabetical)
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function getTagsInUse(): Promise<Tag[]> {
+export async function getTagsInUse(
+  client: SupabaseClient<Database> = browserClient
+): Promise<Tag[]> {
   // Get distinct tag_ids from link_tags
-  const { data: linkTags, error: linkTagsError } = await supabase
+  const { data: linkTags, error: linkTagsError } = await client
     .from("link_tags")
     .select("tag_id");
 
@@ -186,7 +225,7 @@ export async function getTagsInUse(): Promise<Tag[]> {
   const tagIds = [...new Set(linkTags.map((lt) => lt.tag_id))];
 
   // Get the actual tags
-  const { data: tags, error: tagsError } = await supabase
+  const { data: tags, error: tagsError } = await client
     .from("tags")
     .select("*")
     .in("id", tagIds)
