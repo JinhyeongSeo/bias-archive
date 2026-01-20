@@ -5,6 +5,7 @@ import {
   checkWaybackAvailability,
   getWaybackUrl,
 } from '@/lib/archive';
+import { handleApiError, badRequest, notFound, unauthorized, forbidden } from '@/lib/api-error';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -23,19 +24,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      );
+      unauthorized();
     }
 
     const { id } = await params;
 
     if (!id) {
-      return NextResponse.json(
-        { error: '링크 ID가 필요합니다' },
-        { status: 400 }
-      );
+      badRequest('링크 ID가 필요합니다');
     }
 
     // Check if archive.org credentials are configured
@@ -54,17 +49,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .single();
 
     if (fetchError || !link) {
-      return NextResponse.json(
-        { error: '링크를 찾을 수 없습니다' },
-        { status: 404 }
-      );
+      notFound('링크를 찾을 수 없습니다');
     }
 
     if (link.user_id !== user.id) {
-      return NextResponse.json(
-        { error: '권한이 없습니다' },
-        { status: 403 }
-      );
+      forbidden('권한이 없습니다');
     }
 
     // If already archived, return existing status
@@ -100,7 +89,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
       }
     } catch (error) {
-      console.error(`Error archiving page URL ${link.url}:`, error);
     }
 
     // Update link with archive status
@@ -110,14 +98,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       archived_at: archivedUrl ? new Date().toISOString() : null,
     };
 
-    const { error: updateError } = await supabase
+    await supabase
       .from('links')
       .update(updateData)
       .eq('id', id);
-
-    if (updateError) {
-      console.error('Error updating link archive status:', updateError);
-    }
 
     return NextResponse.json({
       status: updateData.archive_status,
@@ -125,11 +109,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       archived_at: updateData.archived_at,
     });
   } catch (error) {
-    console.error('Error archiving link:', error);
-    return NextResponse.json(
-      { error: '아카이브 요청에 실패했습니다' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -145,19 +125,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      );
+      unauthorized();
     }
 
     const { id } = await params;
 
     if (!id) {
-      return NextResponse.json(
-        { error: '링크 ID가 필요합니다' },
-        { status: 400 }
-      );
+      badRequest('링크 ID가 필요합니다');
     }
 
     // Get link and verify ownership
@@ -168,17 +142,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .single();
 
     if (fetchError || !link) {
-      return NextResponse.json(
-        { error: '링크를 찾을 수 없습니다' },
-        { status: 404 }
-      );
+      notFound('링크를 찾을 수 없습니다');
     }
 
     if (link.user_id !== user.id) {
-      return NextResponse.json(
-        { error: '권한이 없습니다' },
-        { status: 403 }
-      );
+      forbidden('권한이 없습니다');
     }
 
     // Return current status
@@ -188,10 +156,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       archived_at: link.archived_at,
     });
   } catch (error) {
-    console.error('Error checking archive status:', error);
-    return NextResponse.json(
-      { error: '아카이브 상태 확인에 실패했습니다' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

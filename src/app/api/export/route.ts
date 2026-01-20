@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import type { Tag, LinkMedia } from '@/types/database'
 import type { LinkWithTagsAndMedia } from '@/lib/links'
+import { handleApiError, unauthorized } from '@/lib/api-error'
 
 /**
  * Export data structure version
@@ -19,10 +20,7 @@ export async function GET() {
     // Check authentication
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     // Fetch biases (RLS filters by user_id automatically)
@@ -103,10 +101,6 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('Error exporting data:', error)
-    return NextResponse.json(
-      { error: '데이터 내보내기에 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

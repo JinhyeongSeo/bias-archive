@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchMembers } from '@/lib/parsers/selca'
+import { handleApiError, badRequest } from '@/lib/api-error'
 
 /**
  * GET /api/kpop/members?q=검색어
@@ -13,19 +14,12 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q')
 
     if (!query || query.trim() === '') {
-      return NextResponse.json(
-        { error: '검색어가 필요합니다' },
-        { status: 400 }
-      )
+      badRequest('검색어가 필요합니다')
     }
 
     const members = await searchMembers(query.trim())
     return NextResponse.json({ members })
   } catch (error) {
-    console.error('Error searching K-pop members:', error)
-    return NextResponse.json(
-      { error: '멤버 검색에 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

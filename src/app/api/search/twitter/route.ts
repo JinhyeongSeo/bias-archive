@@ -5,6 +5,7 @@ import {
   isScrapeBadgerConfigured,
   type SearchType,
 } from '@/lib/scrapebadger'
+import { handleApiError, badRequest } from '@/lib/api-error'
 
 const VALID_DATE_RESTRICTS = ['d1', 'd7', 'w1', 'w2', 'm1', 'm3', 'm6', 'y1']
 const VALID_SORT_OPTIONS = ['relevance', 'date']
@@ -31,10 +32,7 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q')
 
     if (!query || query.trim() === '') {
-      return NextResponse.json(
-        { error: '검색어를 입력해주세요' },
-        { status: 400 }
-      )
+      badRequest('검색어를 입력해주세요')
     }
 
     // Use ScrapeBadger if configured (preferred - real-time search)
@@ -89,8 +87,6 @@ export async function GET(request: NextRequest) {
       provider: 'google_cse',
     })
   } catch (error) {
-    console.error('[Twitter Search] Error:', error)
-
     // Check if it's a configuration error
     if (error instanceof Error && error.message.includes('not configured')) {
       return NextResponse.json(
@@ -99,10 +95,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    return NextResponse.json(
-      { error: `Twitter 검색 중 오류: ${errorMessage}` },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

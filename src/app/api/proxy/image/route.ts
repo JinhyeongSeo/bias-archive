@@ -4,12 +4,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { handleApiError, badRequest } from '@/lib/api-error'
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url')
 
   if (!url) {
-    return NextResponse.json({ error: 'URL is required' }, { status: 400 })
+    badRequest('URL is required')
   }
 
   try {
@@ -46,10 +47,6 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[Image Proxy] Error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch image' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

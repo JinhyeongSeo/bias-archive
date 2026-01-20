@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import { handleApiError, badRequest, unauthorized } from '@/lib/api-error'
 
 type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'kgirls-issue' | 'selca' | 'instagram'
 
@@ -16,10 +17,7 @@ export async function GET(request: NextRequest) {
     const platform = searchParams.get('platform') as Platform | null
 
     if (!query) {
-      return NextResponse.json(
-        { error: 'query parameter is required' },
-        { status: 400 }
-      )
+      badRequest('query parameter is required')
     }
 
     const supabase = await createClient()
@@ -47,11 +45,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(cacheByPlatform)
   } catch (error) {
-    console.error('Error fetching search cache:', error)
-    return NextResponse.json(
-      { error: '캐시 조회 실패' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -66,10 +60,7 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const body = await request.json()
@@ -96,10 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!query || !platform || !results) {
-      return NextResponse.json(
-        { error: 'query, platform, results are required' },
-        { status: 400 }
-      )
+      badRequest('query, platform, results are required')
     }
 
     const normalizedQuery = query.trim().toLowerCase()
@@ -131,10 +119,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data, { status: 200 })
   } catch (error) {
-    console.error('Error saving search cache:', error)
-    return NextResponse.json(
-      { error: '캐시 저장 실패' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

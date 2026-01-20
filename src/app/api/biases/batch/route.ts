@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import type { BiasInsert, GroupInsert } from '@/types/database'
+import { handleApiError, unauthorized, badRequest } from '@/lib/api-error'
 
 interface GroupInfo {
   name: string
@@ -34,20 +35,14 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const body: BatchRequest = await request.json()
     const { members, group } = body
 
     if (!members || !Array.isArray(members) || members.length === 0) {
-      return NextResponse.json(
-        { error: '추가할 멤버가 없습니다' },
-        { status: 400 }
-      )
+      badRequest('추가할 멤버가 없습니다')
     }
 
     // Get or create the group record if group info is provided
@@ -146,10 +141,6 @@ export async function POST(request: NextRequest) {
       groupId,
     })
   } catch (error) {
-    console.error('Error batch creating biases:', error)
-    return NextResponse.json(
-      { error: '최애 일괄 추가에 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

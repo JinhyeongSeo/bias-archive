@@ -5,6 +5,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import * as cheerio from 'cheerio'
+import { handleApiError, badRequest } from '@/lib/api-error'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Heye Search API')
 
 interface HeyeSearchResult {
   url: string
@@ -43,7 +47,7 @@ async function fetchThumbnail(postUrl: string): Promise<string | null> {
 
     return videoMatches.length > 0 ? videoMatches[0][0] : null
   } catch (error) {
-    console.error('[Heye fetchThumbnail] Error:', error)
+    logger.error('Heye fetchThumbnail Error:', error)
     return null
   }
 }
@@ -64,10 +68,7 @@ export async function GET(request: NextRequest) {
   const offset = parseInt(searchParams.get('offset') || '0', 10)
 
   if (!query) {
-    return NextResponse.json(
-      { error: '검색어가 필요합니다' },
-      { status: 400 }
-    )
+    badRequest('검색어가 필요합니다')
   }
 
   try {
@@ -200,10 +201,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(responseData)
   } catch (error) {
-    console.error('[Heye Search] Error:', error)
-    return NextResponse.json(
-      { error: 'heye.kr 검색 중 오류가 발생했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

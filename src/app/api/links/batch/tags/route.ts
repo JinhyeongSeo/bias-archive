@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import { handleApiError, unauthorized, badRequest } from '@/lib/api-error'
 
 /**
  * PATCH /api/links/batch/tags
@@ -14,27 +15,18 @@ export async function PATCH(request: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const body = await request.json()
     const { linkIds, addTags, removeTags } = body
 
     if (!linkIds || !Array.isArray(linkIds) || linkIds.length === 0) {
-      return NextResponse.json(
-        { error: '링크 ID 목록이 필요합니다' },
-        { status: 400 }
-      )
+      badRequest('링크 ID 목록이 필요합니다')
     }
 
     if ((!addTags || addTags.length === 0) && (!removeTags || removeTags.length === 0)) {
-      return NextResponse.json(
-        { error: '추가하거나 삭제할 태그가 필요합니다' },
-        { status: 400 }
-      )
+      badRequest('추가하거나 삭제할 태그가 필요합니다')
     }
 
     let addedCount = 0
@@ -105,10 +97,6 @@ export async function PATCH(request: NextRequest) {
       removedCount
     })
   } catch (error) {
-    console.error('Error batch updating tags:', error)
-    return NextResponse.json(
-      { error: '일괄 태그 수정에 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

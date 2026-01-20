@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import { handleApiError, unauthorized, badRequest } from '@/lib/api-error'
 
 /**
  * DELETE /api/links/batch
@@ -12,20 +13,14 @@ export async function DELETE(request: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const body = await request.json()
     const { linkIds } = body
 
     if (!linkIds || !Array.isArray(linkIds) || linkIds.length === 0) {
-      return NextResponse.json(
-        { error: '삭제할 링크 ID 목록이 필요합니다' },
-        { status: 400 }
-      )
+      badRequest('삭제할 링크 ID 목록이 필요합니다')
     }
 
     // Delete link_tags first (foreign key constraint)
@@ -50,10 +45,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ deleted: count ?? 0 })
   } catch (error) {
-    console.error('Error batch deleting links:', error)
-    return NextResponse.json(
-      { error: '일괄 삭제에 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

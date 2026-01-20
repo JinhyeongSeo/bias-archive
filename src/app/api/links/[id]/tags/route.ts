@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import type { Tag } from '@/types/database'
+import { handleApiError, badRequest, notFound, unauthorized } from '@/lib/api-error'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -16,10 +17,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
 
     if (!id) {
-      return NextResponse.json(
-        { error: '링크 ID가 필요합니다' },
-        { status: 400 }
-      )
+      badRequest('링크 ID가 필요합니다')
     }
 
     // Check if link exists
@@ -30,10 +28,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (linkError || !link) {
-      return NextResponse.json(
-        { error: '링크를 찾을 수 없습니다' },
-        { status: 404 }
-      )
+      notFound('링크를 찾을 수 없습니다')
     }
 
     // Get tags for link
@@ -50,11 +45,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(tags)
   } catch (error) {
-    console.error('Error fetching link tags:', error)
-    return NextResponse.json(
-      { error: '태그를 가져오는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -69,10 +60,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const { id } = await params
@@ -80,17 +68,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { name, tagId } = body
 
     if (!id) {
-      return NextResponse.json(
-        { error: '링크 ID가 필요합니다' },
-        { status: 400 }
-      )
+      badRequest('링크 ID가 필요합니다')
     }
 
     if (!name && !tagId) {
-      return NextResponse.json(
-        { error: '태그 이름 또는 ID가 필요합니다' },
-        { status: 400 }
-      )
+      badRequest('태그 이름 또는 ID가 필요합니다')
     }
 
     // Check if link exists
@@ -101,10 +83,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (linkError || !link) {
-      return NextResponse.json(
-        { error: '링크를 찾을 수 없습니다' },
-        { status: 404 }
-      )
+      notFound('링크를 찾을 수 없습니다')
     }
 
     let finalTagId = tagId
@@ -144,11 +123,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(tags, { status: 201 })
   } catch (error) {
-    console.error('Error adding tag to link:', error)
-    return NextResponse.json(
-      { error: '태그를 추가하는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -163,10 +138,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const { id } = await params
@@ -174,17 +146,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { tagId } = body
 
     if (!id) {
-      return NextResponse.json(
-        { error: '링크 ID가 필요합니다' },
-        { status: 400 }
-      )
+      badRequest('링크 ID가 필요합니다')
     }
 
     if (!tagId) {
-      return NextResponse.json(
-        { error: '태그 ID가 필요합니다' },
-        { status: 400 }
-      )
+      badRequest('태그 ID가 필요합니다')
     }
 
     // Check if link exists
@@ -195,10 +161,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (linkError || !link) {
-      return NextResponse.json(
-        { error: '링크를 찾을 수 없습니다' },
-        { status: 404 }
-      )
+      notFound('링크를 찾을 수 없습니다')
     }
 
     // Remove tag from link
@@ -220,10 +183,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(tags)
   } catch (error) {
-    console.error('Error removing tag from link:', error)
-    return NextResponse.json(
-      { error: '태그를 제거하는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

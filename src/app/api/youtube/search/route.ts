@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchYouTube, YouTubeSearchOptions } from '@/lib/youtube'
+import { handleApiError, badRequest } from '@/lib/api-error'
 
 type OrderType = 'relevance' | 'date' | 'viewCount' | 'rating'
 type PeriodType = 'today' | 'week' | 'month' | 'year'
@@ -51,10 +52,7 @@ export async function GET(request: NextRequest) {
     const pageToken = searchParams.get('pageToken')
 
     if (!query || query.trim() === '') {
-      return NextResponse.json(
-        { error: '검색어를 입력해주세요' },
-        { status: 400 }
-      )
+      badRequest('검색어를 입력해주세요')
     }
 
     // Check if API key is configured
@@ -80,8 +78,6 @@ export async function GET(request: NextRequest) {
     const response = await searchYouTube(query, maxResults, options)
     return NextResponse.json(response)
   } catch (error) {
-    console.error('[YouTube Search] Error:', error)
-
     // Check if it's a configuration error
     if (error instanceof Error && error.message.includes('not configured')) {
       return NextResponse.json(
@@ -90,9 +86,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(
-      { error: 'YouTube 검색 중 오류가 발생했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

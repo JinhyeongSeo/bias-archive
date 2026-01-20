@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { extractMetadata } from '@/lib/metadata'
+import { handleApiError, badRequest } from '@/lib/api-error'
 
 export async function POST(request: Request) {
   try {
@@ -8,20 +9,14 @@ export async function POST(request: Request) {
 
     // Validate URL presence
     if (!url || typeof url !== 'string') {
-      return NextResponse.json(
-        { error: 'URL is required' },
-        { status: 400 }
-      )
+      badRequest('URL is required')
     }
 
     // Validate URL format
     try {
       new URL(url)
     } catch {
-      return NextResponse.json(
-        { error: 'Invalid URL format' },
-        { status: 400 }
-      )
+      badRequest('Invalid URL format')
     }
 
     // Extract metadata
@@ -32,10 +27,6 @@ export async function POST(request: Request) {
       ...metadata,
     })
   } catch (error) {
-    console.error('Metadata extraction error:', error)
-    return NextResponse.json(
-      { error: 'Failed to extract metadata' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
