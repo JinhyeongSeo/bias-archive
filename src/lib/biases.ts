@@ -1,5 +1,7 @@
-import { supabase } from "./supabase";
+import { supabase as browserClient } from "./supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
+  Database,
   Bias,
   BiasInsert,
   BiasUpdate,
@@ -12,8 +14,11 @@ export type { Bias, BiasInsert, BiasUpdate, BiasWithGroup };
 /**
  * Get all biases
  * Sorted by sort_order ascending (NULLS LAST), then created_at descending as fallback
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function getBiases(client = supabase): Promise<Bias[]> {
+export async function getBiases(
+  client: SupabaseClient<Database> = browserClient
+): Promise<Bias[]> {
   const { data, error } = await client
     .from("biases")
     .select("*")
@@ -29,9 +34,14 @@ export async function getBiases(client = supabase): Promise<Bias[]> {
 
 /**
  * Get a single bias by ID
+ * @param id - Bias ID
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function getBias(id: string): Promise<Bias | null> {
-  const { data, error } = await supabase
+export async function getBias(
+  id: string,
+  client: SupabaseClient<Database> = browserClient
+): Promise<Bias | null> {
+  const { data, error } = await client
     .from("biases")
     .select("*")
     .eq("id", id)
@@ -50,7 +60,13 @@ export async function getBias(id: string): Promise<Bias | null> {
 
 /**
  * Create a new bias
+ * @param name - Bias name
+ * @param groupName - Optional group name
+ * @param nameEn - Optional English name
+ * @param nameKo - Optional Korean name
+ * @param groupId - Optional group ID
  * @param userId - Optional user ID for authenticated users
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function createBias(
   name: string,
@@ -58,7 +74,8 @@ export async function createBias(
   nameEn?: string | null,
   nameKo?: string | null,
   groupId?: string | null,
-  userId?: string | null
+  userId?: string | null,
+  client: SupabaseClient<Database> = browserClient
 ): Promise<Bias> {
   const insertData: BiasInsert = {
     name,
@@ -69,7 +86,7 @@ export async function createBias(
     user_id: userId || null,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("biases")
     .insert([insertData])
     .select()
@@ -84,13 +101,20 @@ export async function createBias(
 
 /**
  * Update an existing bias
+ * @param id - Bias ID
+ * @param name - Bias name
+ * @param groupName - Optional group name
+ * @param nameEn - Optional English name
+ * @param nameKo - Optional Korean name
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function updateBias(
   id: string,
   name: string,
   groupName?: string | null,
   nameEn?: string | null,
-  nameKo?: string | null
+  nameKo?: string | null,
+  client: SupabaseClient<Database> = browserClient
 ): Promise<Bias> {
   const updateData: BiasUpdate = {
     name,
@@ -99,7 +123,7 @@ export async function updateBias(
     name_ko: nameKo ?? null,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("biases")
     .update(updateData)
     .eq("id", id)
@@ -115,9 +139,14 @@ export async function updateBias(
 
 /**
  * Delete a bias by ID
+ * @param id - Bias ID
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function deleteBias(id: string): Promise<void> {
-  const { error } = await supabase.from("biases").delete().eq("id", id);
+export async function deleteBias(
+  id: string,
+  client: SupabaseClient<Database> = browserClient
+): Promise<void> {
+  const { error } = await client.from("biases").delete().eq("id", id);
 
   if (error) {
     throw error;
@@ -127,9 +156,10 @@ export async function deleteBias(id: string): Promise<void> {
 /**
  * Get all biases with their group information
  * Sorted by sort_order ascending (NULLS LAST), then created_at descending
+ * @param client - Optional Supabase client (defaults to browser client)
  */
 export async function getBiasesWithGroups(
-  client = supabase
+  client: SupabaseClient<Database> = browserClient
 ): Promise<BiasWithGroup[]> {
   // First get all biases
   const { data: biases, error: biasError } = await client
@@ -169,8 +199,12 @@ export async function getBiasesWithGroups(
 /**
  * Reorder biases by updating their sort_order values
  * @param orderedIds - Array of bias IDs in desired order
+ * @param client - Optional Supabase client (defaults to browser client)
  */
-export async function reorderBiases(orderedIds: string[]): Promise<void> {
+export async function reorderBiases(
+  orderedIds: string[],
+  client: SupabaseClient<Database> = browserClient
+): Promise<void> {
   // Update each bias with its new sort_order (1-indexed)
   const updates = orderedIds.map((id, index) => ({
     id,
@@ -180,17 +214,13 @@ export async function reorderBiases(orderedIds: string[]): Promise<void> {
   // Use Promise.all for parallel updates
   const results = await Promise.all(
     updates.map(({ id, sort_order }) =>
-      supabase.from("biases").update({ sort_order }).eq("id", id)
+      client.from("biases").update({ sort_order }).eq("id", id)
     )
   );
 
   // Check for any errors
   const errors = results.filter((result) => result.error);
   if (errors.length > 0) {
-    console.error(
-      "Errors updating sort_order:",
-      errors.map((e) => e.error)
-    );
     throw new Error(`Failed to update ${errors.length} bias(es)`);
   }
 }
