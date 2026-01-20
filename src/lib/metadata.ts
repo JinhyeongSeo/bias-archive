@@ -74,17 +74,17 @@ export function detectPlatform(url: string): Platform {
       return 'weverse'
     }
 
-    // heye.kr patterns
-    if (hostname.includes('heye.kr')) {
-      return 'heye'
-    }
-
     // kgirls.net patterns
     if (hostname.includes('kgirls.net')) {
       if (urlObj.pathname.startsWith('/issue')) {
         return 'kgirls-issue'
       }
       return 'kgirls'
+    }
+
+    // heye.kr patterns
+    if (hostname.includes('heye.kr')) {
+      return 'heye'
     }
 
     // Instagram patterns
