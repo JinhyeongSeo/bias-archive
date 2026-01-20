@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import { handleApiError, unauthorized, badRequest, notFound } from '@/lib/api-error'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -15,10 +16,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
 
     if (!id) {
-      return NextResponse.json(
-        { error: '링크 ID가 필요합니다' },
-        { status: 400 }
-      )
+      badRequest('링크 ID가 필요합니다')
     }
 
     const { data: link, error } = await supabase
@@ -29,21 +27,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: '링크를 찾을 수 없습니다' },
-          { status: 404 }
-        )
+        notFound('링크를 찾을 수 없습니다')
       }
       throw error
     }
 
     return NextResponse.json(link)
   } catch (error) {
-    console.error('Error fetching link:', error)
-    return NextResponse.json(
-      { error: '링크를 가져오는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -56,19 +47,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const { id } = await params
 
     if (!id) {
-      return NextResponse.json(
-        { error: '링크 ID가 필요합니다' },
-        { status: 400 }
-      )
+      badRequest('링크 ID가 필요합니다')
     }
 
     const body = await request.json()
@@ -76,10 +61,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Validate that at least one field is being updated
     if (memo === undefined && starred === undefined) {
-      return NextResponse.json(
-        { error: '업데이트할 필드가 필요합니다 (memo 또는 starred)' },
-        { status: 400 }
-      )
+      badRequest('업데이트할 필드가 필요합니다 (memo 또는 starred)')
     }
 
     // Build update object
@@ -98,21 +80,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: '링크를 찾을 수 없습니다' },
-          { status: 404 }
-        )
+        notFound('링크를 찾을 수 없습니다')
       }
       throw error
     }
 
     return NextResponse.json(link)
   } catch (error) {
-    console.error('Error updating link:', error)
-    return NextResponse.json(
-      { error: '링크를 업데이트하는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -125,19 +100,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const { id } = await params
 
     if (!id) {
-      return NextResponse.json(
-        { error: '링크 ID가 필요합니다' },
-        { status: 400 }
-      )
+      badRequest('링크 ID가 필요합니다')
     }
 
     // Check if link exists
@@ -148,10 +117,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (fetchError || !link) {
-      return NextResponse.json(
-        { error: '링크를 찾을 수 없습니다' },
-        { status: 404 }
-      )
+      notFound('링크를 찾을 수 없습니다')
     }
 
     const { error } = await supabase
@@ -163,10 +129,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (error) {
-    console.error('Error deleting link:', error)
-    return NextResponse.json(
-      { error: '링크를 삭제하는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

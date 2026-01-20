@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as cheerio from 'cheerio'
 import { createLogger } from '@/lib/logger'
+import { handleApiError, badRequest } from '@/lib/api-error'
 
 const logger = createLogger('Kgirls Search API')
 
@@ -44,10 +45,7 @@ export async function GET(request: NextRequest) {
   const offset = parseInt(searchParams.get('offset') || '0', 10)
 
   if (!query) {
-    return NextResponse.json(
-      { error: '검색어가 필요합니다' },
-      { status: 400 }
-    )
+    badRequest('검색어가 필요합니다')
   }
 
   try {
@@ -176,11 +174,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(responseData)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    logger.error(`Error: ${errorMessage}`, error)
-    return NextResponse.json(
-      { error: `kgirls.net 검색 중 오류: ${errorMessage}` },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

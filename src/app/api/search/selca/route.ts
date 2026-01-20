@@ -13,6 +13,7 @@ import { parse } from 'node-html-parser'
 import { searchMembers, fetchHtmlFromSelca } from '@/lib/parsers/selca'
 import { SelcaSearchResult, SelcaSearchResponse } from '@/lib/selca-types'
 import { createLogger } from '@/lib/logger'
+import { handleApiError, badRequest, notFound } from '@/lib/api-error'
 
 const logger = createLogger('Selca Search API')
 
@@ -40,10 +41,7 @@ export async function GET(request: NextRequest) {
   const searchType = searchParams.get('type') || 'member' // 'member' (default) or 'group'
 
   if (!query) {
-    return NextResponse.json(
-      { error: '검색어가 필요합니다' },
-      { status: 400 }
-    )
+    badRequest('검색어가 필요합니다')
   }
 
   try {
@@ -73,13 +71,7 @@ export async function GET(request: NextRequest) {
         const idols = await searchMembers(query)
 
         if (idols.length === 0) {
-          return NextResponse.json(
-            {
-              error: '매칭되는 아이돌을 찾을 수 없습니다',
-              hint: '영문 이름이나 아이돌 드롭다운을 사용해보세요',
-            },
-            { status: 404 }
-          )
+          notFound('매칭되는 아이돌을 찾을 수 없습니다')
         }
 
         const idol = idols[0]
@@ -165,27 +157,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(responseData)
   } catch (error) {
-    logger.error(error)
-
-    if (error instanceof Error) {
-      if (error.message.includes('HTTP 404')) {
-        return NextResponse.json(
-          { error: '해당 아이돌의 콘텐츠가 아직 없습니다' },
-          { status: 404 }
-        )
-      }
-
-      if (error.name === 'AbortError' || error.message.includes('aborted')) {
-        return NextResponse.json(
-          { error: 'selca.kastden.org 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.' },
-          { status: 504 }
-        )
-      }
-    }
-
-    return NextResponse.json(
-      { error: 'selca.kastden.org 검색 중 오류가 발생했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

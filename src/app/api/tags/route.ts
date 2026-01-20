@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import { handleApiError, unauthorized, badRequest } from '@/lib/api-error'
 
 /**
  * GET /api/tags
@@ -43,11 +44,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(tags)
     }
   } catch (error) {
-    console.error('Error fetching tags:', error)
-    return NextResponse.json(
-      { error: '태그 목록을 가져오는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -61,28 +58,19 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const body = await request.json()
     const { name } = body
 
     if (!name || typeof name !== 'string') {
-      return NextResponse.json(
-        { error: '태그 이름은 필수입니다' },
-        { status: 400 }
-      )
+      badRequest('태그 이름은 필수입니다')
     }
 
     const trimmedName = name.trim()
     if (trimmedName.length === 0) {
-      return NextResponse.json(
-        { error: '태그 이름은 비어있을 수 없습니다' },
-        { status: 400 }
-      )
+      badRequest('태그 이름은 비어있을 수 없습니다')
     }
 
     const { data: tag, error } = await supabase
@@ -94,10 +82,6 @@ export async function POST(request: NextRequest) {
     if (error) throw error
     return NextResponse.json(tag, { status: 201 })
   } catch (error) {
-    console.error('Error creating tag:', error)
-    return NextResponse.json(
-      { error: '태그를 생성하는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
