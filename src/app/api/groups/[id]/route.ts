@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import { handleApiError, unauthorized } from '@/lib/api-error'
 
 type RouteParams = {
   params: Promise<{ id: string }>
@@ -16,10 +17,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const { id } = await params
@@ -109,10 +107,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (groupError) throw groupError
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting group:', error)
-    return NextResponse.json(
-      { error: '그룹을 삭제하는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

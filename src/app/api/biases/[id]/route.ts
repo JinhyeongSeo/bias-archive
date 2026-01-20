@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import { handleApiError, badRequest, unauthorized, notFound } from '@/lib/api-error'
 
 type RouteParams = {
   params: Promise<{ id: string }>
@@ -22,21 +23,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: '최애를 찾을 수 없습니다' },
-          { status: 404 }
-        )
+        notFound('최애를 찾을 수 없습니다')
       }
       throw error
     }
 
     return NextResponse.json(bias)
   } catch (error) {
-    console.error('Error fetching bias:', error)
-    return NextResponse.json(
-      { error: '최애를 가져오는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -50,10 +44,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const { id } = await params
@@ -61,10 +52,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { name, groupName, nameEn, nameKo } = body
 
     if (!name || typeof name !== 'string' || name.trim() === '') {
-      return NextResponse.json(
-        { error: '이름은 필수입니다' },
-        { status: 400 }
-      )
+      badRequest('이름은 필수입니다')
     }
 
     const { data: bias, error } = await supabase
@@ -82,11 +70,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (error) throw error
     return NextResponse.json(bias)
   } catch (error) {
-    console.error('Error updating bias:', error)
-    return NextResponse.json(
-      { error: '최애를 수정하는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -99,10 +83,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const { id } = await params
@@ -114,10 +95,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (error) throw error
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting bias:', error)
-    return NextResponse.json(
-      { error: '최애를 삭제하는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

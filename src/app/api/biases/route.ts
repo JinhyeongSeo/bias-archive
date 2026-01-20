@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import type { BiasInsert, GroupInsert } from '@/types/database'
+import { handleApiError, badRequest, unauthorized } from '@/lib/api-error'
 
 /**
  * GET /api/biases
@@ -18,11 +19,7 @@ export async function GET() {
     if (error) throw error
     return NextResponse.json(data ?? [])
   } catch (error) {
-    console.error('Error fetching biases:', error)
-    return NextResponse.json(
-      { error: '최애 목록을 가져오는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -43,10 +40,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다' },
-        { status: 401 }
-      )
+      unauthorized()
     }
 
     const body = await request.json()
@@ -61,10 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required field
     if (!name || typeof name !== 'string' || name.trim() === '') {
-      return NextResponse.json(
-        { error: '이름은 필수입니다' },
-        { status: 400 }
-      )
+      badRequest('이름은 필수입니다')
     }
 
     // Get or create group if group info is provided
@@ -135,10 +126,6 @@ export async function POST(request: NextRequest) {
     if (biasError) throw biasError
     return NextResponse.json(bias, { status: 201 })
   } catch (error) {
-    console.error('Error creating bias:', error)
-    return NextResponse.json(
-      { error: '최애를 추가하는데 실패했습니다' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
