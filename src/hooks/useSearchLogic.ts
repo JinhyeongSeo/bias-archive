@@ -11,7 +11,8 @@ import type {
   KgirlsResult, 
   SelcaResult, 
   InstagramResult,
-  SearchCachePlatform
+  SearchCachePlatform,
+  ParsedMedia
 } from '@/types/index';
 import { 
   getSearchCache, 
@@ -24,7 +25,6 @@ import { isVideoUrl, getProxiedVideoUrl, getProxiedImageUrl } from '@/lib/proxy'
 const RESULTS_PER_PLATFORM = 6;
 const API_FETCH_COUNT = 20;
 
-// Korean to English idol name mapping for Selca search
 const IDOL_NAME_MAP: Record<string, string> = {
   "카리나": "karina", "윈터": "winter", "지젤": "giselle", "닝닝": "ningning",
   "유진": "yujin", "원영": "wonyoung", "가을": "gaeul", "리즈": "liz", "레이": "rei", "이서": "leeseo",
@@ -56,13 +56,7 @@ interface SearchResultBase {
   nextMaxTimeId?: string;
 }
 
-export function useSearchLogic({ 
-  query, 
-  savedUrls, 
-  biases, 
-  groups, 
-  enabledPlatforms 
-}: UseSearchLogicOptions) {
+export function useSearchLogic({ query, savedUrls, biases, groups, enabledPlatforms }: UseSearchLogicOptions) {
   const [platformResults, setPlatformResults] = useState<Map<Platform, PlatformResults>>(new Map());
   const [isSearching, setIsSearching] = useState(false);
   const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set());
@@ -70,229 +64,138 @@ export function useSearchLogic({
   const [cachedResults, setCachedResults] = useState<Map<Platform, CachedPlatformResult>>(new Map());
   const [showCached, setShowCached] = useState<Map<Platform, boolean>>(new Map());
 
-  // Korean top 100 surnames
   const KOREAN_SURNAMES = useMemo(() => new Set([
     "김", "이", "박", "최", "정", "강", "조", "윤", "장", "임", "한", "오", "서", "신", "권", "황", "안", "송", "전", "홍", "유", "고", "문", "양", "손", "배", "백", "허", "노", "심", "하", "주", "구", "곽", "성", "차", "우", "민", "류", "나", "진", "지", "엄", "채", "원", "천", "방", "공", "현", "함", "변", "염", "여", "추", "도", "소", "석", "선", "설", "마", "길", "연", "위", "표", "명", "기", "반", "피", "왕", "금", "옥", "육", "인", "맹", "남", "탁", "국", "어", "경", "은", "편", "제", "빈", "봉", "사", "부",
   ]), []);
 
   const removeKoreanSurname = useCallback((name: string): string => {
     const isThreeCharKorean = /^[가-힣]{3}$/.test(name);
-    const firstCharIsSurname = KOREAN_SURNAMES.has(name.charAt(0));
-    return (isThreeCharKorean && firstCharIsSurname) ? name.slice(1) : name;
+    return (isThreeCharKorean && KOREAN_SURNAMES.has(name.charAt(0))) ? name.slice(1) : name;
   }, [KOREAN_SURNAMES]);
 
   const checkIfSaved = useCallback((url: string): boolean => {
-    const normalizedUrl = url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
-    return savedUrls.some((savedUrl) => {
-      const normalizedSaved = savedUrl.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
-      return normalizedSaved === normalizedUrl;
-    });
+    const norm = (u: string) => u.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+    const normalizedUrl = norm(url);
+    return savedUrls.some((savedUrl) => norm(savedUrl) === normalizedUrl);
   }, [savedUrls]);
 
-  const toggleShowCached = (platform: Platform) => {
+  const toggleShowCached = useCallback((platform: Platform) => {
     setShowCached((prev) => {
       const next = new Map(prev);
       next.set(platform, !prev.get(platform));
       return next;
     });
-  };
+  }, []);
 
-  const searchYouTube = async (searchQuery: string, pageToken?: string): Promise<SearchResultBase> => {
-    const params = new URLSearchParams({ q: searchQuery, max: String(API_FETCH_COUNT), order: "relevance", period: "month" });
+  const searchYouTube = async (q: string, pageToken?: string): Promise<SearchResultBase> => {
+    const params = new URLSearchParams({ q, max: String(API_FETCH_COUNT), order: "relevance", period: "month" });
     if (pageToken) params.set("pageToken", pageToken);
-    const response = await fetch(`/api/youtube/search?${params}`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "YouTube 검색 실패");
-    const results: EnrichedResult[] = (data.results as YouTubeResult[]).map((item) => ({
-      url: `https://www.youtube.com/watch?v=${item.videoId}`,
-      title: item.title,
-      thumbnailUrl: item.thumbnailUrl,
-      author: item.channelTitle,
-      platform: "youtube" as Platform,
-      publishedAt: item.publishedAt,
-      isSaved: checkIfSaved(`https://www.youtube.com/watch?v=${item.videoId}`),
-      isSaving: false,
-    }));
-    return { results, hasMore: data.hasMore ?? false, nextPageToken: data.nextPageToken };
+    const res = await fetch(`/api/youtube/search?${params}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "YouTube 검색 실패");
+    return {
+      results: (data.results as YouTubeResult[]).map(item => ({
+        url: `https://www.youtube.com/watch?v=${item.videoId}`,
+        title: item.title, thumbnailUrl: item.thumbnailUrl, author: item.channelTitle,
+        platform: "youtube", publishedAt: item.publishedAt, isSaved: checkIfSaved(`https://www.youtube.com/watch?v=${item.videoId}`), isSaving: false
+      })),
+      hasMore: data.hasMore ?? false, nextPageToken: data.nextPageToken
+    };
   };
 
-  const searchTwitter = async (searchQuery: string, cursor?: string): Promise<SearchResultBase> => {
-    const cleanQuery = searchQuery.startsWith("#") ? searchQuery.slice(1) : searchQuery;
+  const searchTwitter = async (q: string, cursor?: string): Promise<SearchResultBase> => {
+    const cleanQuery = q.startsWith("#") ? q.slice(1) : q;
     const params = new URLSearchParams({ q: cleanQuery, count: String(API_FETCH_COUNT) });
     if (cursor) params.set("cursor", cursor);
-    const response = await fetch(`/api/search/twitter?${params}`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Twitter 검색 실패");
-    const results: EnrichedResult[] = await Promise.all((data.results as TwitterResult[]).map(async (item) => {
+    const res = await fetch(`/api/search/twitter?${params}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Twitter 검색 실패");
+    const results: EnrichedResult[] = await Promise.all((data.results as TwitterResult[]).map(async item => {
       const isSaved = checkIfSaved(item.link);
-      if (item.thumbnailUrl) {
-        return { url: item.link, title: item.title, thumbnailUrl: item.thumbnailUrl, author: item.authorName || "", platform: "twitter" as Platform, isSaved, isSaving: false };
-      }
+      if (item.thumbnailUrl) return { url: item.link, title: item.title, thumbnailUrl: item.thumbnailUrl, author: item.authorName || "", platform: "twitter", isSaved, isSaving: false };
       try {
-        const metaResponse = await fetch("/api/metadata", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: item.link }) });
-        if (metaResponse.ok) {
-          const metadata = await metaResponse.json();
-          return { url: item.link, title: metadata.title || item.title, thumbnailUrl: metadata.thumbnailUrl || null, author: metadata.authorName || "", platform: "twitter" as Platform, isSaved, isSaving: false };
+        const mres = await fetch("/api/metadata", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: item.link }) });
+        if (mres.ok) {
+          const m = await mres.json();
+          return { url: item.link, title: m.title || item.title, thumbnailUrl: m.thumbnailUrl || null, author: m.authorName || "", platform: "twitter", isSaved, isSaving: false };
         }
       } catch {}
-      return { url: item.link, title: item.title, thumbnailUrl: null, author: "", platform: "twitter" as Platform, isSaved, isSaving: false };
+      return { url: item.link, title: item.title, thumbnailUrl: null, author: "", platform: "twitter", isSaved, isSaving: false };
     }));
     return { results, hasMore: data.hasMore ?? false, nextCursor: data.nextCursor };
   };
 
-  const searchCommunity = async (platform: 'heye' | 'kgirls' | 'kgirls-issue', searchQuery: string, page: number = 1, offset: number = 0): Promise<SearchResultBase> => {
-    const boardMap = { heye: '', kgirls: 'mgall', 'kgirls-issue': 'issue' };
-    const apiPath = platform === 'heye' ? '/api/search/heye' : '/api/search/kgirls';
-    const params = new URLSearchParams({ q: searchQuery, page: String(page), limit: String(API_FETCH_COUNT), offset: String(offset) });
-    if (platform !== 'heye') params.set('board', boardMap[platform]);
-    const response = await fetch(`${apiPath}?${params}`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || `${platform} 검색 실패`);
-    const results: EnrichedResult[] = (data.results as (HeyeResult | KgirlsResult)[]).map((item) => ({
-      url: item.url,
-      title: item.title,
-      thumbnailUrl: item.thumbnailUrl ? (isVideoUrl(item.thumbnailUrl) ? getProxiedVideoUrl(item.thumbnailUrl) : getProxiedImageUrl(item.thumbnailUrl)) : null,
-      author: item.author,
-      platform: platform as Platform,
-      isSaved: checkIfSaved(item.url),
-      isSaving: false,
-    }));
-    return { results, hasMore: data.hasMore ?? false };
+  const searchCommunity = async (platform: 'heye' | 'kgirls' | 'kgirls-issue', q: string, page: number = 1, offset: number = 0): Promise<SearchResultBase> => {
+    const board = platform === 'heye' ? '' : platform === 'kgirls' ? 'mgall' : 'issue';
+    const api = platform === 'heye' ? '/api/search/heye' : '/api/search/kgirls';
+    const params = new URLSearchParams({ q, page: String(page), limit: String(API_FETCH_COUNT), offset: String(offset) });
+    if (board) params.set('board', board);
+    const res = await fetch(`${api}?${params}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `${platform} 검색 실패`);
+    return {
+      results: (data.results as (HeyeResult | KgirlsResult)[]).map(item => ({
+        url: item.url, title: item.title, author: item.author, platform: platform as Platform, isSaved: checkIfSaved(item.url), isSaving: false,
+        thumbnailUrl: item.thumbnailUrl ? (isVideoUrl(item.thumbnailUrl) ? getProxiedVideoUrl(item.thumbnailUrl) : getProxiedImageUrl(item.thumbnailUrl)) : null,
+      })),
+      hasMore: data.hasMore ?? false
+    };
   };
 
-  const searchSelca = async (searchQuery: string, page: number = 1, maxTimeId?: string): Promise<SearchResultBase> => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const matchedBias = biases.find(b => b.name.toLowerCase() === normalizedQuery || b.name_en?.toLowerCase() === normalizedQuery || b.name_ko?.toLowerCase() === normalizedQuery);
-    const matchedGroup = groups.find(g => g.name.toLowerCase() === normalizedQuery || g.name_en?.toLowerCase() === normalizedQuery || g.name_ko?.toLowerCase() === normalizedQuery);
-    
-    let queryToUse = searchQuery;
-    let searchType: 'member' | 'group' = 'member';
-
-    if (matchedBias) {
-      if (matchedBias.selca_slug === null) throw new Error('해당 아이돌의 Selca 콘텐츠가 없습니다');
-      if (matchedBias.selca_slug) queryToUse = matchedBias.selca_slug;
-    } else if (matchedGroup) {
-      if (matchedGroup.selca_slug === null) throw new Error('해당 그룹의 Selca 콘텐츠가 없습니다');
-      if (matchedGroup.selca_slug) { queryToUse = matchedGroup.selca_slug; searchType = 'group'; }
-    } else {
-      const fallback = normalizeIdolName(searchQuery);
-      if (fallback !== searchQuery) queryToUse = fallback;
-    }
-
-    const params = new URLSearchParams({ query: queryToUse, page: String(page), limit: String(API_FETCH_COUNT), type: searchType });
+  const searchSelca = async (q: string, page: number = 1, maxTimeId?: string): Promise<SearchResultBase> => {
+    const nq = q.trim().toLowerCase();
+    const mb = biases.find(b => b.name.toLowerCase() === nq || b.name_en?.toLowerCase() === nq || b.name_ko?.toLowerCase() === nq);
+    const mg = groups.find(g => g.name.toLowerCase() === nq || g.name_en?.toLowerCase() === nq || g.name_ko?.toLowerCase() === nq);
+    let qtu = q, st: 'member' | 'group' = 'member';
+    if (mb) { if (mb.selca_slug === null) throw new Error('Selca 콘텐츠 없음'); if (mb.selca_slug) qtu = mb.selca_slug; }
+    else if (mg) { if (mg.selca_slug === null) throw new Error('Selca 콘텐츠 없음'); if (mg.selca_slug) { qtu = mg.selca_slug; st = 'group'; } }
+    else { const fb = normalizeIdolName(q); if (fb !== q) qtu = fb; }
+    const params = new URLSearchParams({ query: qtu, page: String(page), limit: String(API_FETCH_COUNT), type: st });
     if (maxTimeId) params.set('maxTimeId', maxTimeId);
-    const response = await fetch(`/api/search/selca?${params}`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "selca.kastden.org 검색 실패");
-    const results: EnrichedResult[] = (data.results as SelcaResult[]).map((item) => ({
-      url: item.url,
-      title: item.title,
-      thumbnailUrl: item.thumbnailUrl,
-      author: item.author,
-      platform: "selca" as Platform,
-      isSaved: checkIfSaved(item.url),
-      isSaving: false,
-    }));
-    return { results, hasMore: data.hasNextPage ?? false, nextMaxTimeId: data.nextMaxTimeId };
+    const res = await fetch(`/api/search/selca?${params}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Selca 검색 실패");
+    return {
+      results: (data.results as SelcaResult[]).map(item => ({ url: item.url, title: item.title, thumbnailUrl: item.thumbnailUrl, author: item.author, platform: "selca", isSaved: checkIfSaved(item.url), isSaving: false })),
+      hasMore: data.hasNextPage ?? false, nextMaxTimeId: data.nextMaxTimeId
+    };
   };
 
-  const searchInstagram = async (searchQuery: string): Promise<SearchResultBase> => {
-    const params = new URLSearchParams({ q: searchQuery, type: 'hashtag', limit: String(API_FETCH_COUNT) });
-    const response = await fetch(`/api/search/instagram?${params}`);
-    const data = await response.json();
-    if (data.notConfigured) throw new Error("Instagram 검색이 설정되지 않았습니다");
-    if (!response.ok) throw new Error(data.error || "Instagram 검색 실패");
-    const results: EnrichedResult[] = ((data.results || []) as InstagramResult[]).map((item) => ({
-      url: item.url,
-      title: item.title,
-      thumbnailUrl: item.thumbnailUrl,
-      author: item.author,
-      platform: "instagram" as Platform,
-      isSaved: checkIfSaved(item.url),
-      isSaving: false,
-      media: item.media,
-    }));
-    return { results, hasMore: data.hasMore || false };
+  const searchInstagram = async (q: string): Promise<SearchResultBase> => {
+    const params = new URLSearchParams({ q, type: 'hashtag', limit: String(API_FETCH_COUNT) });
+    const res = await fetch(`/api/search/instagram?${params}`);
+    const data = await res.json();
+    if (data.notConfigured) throw new Error("Instagram 미설정");
+    if (!res.ok) throw new Error(data.error || "Instagram 검색 실패");
+    return {
+      results: ((data.results || []) as InstagramResult[]).map(item => ({ url: item.url, title: item.title, thumbnailUrl: item.thumbnailUrl, author: item.author, platform: "instagram", isSaved: checkIfSaved(item.url), isSaving: false, media: item.media })),
+      hasMore: data.hasMore || false
+    };
   };
 
-  const processPlatformSearch = async (
-    platform: Platform,
-    cachedData: CachedPlatformResult | undefined,
-    searchFn: () => Promise<SearchResultBase>
-  ) => {
-    const displayedIndex = cachedData?.displayedIndex ?? 0;
-    const cachedResultsList = cachedData?.results ?? [];
-    const remainingInCache = cachedResultsList.length - displayedIndex;
-
-    if (remainingInCache >= RESULTS_PER_PLATFORM) {
-      const toDisplay = cachedResultsList.slice(displayedIndex, displayedIndex + RESULTS_PER_PLATFORM);
-      const alreadyDisplayed = cachedResultsList.slice(0, displayedIndex);
-      const newDisplayedIndex = displayedIndex + RESULTS_PER_PLATFORM;
-      const hasMoreInCache = cachedResultsList.length > newDisplayedIndex || cachedData?.hasMore;
-
-      if (alreadyDisplayed.length > 0) {
-        setCachedResults((prev) => {
-          const next = new Map(prev);
-          next.set(platform, { ...cachedData!, results: alreadyDisplayed as EnrichedResult[] });
-          return next;
-        });
-      }
-
-      setPlatformResults((prev) => {
-        const next = new Map(prev);
-        next.set(platform, {
-          platform,
-          results: toDisplay as EnrichedResult[],
-          hasMore: hasMoreInCache ?? false,
-          isLoading: false,
-          isLoadingMore: false,
-          error: null,
-          currentPage: cachedData?.currentPage ?? 1,
-          currentOffset: cachedData?.currentOffset ?? 0,
-          nextPageToken: cachedData?.nextPageToken,
-          nextCursor: cachedData?.nextCursor,
-          nextMaxTimeId: cachedData?.nextMaxTimeId,
-        });
-        return next;
-      });
-
-      void updatePlatformCache(query, platform as SearchCachePlatform, { ...cachedData!, displayedIndex: newDisplayedIndex });
+  const processPlatformSearch = async (platform: Platform, cached: CachedPlatformResult | undefined, searchFn: () => Promise<SearchResultBase>) => {
+    const dIdx = cached?.displayedIndex ?? 0;
+    const cRes = cached?.results ?? [];
+    if (cRes.length - dIdx >= RESULTS_PER_PLATFORM) {
+      const toDisplay = cRes.slice(dIdx, dIdx + RESULTS_PER_PLATFORM);
+      if (dIdx > 0) setCachedResults(prev => new Map(prev).set(platform, { ...cached!, results: cRes.slice(0, dIdx) }));
+      setPlatformResults(prev => new Map(prev).set(platform, { platform, results: toDisplay, hasMore: cRes.length > dIdx + RESULTS_PER_PLATFORM || !!cached?.hasMore, isLoading: false, isLoadingMore: false, error: null, currentPage: cached?.currentPage ?? 1, currentOffset: cached?.currentOffset ?? 0, nextPageToken: cached?.nextPageToken, nextCursor: cached?.nextCursor, nextMaxTimeId: cached?.nextMaxTimeId }));
+      void updatePlatformCache(query, platform as SearchCachePlatform, { ...cached!, displayedIndex: dIdx + RESULTS_PER_PLATFORM });
       return;
     }
-
     try {
-      const { results: apiResults, hasMore, nextPageToken, nextCursor, nextMaxTimeId } = await searchFn();
-      const fromCache = cachedResultsList.slice(displayedIndex);
-      const alreadyDisplayed = cachedResultsList.slice(0, displayedIndex);
-      const existingUrls = new Set(cachedResultsList.map((r) => r.url));
-      const newApiResults = apiResults.filter((r) => !existingUrls.has(r.url));
-      const combined = [...fromCache, ...newApiResults];
+      const { results: apiRes, hasMore, nextPageToken, nextCursor, nextMaxTimeId } = await searchFn();
+      const fromCache = cRes.slice(dIdx);
+      const urls = new Set(cRes.map(r => r.url));
+      const filteredApi = apiRes.filter(r => !urls.has(r.url));
+      const combined = [...fromCache, ...filteredApi];
       const toDisplay = combined.slice(0, RESULTS_PER_PLATFORM);
-      const toSaveInCache = combined.slice(RESULTS_PER_PLATFORM);
-
-      if (alreadyDisplayed.length > 0) {
-        setCachedResults((prev) => {
-          const next = new Map(prev);
-          next.set(platform, { results: alreadyDisplayed as EnrichedResult[], displayedIndex: alreadyDisplayed.length, currentPage: cachedData?.currentPage ?? 1, currentOffset: cachedData?.currentOffset ?? 0, hasMore: false, nextPageToken: cachedData?.nextPageToken, nextCursor: cachedData?.nextCursor, nextMaxTimeId: cachedData?.nextMaxTimeId });
-          return next;
-        });
-      }
-
-      setPlatformResults((prev) => {
-        const next = new Map(prev);
-        next.set(platform, { platform, results: toDisplay, hasMore: hasMore || toSaveInCache.length > 0, isLoading: false, isLoadingMore: false, error: null, currentPage: 1, currentOffset: 0, nextPageToken, nextCursor, nextMaxTimeId });
-        return next;
-      });
-
-      const allCachedResults = [...alreadyDisplayed, ...toDisplay, ...toSaveInCache];
-      void updatePlatformCache(query, platform as SearchCachePlatform, { results: allCachedResults as EnrichedResult[], displayedIndex: alreadyDisplayed.length + toDisplay.length, nextPageToken, nextCursor, nextMaxTimeId, currentPage: 1, currentOffset: 0, hasMore });
-    } catch (error: unknown) {
-      setPlatformResults((prev) => {
-        const next = new Map(prev);
-        const errorMessage = error instanceof Error ? error.message : `${platform} 검색 실패`;
-        next.set(platform, { platform, results: [], hasMore: false, isLoading: false, isLoadingMore: false, error: errorMessage, currentPage: 1, currentOffset: 0 });
-        return next;
-      });
+      const toSave = combined.slice(RESULTS_PER_PLATFORM);
+      if (dIdx > 0) setCachedResults(prev => new Map(prev).set(platform, { results: cRes.slice(0, dIdx), displayedIndex: dIdx, currentPage: cached?.currentPage ?? 1, currentOffset: cached?.currentOffset ?? 0, hasMore: false, nextPageToken: cached?.nextPageToken, nextCursor: cached?.nextCursor, nextMaxTimeId: cached?.nextMaxTimeId }));
+      setPlatformResults(prev => new Map(prev).set(platform, { platform, results: toDisplay, hasMore: hasMore || toSave.length > 0, isLoading: false, isLoadingMore: false, error: null, currentPage: 1, currentOffset: 0, nextPageToken, nextCursor, nextMaxTimeId }));
+      void updatePlatformCache(query, platform as SearchCachePlatform, { results: [...cRes.slice(0, dIdx), ...toDisplay, ...toSave], displayedIndex: dIdx + toDisplay.length, nextPageToken, nextCursor, nextMaxTimeId, currentPage: 1, currentOffset: 0, hasMore });
+    } catch (e: any) {
+      setPlatformResults(prev => new Map(prev).set(platform, { platform, results: [], hasMore: false, isLoading: false, isLoadingMore: false, error: e.message || "검색 실패", currentPage: 1, currentOffset: 0 }));
     }
   };
 
@@ -302,12 +205,9 @@ export function useSearchLogic({
     setSelectedUrls(new Set());
     const cached = await getSearchCache(query);
     setCachedResults(new Map());
-    const initialResults = new Map<Platform, PlatformResults>();
-    for (const platform of enabledPlatforms) {
-      initialResults.set(platform, { platform, results: [], hasMore: false, isLoading: true, isLoadingMore: false, error: null, currentPage: 1, currentOffset: 0 });
-    }
-    setPlatformResults(initialResults);
-
+    const init = new Map<Platform, PlatformResults>();
+    for (const p of enabledPlatforms) init.set(p, { platform: p, results: [], hasMore: false, isLoading: true, isLoadingMore: false, error: null, currentPage: 1, currentOffset: 0 });
+    setPlatformResults(init);
     const promises: Promise<void>[] = [];
     if (enabledPlatforms.has("youtube")) promises.push(processPlatformSearch("youtube", cached?.platforms.youtube, () => searchYouTube(query, cached?.platforms.youtube?.nextPageToken)));
     if (enabledPlatforms.has("twitter")) promises.push(processPlatformSearch("twitter", cached?.platforms.twitter, () => searchTwitter(query, cached?.platforms.twitter?.nextCursor)));
@@ -316,177 +216,87 @@ export function useSearchLogic({
     if (enabledPlatforms.has("kgirls-issue")) promises.push(processPlatformSearch("kgirls-issue", cached?.platforms["kgirls-issue"], () => searchCommunity('kgirls-issue', query, cached?.platforms["kgirls-issue"]?.currentPage ?? 1, cached?.platforms["kgirls-issue"]?.currentOffset ?? 0)));
     if (enabledPlatforms.has("selca")) promises.push(processPlatformSearch("selca", cached?.platforms.selca, () => searchSelca(query, cached?.platforms.selca?.currentPage ?? 1, cached?.platforms.selca?.nextMaxTimeId)));
     if (enabledPlatforms.has("instagram")) promises.push(processPlatformSearch("instagram", cached?.platforms.instagram, () => searchInstagram(query)));
-
     await Promise.allSettled(promises);
     setShowCached(new Map());
     setIsSearching(false);
   };
 
-  const handleLoadMore = async (platform: Platform) => {
-    const currentData = platformResults.get(platform);
-    if (!currentData || currentData.isLoadingMore || !currentData.hasMore) return;
-
-    setPlatformResults((prev) => {
-      const next = new Map(prev);
-      const data = next.get(platform);
-      if (data) next.set(platform, { ...data, isLoadingMore: true });
-      return next;
-    });
-
+  const handleLoadMore = async (p: Platform) => {
+    const cur = platformResults.get(p);
+    if (!cur || cur.isLoadingMore || !cur.hasMore) return;
+    setPlatformResults(prev => new Map(prev).set(p, { ...cur, isLoadingMore: true }));
     try {
-      let searchResult: SearchResultBase;
-      const localDisplayedCount = currentData.results.length;
-
-      switch (platform) {
-        case "youtube": {
-          const ytCacheEntry = await getSearchCache(query);
-          const ytCache = ytCacheEntry?.platforms.youtube;
-          const ytCachedResults = ytCache?.results ?? [];
-          const ytDisplayedUrls = new Set(currentData.results.map((r) => r.url));
-          const ytUnshownInCache = ytCachedResults.filter((r) => !ytDisplayedUrls.has(r.url));
-
-          if (ytUnshownInCache.length >= RESULTS_PER_PLATFORM) {
-            const toDisplay = ytUnshownInCache.slice(0, RESULTS_PER_PLATFORM);
-            searchResult = { results: toDisplay.map((r) => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), hasMore: ytUnshownInCache.length > RESULTS_PER_PLATFORM || ytCache?.hasMore || false, nextPageToken: ytCache?.nextPageToken };
-            void updatePlatformCache(query, "youtube", { ...ytCache!, displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM });
-          } else {
-            const fromCache = ytUnshownInCache;
-            const needed = RESULTS_PER_PLATFORM - fromCache.length;
-            const apiResult = await searchYouTube(query, ytCache?.nextPageToken || currentData.nextPageToken);
-            const newApiResults = apiResult.results.filter((r) => !ytDisplayedUrls.has(r.url));
-            const fromApi = newApiResults.slice(0, needed);
-            const leftoverApi = newApiResults.slice(needed);
-            searchResult = { results: [...fromCache.map((r) => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), ...fromApi], hasMore: leftoverApi.length > 0 || apiResult.hasMore, nextPageToken: apiResult.nextPageToken };
-            if (leftoverApi.length > 0 || apiResult.hasMore) {
-              void updatePlatformCache(query, "youtube", { results: [...ytCachedResults, ...apiResult.results], displayedIndex: localDisplayedCount + fromCache.length + fromApi.length, currentPage: 1, currentOffset: 0, hasMore: apiResult.hasMore, nextPageToken: apiResult.nextPageToken });
-            }
-          }
-          break;
+      let res: SearchResultBase;
+      const dCount = cur.results.length;
+      if (p === "youtube") {
+        const c = (await getSearchCache(query))?.platforms.youtube;
+        const dUrls = new Set(cur.results.map(r => r.url));
+        const unshown = (c?.results ?? []).filter(r => !dUrls.has(r.url));
+        if (unshown.length >= RESULTS_PER_PLATFORM) {
+          res = { results: unshown.slice(0, RESULTS_PER_PLATFORM).map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), hasMore: unshown.length > RESULTS_PER_PLATFORM || !!c?.hasMore };
+          void updatePlatformCache(query, "youtube", { ...c!, displayedIndex: dCount + RESULTS_PER_PLATFORM });
+        } else {
+          const api = await searchYouTube(query, c?.nextPageToken || cur.nextPageToken);
+          const filtered = api.results.filter(r => !dUrls.has(r.url));
+          const needed = RESULTS_PER_PLATFORM - unshown.length;
+          res = { results: [...unshown.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), ...filtered.slice(0, needed)], hasMore: filtered.length > needed || api.hasMore, nextPageToken: api.nextPageToken };
+          void updatePlatformCache(query, "youtube", { results: [...(c?.results ?? []), ...api.results], displayedIndex: dCount + unshown.length + Math.min(filtered.length, needed), currentPage: 1, currentOffset: 0, hasMore: api.hasMore, nextPageToken: api.nextPageToken });
         }
-        case "twitter": {
-          const twCacheEntry = await getSearchCache(query);
-          const twCache = twCacheEntry?.platforms.twitter;
-          const twCachedResults = twCache?.results ?? [];
-          const displayedUrls = new Set(currentData.results.map((r) => r.url));
-          const twUnshownInCache = twCachedResults.filter((r) => !displayedUrls.has(r.url));
-
-          if (twUnshownInCache.length >= RESULTS_PER_PLATFORM) {
-            const toDisplay = twUnshownInCache.slice(0, RESULTS_PER_PLATFORM);
-            searchResult = { results: toDisplay.map((r) => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), hasMore: twUnshownInCache.length > RESULTS_PER_PLATFORM || twCache?.hasMore || false, nextCursor: twCache?.nextCursor };
-            void updatePlatformCache(query, "twitter", { ...twCache!, displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM });
-          } else {
-            const fromCache = twUnshownInCache;
-            const needed = RESULTS_PER_PLATFORM - fromCache.length;
-            const apiResult = await searchTwitter(query, twCache?.nextCursor || currentData.nextCursor);
-            const newApiResults = apiResult.results.filter((r) => !displayedUrls.has(r.url));
-            const fromApi = newApiResults.slice(0, needed);
-            const leftoverApi = newApiResults.slice(needed);
-            searchResult = { results: [...fromCache.map((r) => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), ...fromApi], hasMore: leftoverApi.length > 0 || apiResult.hasMore, nextCursor: apiResult.nextCursor };
-            if (leftoverApi.length > 0 || apiResult.hasMore) {
-              void updatePlatformCache(query, "twitter", { results: [...twCachedResults, ...apiResult.results], displayedIndex: localDisplayedCount + fromCache.length + fromApi.length, currentPage: 1, currentOffset: 0, hasMore: apiResult.hasMore, nextCursor: apiResult.nextCursor });
-            }
-          }
-          break;
+      } else if (p === "twitter") {
+        const c = (await getSearchCache(query))?.platforms.twitter;
+        const dUrls = new Set(cur.results.map(r => r.url));
+        const unshown = (c?.results ?? []).filter(r => !dUrls.has(r.url));
+        if (unshown.length >= RESULTS_PER_PLATFORM) {
+          res = { results: unshown.slice(0, RESULTS_PER_PLATFORM).map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), hasMore: unshown.length > RESULTS_PER_PLATFORM || !!c?.hasMore };
+          void updatePlatformCache(query, "twitter", { ...c!, displayedIndex: dCount + RESULTS_PER_PLATFORM });
+        } else {
+          const api = await searchTwitter(query, c?.nextCursor || cur.nextCursor);
+          const filtered = api.results.filter(r => !dUrls.has(r.url));
+          const needed = RESULTS_PER_PLATFORM - unshown.length;
+          res = { results: [...unshown.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), ...filtered.slice(0, needed)], hasMore: filtered.length > needed || api.hasMore, nextCursor: api.nextCursor };
+          void updatePlatformCache(query, "twitter", { results: [...(c?.results ?? []), ...api.results], displayedIndex: dCount + unshown.length + Math.min(filtered.length, needed), currentPage: 1, currentOffset: 0, hasMore: api.hasMore, nextCursor: api.nextCursor });
         }
-        case "heye": case "kgirls": case "kgirls-issue": {
-          const cacheEntry = await getSearchCache(query);
-          const platformCache = cacheEntry?.platforms[platform];
-          const cachedResults = platformCache?.results ?? [];
-          const displayedUrls = new Set(currentData.results.map((r) => r.url));
-          const unshownInCache = cachedResults.filter((r) => !displayedUrls.has(r.url));
-
-          if (unshownInCache.length >= RESULTS_PER_PLATFORM) {
-            const toDisplay = unshownInCache.slice(0, RESULTS_PER_PLATFORM);
-            searchResult = { results: toDisplay.map((r) => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), hasMore: unshownInCache.length > RESULTS_PER_PLATFORM || platformCache?.hasMore || false };
-            void updatePlatformCache(query, platform as SearchCachePlatform, { ...platformCache!, displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM });
-          } else {
-            const fromCache = unshownInCache;
-            const needed = RESULTS_PER_PLATFORM - fromCache.length;
-            const nextP = (platformCache?.currentPage ?? currentData.currentPage) + 1;
-            const apiResult = await searchCommunity(platform as 'heye' | 'kgirls' | 'kgirls-issue', query, nextP, 0);
-            const newApiResults = apiResult.results.filter((r) => !displayedUrls.has(r.url));
-            const fromApi = newApiResults.slice(0, needed);
-            const leftoverApi = newApiResults.slice(needed);
-            searchResult = { results: [...fromCache.map((r) => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), ...fromApi], hasMore: leftoverApi.length > 0 || apiResult.hasMore };
-            if (leftoverApi.length > 0 || apiResult.hasMore) {
-              void updatePlatformCache(query, platform as SearchCachePlatform, { results: [...cachedResults, ...apiResult.results], displayedIndex: localDisplayedCount + fromCache.length + fromApi.length, currentPage: nextP, currentOffset: 0, hasMore: apiResult.hasMore });
-            }
-          }
-          break;
+      } else if (p === "heye" || p === "kgirls" || p === "kgirls-issue") {
+        const c = (await getSearchCache(query))?.platforms[p];
+        const dUrls = new Set(cur.results.map(r => r.url));
+        const unshown = (c?.results ?? []).filter(r => !dUrls.has(r.url));
+        if (unshown.length >= RESULTS_PER_PLATFORM) {
+          res = { results: unshown.slice(0, RESULTS_PER_PLATFORM).map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), hasMore: unshown.length > RESULTS_PER_PLATFORM || !!c?.hasMore };
+          void updatePlatformCache(query, p as SearchCachePlatform, { ...c!, displayedIndex: dCount + RESULTS_PER_PLATFORM });
+        } else {
+          const nextP = (c?.currentPage ?? cur.currentPage) + 1;
+          const api = await searchCommunity(p, query, nextP, 0);
+          const filtered = api.results.filter(r => !dUrls.has(r.url));
+          const needed = RESULTS_PER_PLATFORM - unshown.length;
+          res = { results: [...unshown.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), ...filtered.slice(0, needed)], hasMore: filtered.length > needed || api.hasMore };
+          void updatePlatformCache(query, p as SearchCachePlatform, { results: [...(c?.results ?? []), ...api.results], displayedIndex: dCount + unshown.length + Math.min(filtered.length, needed), currentPage: nextP, currentOffset: 0, hasMore: api.hasMore });
         }
-        case "selca": {
-          const cacheEntry = await getSearchCache(query);
-          const platformCache = cacheEntry?.platforms.selca;
-          const cachedResults = platformCache?.results ?? [];
-          const displayedUrls = new Set(currentData.results.map((r) => r.url));
-          const unshownInCache = cachedResults.filter((r) => !displayedUrls.has(r.url));
-
-          if (unshownInCache.length >= RESULTS_PER_PLATFORM) {
-            const toDisplay = unshownInCache.slice(0, RESULTS_PER_PLATFORM);
-            searchResult = { results: toDisplay.map((r) => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), hasMore: unshownInCache.length > RESULTS_PER_PLATFORM || platformCache?.hasMore || false, nextMaxTimeId: platformCache?.nextMaxTimeId };
-            void updatePlatformCache(query, "selca", { ...platformCache!, displayedIndex: localDisplayedCount + RESULTS_PER_PLATFORM });
-          } else {
-            const fromCache = unshownInCache;
-            const needed = RESULTS_PER_PLATFORM - fromCache.length;
-            const apiResult = await searchSelca(query, 1, platformCache?.nextMaxTimeId || currentData.nextMaxTimeId);
-            const newApiResults = apiResult.results.filter((r) => !displayedUrls.has(r.url));
-            const fromApi = newApiResults.slice(0, needed);
-            const leftoverApi = newApiResults.slice(needed);
-            searchResult = { results: [...fromCache.map((r) => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), ...fromApi], hasMore: leftoverApi.length > 0 || apiResult.hasMore, nextMaxTimeId: apiResult.nextMaxTimeId };
-            if (leftoverApi.length > 0 || apiResult.hasMore) {
-              void updatePlatformCache(query, "selca", { results: [...cachedResults, ...apiResult.results], displayedIndex: localDisplayedCount + fromCache.length + fromApi.length, currentPage: 1, currentOffset: 0, hasMore: apiResult.hasMore, nextMaxTimeId: apiResult.nextMaxTimeId });
-            }
-          }
-          break;
+      } else if (p === "selca") {
+        const c = (await getSearchCache(query))?.platforms.selca;
+        const dUrls = new Set(cur.results.map(r => r.url));
+        const unshown = (c?.results ?? []).filter(r => !dUrls.has(r.url));
+        if (unshown.length >= RESULTS_PER_PLATFORM) {
+          res = { results: unshown.slice(0, RESULTS_PER_PLATFORM).map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), hasMore: unshown.length > RESULTS_PER_PLATFORM || !!c?.hasMore };
+          void updatePlatformCache(query, "selca", { ...c!, displayedIndex: dCount + RESULTS_PER_PLATFORM });
+        } else {
+          const api = await searchSelca(query, 1, c?.nextMaxTimeId || cur.nextMaxTimeId);
+          const filtered = api.results.filter(r => !dUrls.has(r.url));
+          const needed = RESULTS_PER_PLATFORM - unshown.length;
+          res = { results: [...unshown.map(r => ({ ...r, isSaved: checkIfSaved(r.url), isSaving: false })), ...filtered.slice(0, needed)], hasMore: filtered.length > needed || api.hasMore, nextMaxTimeId: api.nextMaxTimeId };
+          void updatePlatformCache(query, "selca", { results: [...(c?.results ?? []), ...api.results], displayedIndex: dCount + unshown.length + Math.min(filtered.length, needed), currentPage: 1, currentOffset: 0, hasMore: api.hasMore, nextMaxTimeId: api.nextMaxTimeId });
         }
-        case "instagram": {
-          const apiResult = await searchInstagram(query);
-          const displayedUrls = new Set(currentData.results.map((r) => r.url));
-          const newApiResults = apiResult.results.filter((r) => !displayedUrls.has(r.url));
-          searchResult = { results: newApiResults.slice(0, RESULTS_PER_PLATFORM), hasMore: apiResult.hasMore || newApiResults.length > RESULTS_PER_PLATFORM };
-          break;
-        }
-        default: return;
-      }
-
-      setPlatformResults((prev) => {
-        const next = new Map(prev);
-        const data = next.get(platform);
-        if (data) {
-          next.set(platform, { ...data, results: [...data.results, ...searchResult.results], hasMore: searchResult.hasMore, isLoadingMore: false, nextPageToken: searchResult.nextPageToken, nextCursor: searchResult.nextCursor, nextMaxTimeId: searchResult.nextMaxTimeId });
-        }
-        return next;
-      });
-    } catch (error: unknown) {
-      setPlatformResults((prev) => {
-        const next = new Map(prev);
-        const data = next.get(platform);
-        const errorMessage = error instanceof Error ? error.message : `${platform} 검색 실패`;
-        if (data) next.set(platform, { ...data, isLoadingMore: false, error: errorMessage });
-        return next;
-      });
+      } else if (p === "instagram") {
+        const api = await searchInstagram(query);
+        const filtered = api.results.filter(r => !new Set(cur.results.map(x => x.url)).has(r.url));
+        res = { results: filtered.slice(0, RESULTS_PER_PLATFORM), hasMore: api.hasMore || filtered.length > RESULTS_PER_PLATFORM };
+      } else return;
+      setPlatformResults(prev => new Map(prev).set(p, { ...cur, results: [...cur.results, ...res.results], hasMore: res.hasMore, isLoadingMore: false, nextPageToken: res.nextPageToken, nextCursor: res.nextCursor, nextMaxTimeId: res.nextMaxTimeId }));
+    } catch (e: any) {
+      setPlatformResults(prev => new Map(prev).set(p, { ...cur, isLoadingMore: false, error: e.message }));
     }
   };
 
-  useEffect(() => {
-    clearExpiredCache();
-  }, []);
+  useEffect(() => { clearExpiredCache(); }, []);
 
-  return {
-    platformResults,
-    setPlatformResults,
-    isSearching,
-    selectedUrls,
-    setSelectedUrls,
-    isBatchSaving,
-    setIsBatchSaving,
-    cachedResults,
-    setCachedResults,
-    showCached,
-    handleSearch,
-    handleLoadMore,
-    toggleShowCached,
-    checkIfSaved,
-    removeKoreanSurname,
-  };
+  return { platformResults, isSearching, selectedUrls, setSelectedUrls, isBatchSaving, setIsBatchSaving, cachedResults, showCached, handleSearch, handleLoadMore, toggleShowCached, checkIfSaved, removeKoreanSurname };
 }

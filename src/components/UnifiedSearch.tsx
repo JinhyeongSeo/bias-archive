@@ -21,7 +21,6 @@ import type {
 import { useSearchLogic } from "@/hooks/useSearchLogic";
 import { SearchInput } from "./search/SearchInput";
 import { SearchFilters } from "./search/SearchFilters";
-import { PlatformTabs } from "./search/PlatformTabs";
 import { SearchResults } from "./search/SearchResults";
 
 // Selection type for idol dropdown
@@ -63,7 +62,7 @@ export function UnifiedSearch({
   biases,
   groups,
 }: UnifiedSearchProps) {
-  const { getDisplayName } = useNameLanguage();
+  const { getDisplayName, getTagDisplayName } = useNameLanguage();
   const t = useTranslations("unifiedSearch");
   const locale = useLocale();
 
@@ -82,7 +81,6 @@ export function UnifiedSearch({
   const [enabledPlatforms, setEnabledPlatforms] = useState<Set<Platform>>(
     new Set(["youtube", "twitter", "heye", "kgirls", "kgirls-issue", "selca", "instagram"])
   );
-  const [activePlatform, setActivePlatform] = useState<Platform>("youtube");
 
   const {
     platformResults,
@@ -98,14 +96,6 @@ export function UnifiedSearch({
     toggleShowCached,
     removeKoreanSurname,
   } = useSearchLogic({ query, savedUrls, biases, groups, enabledPlatforms });
-
-  useEffect(() => {
-    if (!enabledPlatforms.has(activePlatform)) {
-      const firstEnabled = Array.from(enabledPlatforms)[0];
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (firstEnabled) setActivePlatform(firstEnabled);
-    }
-  }, [enabledPlatforms, activePlatform]);
 
   const biasesWithGroups = useMemo((): BiasWithGroup[] => {
     const groupMap = new Map<string, Group>();
@@ -148,7 +138,6 @@ export function UnifiedSearch({
   useEffect(() => {
     if (isIdolDropdownOpen) {
       const allGroupIds = new Set(biasesWithGroups.map((b) => b.group_id).filter((id): id is string => id !== null));
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCollapsedDropdownGroups(allGroupIds);
       if (dropdownButtonRef.current) {
         const rect = dropdownButtonRef.current.getBoundingClientRect();
@@ -161,11 +150,9 @@ export function UnifiedSearch({
     if (!selection) return;
     if (selection.type === "group") {
       const group = groups.find((g) => g.id === selection.id);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (group) setQuery(getGroupDisplayName(group));
     } else {
       const selectedBias = biases.find((b) => b.id === selection.id);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (selectedBias) setQuery(removeKoreanSurname(selectedBias.name_ko || selectedBias.name));
     }
   }, [selection, groups, biases, getGroupDisplayName, removeKoreanSurname]);
@@ -226,8 +213,8 @@ export function UnifiedSearch({
     let successCount = 0;
     let failCount = 0;
 
-    const allResults = Array.from(platformResults.values()).flatMap((r) => r.results);
-    const selectedResults = allResults.filter((r) => selectedUrls.has(r.url));
+    const allResultsList = Array.from(platformResults.values()).flatMap((r) => r.results);
+    const selectedResults = allResultsList.filter((r) => selectedUrls.has(r.url));
 
     for (const result of selectedResults) {
       try {
@@ -258,37 +245,41 @@ export function UnifiedSearch({
     onSave?.();
   };
 
+  const totalResultsCount = Array.from(platformResults.values()).reduce((sum, r) => sum + r.results.length, 0);
+  const anyLoading = Array.from(platformResults.values()).some(p => p.isLoading);
+  const selectableResults = Array.from(platformResults.values()).flatMap(r => r.results).filter(r => !r.isSaved);
+  const selectedCount = selectedUrls.size;
+
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
       <motion.div
         initial="initial" animate="animate" exit="exit" variants={modalOverlay}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4"
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
         <motion.div
           variants={modalContent}
-          className="relative bg-card rounded-3xl shadow-2xl border border-border w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden"
+          className="relative bg-background rounded-xl shadow-2xl border border-border w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="p-6 sm:p-8 flex flex-col h-full overflow-hidden">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                {t("title")}
-              </h2>
-              <button onClick={onClose} className="p-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground">
+              통합 검색
+            </h2>
+            <motion.button
+              onClick={onClose}
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+              whileTap={{ scale: 0.9 }}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </motion.button>
+          </div>
 
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
             <SearchInput
               query={query} setQuery={setQuery} onSearch={handleSearch} isSearching={isSearching}
               isIdolDropdownOpen={isIdolDropdownOpen} setIsIdolDropdownOpen={setIsIdolDropdownOpen}
@@ -300,66 +291,73 @@ export function UnifiedSearch({
 
             <SearchFilters platforms={PLATFORMS} enabledPlatforms={enabledPlatforms} togglePlatform={togglePlatform} t={t} />
 
-            <PlatformTabs
-              platforms={PLATFORMS} enabledPlatforms={enabledPlatforms} platformResults={platformResults}
-              activePlatform={activePlatform} setActivePlatform={setActivePlatform}
-            />
+            {enabledPlatforms.has("selca") && (
+              <div className="h-auto flex items-center text-sm text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-4 py-2 rounded-lg">
+                💡 아이돌을 선택하거나 영문 이름으로 검색하세요
+              </div>
+            )}
 
-            <div className="flex-1 overflow-y-auto pr-2 -mr-2 custom-scrollbar">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activePlatform} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }} transition={easeOutExpo} className="min-h-full"
-                >
-                  <SearchResults
-                    platform={activePlatform}
-                    results={platformResults.get(activePlatform) || { platform: activePlatform, results: [], hasMore: false, isLoading: false, isLoadingMore: false, error: null, currentPage: 1, currentOffset: 0 }}
-                    cachedResults={cachedResults.get(activePlatform)}
-                    showCached={showCached.get(activePlatform) || false}
-                    toggleShowCached={() => toggleShowCached(activePlatform)}
-                    onSave={handleSaveResult}
-                    onToggleSelect={toggleUrlSelection}
-                    selectedUrls={selectedUrls}
-                    isBatchMode={selectedUrls.size > 0}
-                    handleLoadMore={() => handleLoadMore(activePlatform)}
-                    platformConfig={PLATFORMS.find(p => p.id === activePlatform)!}
-                    t={t}
-                  />
-                </motion.div>
-              </AnimatePresence>
-            </div>
+            {platformResults.size > 0 && (
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {anyLoading ? "검색 중..." : `총 ${totalResultsCount}개의 결과`}
+                  </p>
 
-            {selectedUrls.size > 0 && (
-              <motion.div
-                initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-4 bg-zinc-900 dark:bg-zinc-100 rounded-2xl shadow-2xl border border-white/10 dark:border-black/10 flex items-center gap-6"
-              >
-                <div className="text-zinc-100 dark:text-zinc-900 font-medium whitespace-nowrap">
-                  {selectedUrls.size}개 선택됨
+                  {selectableResults.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      {selectedCount > 0 && (
+                        <span className="text-xs sm:text-sm text-primary font-medium">
+                          {selectedCount}개 선택
+                        </span>
+                      )}
+                      <motion.button
+                        onClick={() => {
+                          if (selectedCount === selectableResults.length) setSelectedUrls(new Set());
+                          else setSelectedUrls(new Set(selectableResults.map(r => r.url)));
+                        }}
+                        className="px-2 sm:px-3 py-1 text-xs font-medium rounded-lg bg-zinc-100 dark:bg-zinc-800 text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {selectedCount === selectableResults.length ? "선택 해제" : "전체 선택"}
+                      </motion.button>
+                      {selectedCount > 0 && (
+                        <motion.button
+                          onClick={handleBatchSave} disabled={isBatchSaving}
+                          className="px-3 sm:px-4 py-1 text-xs font-medium rounded-lg bg-primary text-white hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          {isBatchSaving ? "저장 중..." : `${selectedCount}개 저장`}
+                        </motion.button>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setSelectedUrls(new Set())} className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-100 dark:text-zinc-600 dark:hover:text-zinc-900 transition-colors">
-                    취소
-                  </button>
-                  <motion.button
-                    onClick={handleBatchSave} disabled={isBatchSaving}
-                    className="px-6 py-2 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-2"
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {isBatchSaving ? (
-                      <>
-                        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        저장 중...
-                      </>
-                    ) : (
-                      "모두 저장"
-                    )}
-                  </motion.button>
-                </div>
-              </motion.div>
+
+                <SearchResults
+                  enabledPlatforms={enabledPlatforms}
+                  platformResults={platformResults}
+                  cachedResults={cachedResults}
+                  showCached={showCached}
+                  toggleShowCached={toggleShowCached}
+                  onSave={handleSaveResult}
+                  onToggleSelect={toggleUrlSelection}
+                  selectedUrls={selectedUrls}
+                  handleLoadMore={handleLoadMore}
+                  platformsConfig={PLATFORMS}
+                />
+              </div>
+            )}
+
+            {!isSearching && totalResultsCount === 0 && !query && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-2">바이어스를 선택하거나 검색어를 입력하세요</p>
+                <p className="text-sm text-zinc-400 dark:text-zinc-500">모든 플랫폼에서 동시에 검색합니다</p>
+              </div>
+            )}
+
+            {!isSearching && !anyLoading && totalResultsCount === 0 && query && platformResults.size > 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">검색 결과가 없습니다</p>
             )}
           </div>
         </motion.div>

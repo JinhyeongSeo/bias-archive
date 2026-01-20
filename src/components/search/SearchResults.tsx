@@ -4,168 +4,152 @@ import { SearchResultCard } from './SearchResultCard';
 import { pressScale } from '@/lib/animations';
 
 interface SearchResultsProps {
-  platform: Platform;
-  results: PlatformResults;
-  cachedResults?: { results: EnrichedResult[] };
-  showCached: boolean;
-  toggleShowCached: () => void;
+  enabledPlatforms: Set<Platform>;
+  platformResults: Map<Platform, PlatformResults>;
+  cachedResults: Map<Platform, { results: EnrichedResult[] }>;
+  showCached: Map<Platform, boolean>;
+  toggleShowCached: (platform: Platform) => void;
   onSave: (result: EnrichedResult) => void;
   onToggleSelect: (url: string) => void;
   selectedUrls: Set<string>;
-  isBatchMode: boolean;
-  handleLoadMore: () => void;
-  platformConfig: {
+  handleLoadMore: (platform: Platform) => void;
+  platformsConfig: {
+    id: Platform;
     label: string;
     color: string;
     bgColor: string;
-  };
-  t: (key: string) => string;
+  }[];
 }
 
 export function SearchResults({
-  platform,
-  results,
+  enabledPlatforms,
+  platformResults,
   cachedResults,
   showCached,
   toggleShowCached,
   onSave,
   onToggleSelect,
   selectedUrls,
-  isBatchMode,
   handleLoadMore,
-  platformConfig,
-  t,
+  platformsConfig,
 }: SearchResultsProps) {
-  const hasResults = results.results.length > 0;
-  const hasCached = cachedResults && cachedResults.results.length > 0;
-
-  if (results.isLoading && !hasResults) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
-        <p className="text-muted-foreground animate-pulse">{platformConfig.label} 검색 중...</p>
-      </div>
-    );
-  }
-
-  if (results.error && !hasResults) {
-    return (
-      <div className="py-12 px-6 text-center bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-900/30">
-        <p className="text-red-600 dark:text-red-400 font-medium mb-2">{results.error}</p>
-        <button 
-          onClick={handleLoadMore}
-          className="text-sm underline text-red-500 hover:no-underline"
-        >
-          다시 시도
-        </button>
-      </div>
-    );
-  }
-
-  if (!hasResults && !results.isLoading) {
-    return (
-      <div className="py-20 text-center">
-        <p className="text-muted-foreground">{t('noResults')}</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-8 pb-10">
-      {hasCached && (
-        <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-4 border border-border/50">
-          <button
-            onClick={toggleShowCached}
-            className="w-full flex items-center justify-between text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>이전에 본 결과 ({cachedResults.results.length})</span>
-            </div>
-            <svg
-              className={`w-4 h-4 transition-transform ${showCached ? 'rotate-180' : ''}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+      {platformsConfig
+        .filter((p) => enabledPlatforms.has(p.id))
+        .map((platformConfig) => {
+          const platformData = platformResults.get(platformConfig.id);
+          if (!platformData) return null;
 
-          <AnimatePresence>
-            {showCached && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                  {cachedResults.results.map((result) => (
-                    <SearchResultCard
-                      key={result.url}
-                      result={result}
-                      onSave={onSave}
-                      onToggleSelect={onToggleSelect}
-                      isSelected={selectedUrls.has(result.url)}
-                      isBatchMode={isBatchMode}
-                      platformColor={platformConfig.color}
-                      platformBg={platformConfig.bgColor}
-                      platformLabel={platformConfig.label}
-                    />
-                  ))}
+          const cached = cachedResults.get(platformConfig.id);
+          const showCachedPlatform = showCached.get(platformConfig.id) || false;
+
+          return (
+            <div key={platformConfig.id} className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs sm:text-sm font-medium ${platformConfig.color}`}>
+                    {platformConfig.label}
+                  </span>
+                  {platformData.isLoading ? (
+                    <svg className="w-4 h-4 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  ) : (
+                    <span className="text-xs text-zinc-400">
+                      ({platformData.results.length}개)
+                      {platformData.currentPage > 1 && ` · 페이지 ${platformData.currentPage}`}
+                    </span>
+                  )}
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
+              </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {results.results.map((result) => (
-          <SearchResultCard
-            key={result.url}
-            result={result}
-            onSave={onSave}
-            onToggleSelect={onToggleSelect}
-            isSelected={selectedUrls.has(result.url)}
-            isBatchMode={isBatchMode}
-            platformColor={platformConfig.color}
-            platformBg={platformConfig.bgColor}
-            platformLabel={platformConfig.label}
-          />
-        ))}
-      </div>
+              {platformData.error && (
+                <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">
+                  {platformData.error}
+                </p>
+              )}
 
-      {results.hasMore && (
-        <div className="flex justify-center pt-4">
-          <motion.button
-            onClick={handleLoadMore}
-            disabled={results.isLoadingMore}
-            className="px-10 py-3 bg-zinc-100 dark:bg-zinc-800 text-foreground font-semibold rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 transition-all flex items-center gap-3"
-            {...pressScale}
-          >
-            {results.isLoadingMore ? (
-              <>
-                <svg className="w-5 h-5 animate-spin text-primary" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                <span>불러오는 중...</span>
-              </>
-            ) : (
-              <>
-                <span>더 보기</span>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </>
-            )}
-          </motion.button>
-        </div>
-      )}
+              {cached && cached.results.length > 0 && (
+                <div className="space-y-1.5">
+                  <button
+                    onClick={() => toggleShowCached(platformConfig.id)}
+                    className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                  >
+                    <svg
+                      className={`w-3 h-3 transition-transform ${showCachedPlatform ? 'rotate-90' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span>오늘 본 결과 ({cached.results.length}개)</span>
+                  </button>
+
+                  <AnimatePresence>
+                    {showCachedPlatform && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden space-y-1.5 sm:space-y-2 opacity-60"
+                      >
+                        {cached.results.map((result) => (
+                          <SearchResultCard
+                            key={`cached-${result.url}`}
+                            result={result}
+                            onSave={onSave}
+                            onToggleSelect={onToggleSelect}
+                            isSelected={selectedUrls.has(result.url)}
+                          />
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              <div className="space-y-1.5 sm:space-y-2">
+                {platformData.results.map((result) => (
+                  <SearchResultCard
+                    key={result.url}
+                    result={result}
+                    onSave={onSave}
+                    onToggleSelect={onToggleSelect}
+                    isSelected={selectedUrls.has(result.url)}
+                  />
+                ))}
+              </div>
+
+              {platformData.hasMore && !platformData.isLoading && (
+                <button
+                  onClick={() => handleLoadMore(platformConfig.id)}
+                  disabled={platformData.isLoadingMore}
+                  className="w-full py-2.5 sm:py-2 text-xs font-medium text-primary hover:text-primary-dark hover:bg-primary/5 active:bg-primary/10 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                >
+                  {platformData.isLoadingMore ? (
+                    <>
+                      <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      <span>불러오는 중...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      <span>더 보기</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          );
+        })}
     </div>
   );
 }

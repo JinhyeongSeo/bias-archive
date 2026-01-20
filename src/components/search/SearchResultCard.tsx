@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import Image from 'next/image';
-import type { Platform, EnrichedResult } from '@/types/index';
+import type { EnrichedResult } from '@/types/index';
+import { isVideoUrl } from '@/lib/proxy';
 import { pressScale } from '@/lib/animations';
 
 interface SearchResultCardProps {
@@ -8,10 +8,6 @@ interface SearchResultCardProps {
   onSave: (result: EnrichedResult) => void;
   onToggleSelect: (url: string) => void;
   isSelected: boolean;
-  isBatchMode: boolean;
-  platformColor: string;
-  platformBg: string;
-  platformLabel: string;
 }
 
 export function SearchResultCard({
@@ -19,115 +15,128 @@ export function SearchResultCard({
   onSave,
   onToggleSelect,
   isSelected,
-  isBatchMode,
-  platformColor,
-  platformBg,
-  platformLabel,
 }: SearchResultCardProps) {
-  const isVideo = result.url.includes('youtube.com') || result.url.includes('youtu.be') || result.media?.some(m => m.type === 'video');
-
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className={`group relative bg-card rounded-xl overflow-hidden border transition-all hover:shadow-md ${
-        isSelected ? 'ring-2 ring-primary border-primary' : 'border-border'
+    <div
+      className={`flex gap-2 sm:gap-3 p-2 sm:p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border transition-colors cursor-pointer ${
+        isSelected
+          ? "border-primary ring-2 ring-primary/20"
+          : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
       }`}
+      onClick={() => !result.isSaved && onToggleSelect(result.url)}
     >
-      <div className="relative aspect-video w-full overflow-hidden bg-muted">
-        {result.thumbnailUrl ? (
-          <Image
+      {/* Checkbox */}
+      <div className="flex-shrink-0 flex items-start pt-0.5 sm:pt-1">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onToggleSelect(result.url)}
+          disabled={result.isSaved}
+          onClick={(e) => e.stopPropagation()}
+          className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-primary focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        />
+      </div>
+
+      {/* Thumbnail */}
+      {result.thumbnailUrl ? (
+        isVideoUrl(result.thumbnailUrl) ? (
+          <video
             src={result.thumbnailUrl}
-            alt={result.title}
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
-            unoptimized
+            className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
+            muted
+            playsInline
+            preload="metadata"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-        )}
-
-        {isVideo && (
-          <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-medium flex items-center gap-1">
-            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-            VIDEO
-          </div>
-        )}
-
-        {result.platform === 'instagram' && result.media && result.media.length > 1 && (
-          <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-medium flex items-center gap-1">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            {result.media.length}장
-          </div>
-        )}
-
-        {isBatchMode && (
-          <div 
-            className={`absolute inset-0 transition-colors cursor-pointer flex items-center justify-center ${
-              isSelected ? 'bg-primary/20' : 'bg-black/0 hover:bg-black/10'
-            }`}
-            onClick={() => onToggleSelect(result.url)}
-          >
-            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-              isSelected ? 'bg-primary border-primary text-white scale-110' : 'bg-black/20 border-white text-transparent'
-            }`}>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="p-3">
-        <div className="flex items-center gap-2 mb-1.5">
-          <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${platformBg} ${platformColor}`}>
-            {platformLabel}
-          </span>
-          <span className="text-[10px] text-muted-foreground truncate flex-1">
-            {result.author}
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={result.thumbnailUrl}
+            alt=""
+            className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
+          />
+        )
+      ) : (
+        <div className="w-16 h-12 sm:w-20 sm:h-14 bg-zinc-200 dark:bg-zinc-700 rounded flex-shrink-0 flex items-center justify-center">
+          <span className="text-[10px] sm:text-xs text-zinc-400">
+            No img
           </span>
         </div>
-        <h3 className="text-sm font-medium line-clamp-2 leading-snug h-10 mb-3 group-hover:text-primary transition-colors">
-          {result.title}
-        </h3>
+      )}
 
-        {!isBatchMode && (
-          <div className="flex gap-2">
-            <motion.a
-              href={result.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 px-3 py-1.5 text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-center"
-              whileTap={{ scale: 0.95 }}
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <h4 className="text-[11px] sm:text-xs font-medium text-zinc-900 dark:text-zinc-100 line-clamp-2">
+          {result.title}
+        </h4>
+        <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
+          {result.author && (
+            <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[80px] sm:max-w-[120px]">
+              {result.author}
+            </span>
+          )}
+          {result.publishedAt && (
+            <span className="text-[10px] sm:text-xs text-zinc-400 dark:text-zinc-500 hidden sm:inline">
+              {new Date(result.publishedAt).toLocaleDateString("ko-KR", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Status / Save Button */}
+      <div className="flex-shrink-0 flex items-center">
+        {result.isSaved ? (
+          <span className="text-[10px] sm:text-xs text-green-600 dark:text-green-400">
+            저장됨
+          </span>
+        ) : result.isSaving ? (
+          <svg
+            className="w-4 h-4 animate-spin text-zinc-400"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+        ) : (
+          <motion.button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSave(result);
+            }}
+            className="p-1.5 sm:p-1 text-zinc-400 hover:text-primary transition-colors"
+            whileTap={{ scale: 0.9 }}
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              열기
-            </motion.a>
-            <motion.button
-              onClick={() => onSave(result)}
-              disabled={result.isSaved || result.isSaving}
-              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                result.isSaved
-                  ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600 cursor-default'
-                  : 'bg-primary text-white hover:bg-primary/90'
-              }`}
-              whileTap={result.isSaved || result.isSaving ? {} : { scale: 0.95 }}
-            >
-              {result.isSaving ? '저장 중...' : result.isSaved ? '저장됨' : '저장'}
-            </motion.button>
-          </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+          </motion.button>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
