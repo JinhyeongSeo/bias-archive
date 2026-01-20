@@ -73,6 +73,7 @@ export async function saveToArchive(url: string): Promise<ArchiveSaveResult> {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`[Archive] Save failed for ${url}: ${response.status} ${errorText}`);
       return {
         status: 'error',
         error: `HTTP ${response.status}: ${errorText}`,
@@ -80,6 +81,7 @@ export async function saveToArchive(url: string): Promise<ArchiveSaveResult> {
     }
 
     const data = await response.json();
+    console.log(`[Archive] Save response for ${url}:`, data);
 
     if (data.status === 'error') {
       return {

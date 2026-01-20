@@ -110,7 +110,14 @@ export async function POST(request: NextRequest) {
           .eq('id', link.id);
 
         // Archive the original page URL (single API call per link)
+        logger.debug(`Archiving link ${link.id}: ${link.url}`);
         const archivedUrl = await archivePageUrl(link.url);
+        
+        if (archivedUrl) {
+          logger.debug(`Archive success for ${link.id}: ${archivedUrl}`);
+        } else {
+          logger.error(`Archive failed for ${link.id}: ${link.url}`);
+        }
 
         // Update link with archive status
         await supabase
@@ -145,6 +152,8 @@ export async function POST(request: NextRequest) {
       .from('links')
       .select('*', { count: 'exact', head: true })
       .eq('archive_status', 'queued');
+
+    logger.debug(`Archive process complete. Processed: ${processedCount}, Remaining: ${count}, Results:`, results);
 
     return NextResponse.json({
       message: `Processed ${processedCount} items`,

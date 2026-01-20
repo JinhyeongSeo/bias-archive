@@ -112,6 +112,8 @@ export async function POST(request: NextRequest) {
       throw new ApiError(409, "이미 저장된 URL입니다", "CONFLICT");
     }
 
+    logger.debug(`Saving link: ${url}, initial platform: ${platform}`);
+
     // Always extract full metadata on the server to get all media items
     // especially for community platforms (kgirls, heye) where search results only give thumbnails
     let finalTitle = title;
@@ -124,6 +126,7 @@ export async function POST(request: NextRequest) {
 
     try {
       const extracted = await extractMetadata(url);
+      logger.debug(`Extracted metadata for ${url}:`, { platform: extracted.platform, title: extracted.title });
       if (extracted) {
         finalTitle = extracted.title || finalTitle;
         finalDescription = extracted.description || finalDescription;
