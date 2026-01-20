@@ -7,6 +7,7 @@ import { extractAutoTags, combineTextForTagExtraction } from "@/lib/autoTag";
 import { createClient } from "@/lib/supabase-server";
 import { createLogger } from "@/lib/logger";
 import { handleApiError, badRequest, unauthorized, ApiError } from "@/lib/api-error";
+import { extractMetadata } from "@/lib/metadata";
 
 const logger = createLogger("Links API");
 
@@ -102,15 +103,46 @@ export async function POST(request: NextRequest) {
       throw new ApiError(409, "이미 저장된 URL입니다", "CONFLICT");
     }
 
+    // Always extract full metadata on the server to get all media items
+    // especially for community platforms (kgirls, heye) where search results only give thumbnails
+    let finalTitle = title;
+    let finalDescription = description;
+    let finalThumbnailUrl = thumbnailUrl;
+    let finalPlatform = platform;
+    let finalOriginalDate = originalDate;
+    let finalAuthorName = authorName;
+    let finalMedia = media;
+
+    try {
+      const extracted = await extractMetadata(url);
+      if (extracted) {
+        finalTitle = extracted.title || finalTitle;
+        finalDescription = extracted.description || finalDescription;
+        finalThumbnailUrl = extracted.thumbnailUrl || finalThumbnailUrl;
+        finalPlatform = extracted.platform || finalPlatform;
+        finalOriginalDate = extracted.originalDate || finalOriginalDate;
+        finalAuthorName = extracted.authorName || finalAuthorName;
+        
+        // Use extracted media if provided media is empty or just a thumbnail
+        if (!finalMedia || !Array.isArray(finalMedia) || finalMedia.length <= 1) {
+          if (extracted.media && extracted.media.length > 0) {
+            finalMedia = extracted.media;
+          }
+        }
+      }
+    } catch (error) {
+      logger.error("Metadata extraction failed during save, falling back to provided data:", error);
+    }
+
     // Create link with authenticated server client
     const linkInsert: LinkInsert = {
       url,
-      title: title || null,
-      description: description || null,
-      thumbnail_url: thumbnailUrl || null,
-      platform: platform || null,
-      original_date: originalDate || null,
-      author_name: authorName || null,
+      title: finalTitle || null,
+      description: finalDescription || null,
+      thumbnail_url: finalThumbnailUrl || null,
+      platform: finalPlatform || null,
+      original_date: finalOriginalDate || null,
+      author_name: finalAuthorName || null,
       bias_id: biasId || null,
       user_id: user.id,
     };
@@ -123,11 +155,11 @@ export async function POST(request: NextRequest) {
 
     if (linkError) throw linkError;
 
-    // Save media if provided (e.g., Twitter multi-image)
+    // Save media if available
     let savedMedia: MediaData[] = [];
-    if (media && Array.isArray(media) && media.length > 0) {
+    if (finalMedia && Array.isArray(finalMedia) && finalMedia.length > 0) {
       try {
-        const validMedia: MediaData[] = media.filter(
+        const validMedia: MediaData[] = finalMedia.filter(
           (m: unknown) =>
             typeof m === "object" &&
             m !== null &&
@@ -157,9 +189,9 @@ export async function POST(request: NextRequest) {
 
     // Auto-extract tags from link metadata + searchQuery hint
     const combinedText = combineTextForTagExtraction(
-      title || null,
-      description || null,
-      authorName || null,
+      finalTitle || null,
+      finalDescription || null,
+      finalAuthorName || null,
       searchQuery || null
     );
 
