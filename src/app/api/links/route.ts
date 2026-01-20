@@ -128,7 +128,13 @@ export async function POST(request: NextRequest) {
         finalTitle = extracted.title || finalTitle;
         finalDescription = extracted.description || finalDescription;
         finalThumbnailUrl = extracted.thumbnailUrl || finalThumbnailUrl;
-        finalPlatform = extracted.platform || finalPlatform;
+        
+        if (extracted.platform && extracted.platform !== "other" && extracted.platform !== "generic") {
+          finalPlatform = extracted.platform;
+        } else if (!finalPlatform) {
+          finalPlatform = extracted.platform;
+        }
+
         finalOriginalDate = extracted.originalDate || finalOriginalDate;
         finalAuthorName = extracted.authorName || finalAuthorName;
         

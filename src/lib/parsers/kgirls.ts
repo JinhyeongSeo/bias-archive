@@ -149,7 +149,9 @@ export async function parseKgirls(url: string): Promise<VideoMetadata> {
     const firstImage = media.find(m => m.type === 'image' || m.type === 'gif')
     const thumbnailUrl = firstImage?.url || posterUrl || null
 
-    const platform: Platform = url.includes('issue') ? 'kgirls-issue' : 'kgirls'
+    const urlObj = new URL(url)
+    const mid = urlObj.searchParams.get('mid')
+    const platform: Platform = (url.includes('issue') || mid === 'issue') ? 'kgirls-issue' : 'kgirls'
 
     return {
       title: title || null,
@@ -163,7 +165,9 @@ export async function parseKgirls(url: string): Promise<VideoMetadata> {
   } catch (error) {
     console.error('[Kgirls Parser] Error:', error)
 
-    const platform: Platform = url.includes('issue') ? 'kgirls-issue' : 'kgirls'
+    const urlObj = new URL(url)
+    const mid = urlObj.searchParams.get('mid')
+    const platform: Platform = (url.includes('issue') || mid === 'issue') ? 'kgirls-issue' : 'kgirls'
 
     // Return default values on error
     return {

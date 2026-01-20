@@ -75,20 +75,27 @@ export function detectPlatform(url: string): Platform {
     }
 
     // kgirls.net patterns
-    if (hostname.includes('kgirls.net')) {
-      if (urlObj.pathname.includes('/issue')) {
+    if (url.includes('kgirls.net')) {
+      const mid = urlObj.searchParams.get('mid')
+      if (url.includes('/issue') || 
+          url.includes('issue') || 
+          mid === 'issue') {
         return 'kgirls-issue'
       }
       return 'kgirls'
     }
 
+    if (url.includes('selca.kastden.org')) {
+      return 'selca'
+    }
+
     // heye.kr patterns
-    if (hostname.includes('heye.kr')) {
+    if (url.includes('heye.kr')) {
       return 'heye'
     }
 
     // Instagram patterns
-    if (hostname.includes('instagram.com')) {
+    if (url.includes('instagram.com')) {
       return 'instagram'
     }
 
@@ -162,7 +169,10 @@ function getParser(platform: Platform): (url: string) => Promise<VideoMetadata> 
     case 'heye':
       return parseHeye
     case 'kgirls':
+    case 'kgirls-issue':
       return parseKgirls
+    case 'selca':
+      return parseGeneric
     case 'instagram':
       return parseInstagram
     default:
