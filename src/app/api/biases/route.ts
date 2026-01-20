@@ -28,6 +28,7 @@ interface GroupInfo {
   name: string
   nameEn?: string
   nameKo?: string
+  selcaSlug?: string
 }
 
 /**
@@ -77,12 +78,20 @@ export async function POST(request: NextRequest) {
 
       if (existingGroup) {
         groupId = existingGroup.id
+        // 기존 그룹에 selca_slug가 없고 새로운 값이 있으면 업데이트
+        if (!existingGroup.selca_slug && group.selcaSlug) {
+          await supabase
+            .from('groups')
+            .update({ selca_slug: group.selcaSlug })
+            .eq('id', existingGroup.id)
+        }
       } else {
         // Create new group with authenticated client
         const groupInsert: GroupInsert = {
           name: group.name,
           name_en: group.nameEn || null,
           name_ko: group.nameKo || null,
+          selca_slug: group.selcaSlug || null,
           user_id: user.id,
         }
         const { data: newGroup, error: groupError } = await supabase

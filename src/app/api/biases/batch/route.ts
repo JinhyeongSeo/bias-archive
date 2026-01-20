@@ -61,6 +61,13 @@ export async function POST(request: NextRequest) {
 
       if (existingGroup) {
         groupId = existingGroup.id
+        // 기존 그룹에 selca_slug가 없고 새로운 값이 있으면 업데이트
+        if (!existingGroup.selca_slug && group.selcaSlug) {
+          await supabase
+            .from('groups')
+            .update({ selca_slug: group.selcaSlug })
+            .eq('id', existingGroup.id)
+        }
       } else {
         // Create new group
         const groupInsert: GroupInsert = {

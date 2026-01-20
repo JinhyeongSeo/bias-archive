@@ -84,7 +84,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
   const [memberSearchResults, setMemberSearchResults] = useState<KpopMemberWithGroup[]>([])
   const [showMemberDropdown, setShowMemberDropdown] = useState(false)
   const [isSearchingMembers, setIsSearchingMembers] = useState(false)
-  const [selectedGroupInfo, setSelectedGroupInfo] = useState<{ name: string; nameEn: string; nameKo: string } | null>(null)
+  const [selectedGroupInfo, setSelectedGroupInfo] = useState<{ name: string; nameEn: string; nameKo: string; selcaSlug?: string } | null>(null)
 
   // Local bias order for optimistic updates during drag
   const [localBiases, setLocalBiases] = useState<Bias[]>(biases)
@@ -435,6 +435,7 @@ export function BiasManager({ biases, groups, onBiasAdded, onBiasDeleted, onBias
         name: member.group.name,
         nameEn: member.group.name,
         nameKo: member.group.name_original,
+        selcaSlug: member.group.id, // noona group slug
       })
     } else {
       setSelectedGroupInfo(null)
