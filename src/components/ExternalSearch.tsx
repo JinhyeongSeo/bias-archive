@@ -14,7 +14,7 @@ import {
   quickSpring,
 } from '@/lib/animations'
 
-type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'selca' | 'instagram'
+type Platform = 'youtube' | 'twitter' | 'heye' | 'kgirls' | 'selca' | 'instagram' | 'tiktok'
 type YouTubeOrder = 'relevance' | 'date' | 'viewCount'
 type YouTubePeriod = '' | 'today' | 'week' | 'month' | 'year'
 
@@ -54,6 +54,14 @@ interface SelcaResult {
 }
 
 interface InstagramResult {
+  url: string
+  title: string
+  thumbnailUrl: string | null
+  author: string
+  media?: { type: 'image' | 'video'; url: string }[]
+}
+
+interface TikTokResult {
   url: string
   title: string
   thumbnailUrl: string | null
@@ -402,6 +410,30 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
     }))
   }
 
+  const searchTikTok = async (searchQuery: string): Promise<EnrichedResult[]> => {
+    const response = await fetch(`/api/search/tiktok?q=${encodeURIComponent(searchQuery)}`)
+    const data = await response.json()
+
+    if (!response.ok) {
+      if (data.notConfigured) {
+        setNotConfigured(true)
+        throw new Error('TikTok API가 설정되지 않았습니다')
+      }
+      throw new Error(data.error || 'TikTok 검색 실패')
+    }
+
+    return (data.results as TikTokResult[]).map(item => ({
+      url: item.url,
+      title: item.title,
+      thumbnailUrl: item.thumbnailUrl,
+      author: item.author,
+      platform: 'tiktok' as Platform,
+      isSaved: checkIfSaved(item.url),
+      isSaving: false,
+      media: item.media,
+    }))
+  }
+
   const handleSearch = async () => {
     if (!query.trim()) return
 
@@ -425,6 +457,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         searchResults = await searchSelca(query)
       } else if (platform === 'instagram') {
         searchResults = await searchInstagram(query)
+      } else if (platform === 'tiktok') {
+        searchResults = await searchTikTok(query)
       } else {
         searchResults = []
       }
@@ -515,10 +549,10 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         media: result.media,  // Include pre-loaded media from search results
       }
 
-      // heye/instagram은 이미 검색 시 썸네일/미디어를 로드했으므로 metadata 재요청 스킵
+      // heye/instagram/tiktok은 이미 검색 시 썸네일/미디어를 로드했으므로 metadata 재요청 스킵
       // Instagram 캐러셀 미디어 데이터 보존을 위해 필수
       // 다른 플랫폼은 미디어 정보 등을 가져오기 위해 metadata 요청 필요
-      if (result.platform !== 'heye' && result.platform !== 'instagram') {
+      if (result.platform !== 'heye' && result.platform !== 'instagram' && result.platform !== 'tiktok') {
         const metaResponse = await fetch('/api/metadata', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -608,9 +642,9 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
           media: result.media,  // Include pre-loaded media from search results
         }
 
-        // heye/instagram은 이미 검색 시 썸네일/미디어를 로드했으므로 metadata 재요청 스킵
+        // heye/instagram/tiktok은 이미 검색 시 썸네일/미디어를 로드했으므로 metadata 재요청 스킵
         // Instagram 캐러셀 미디어 데이터 보존을 위해 필수
-        if (result.platform !== 'heye' && result.platform !== 'instagram') {
+        if (result.platform !== 'heye' && result.platform !== 'instagram' && result.platform !== 'tiktok') {
           const metaResponse = await fetch('/api/metadata', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -701,6 +735,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         return 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
       case 'instagram':
         return 'bg-gradient-to-r from-purple-100 via-pink-100 to-orange-100 dark:from-purple-900/50 dark:via-pink-900/50 dark:to-orange-900/50 text-pink-600 dark:text-pink-400'
+      case 'tiktok':
+        return 'bg-black text-white dark:bg-zinc-900 dark:text-zinc-100'
       default:
         return 'bg-zinc-100 dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400'
     }
@@ -720,6 +756,8 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
         return 'Selca'
       case 'instagram':
         return 'Instagram'
+      case 'tiktok':
+        return 'TikTok'
       default:
         return p
     }
@@ -839,6 +877,17 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                 >
                   Instagram
                 </motion.button>
+                <motion.button
+                  onClick={() => handlePlatformChange('tiktok')}
+                  className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                    platform === 'tiktok'
+                      ? 'bg-black text-white ring-2 ring-zinc-500/20'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
+                  {...pressScale}
+                >
+                  TikTok
+                </motion.button>
               </div>
 
           {/* Platform Notice - fixed height container, hidden for youtube */}
@@ -882,6 +931,11 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                 {platform === 'instagram' && (
                   <p className="h-full flex items-center text-sm text-pink-600 dark:text-pink-400 bg-gradient-to-r from-purple-50 via-pink-50 to-orange-50 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-orange-900/20 px-4 rounded-lg">
                     Instagram 해시태그 검색 (예: 카리나, IVE)
+                  </p>
+                )}
+                {platform === 'tiktok' && (
+                  <p className="h-full flex items-center text-sm text-zinc-100 bg-black dark:bg-zinc-900 px-4 rounded-lg">
+                    TikTok 동영상 검색 (예: 카리나, 에스파)
                   </p>
                 )}
               </div>
@@ -1037,13 +1091,13 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                         />
                       </div>
 
-                      {/* Thumbnail - larger size, heye/kgirls/instagram use top crop for face visibility */}
+                      {/* Thumbnail - larger size, heye/kgirls/instagram/tiktok use top crop for face visibility */}
                       {result.thumbnailUrl ? (
                         isVideoUrl(result.thumbnailUrl) ? (
                           <video
                             src={getProxiedVideoUrl(result.thumbnailUrl)}
                             className={`w-32 h-20 object-cover rounded-lg flex-shrink-0 ${
-                              result.platform === 'heye' || result.platform === 'kgirls' || result.platform === 'instagram' ? 'object-top' : ''
+                              result.platform === 'heye' || result.platform === 'kgirls' || result.platform === 'instagram' || result.platform === 'tiktok' ? 'object-top' : ''
                             }`}
                             muted
                             playsInline
@@ -1055,7 +1109,7 @@ export function ExternalSearch({ isOpen, onClose, savedUrls, onSave }: ExternalS
                             src={getProxiedImageUrl(result.thumbnailUrl)}
                             alt=""
                             className={`w-32 h-20 object-cover rounded-lg flex-shrink-0 ${
-                              result.platform === 'heye' || result.platform === 'kgirls' || result.platform === 'instagram' ? 'object-top' : ''
+                              result.platform === 'heye' || result.platform === 'kgirls' || result.platform === 'instagram' || result.platform === 'tiktok' ? 'object-top' : ''
                             }`}
                           />
                         )
