@@ -75,13 +75,15 @@ export async function POST(request: NextRequest) {
     const normalizedQuery = query.trim().toLowerCase()
 
     // Upsert viewed state
+    // Cast platform to any to handle types not yet in DB schema (e.g., tiktok)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await supabase
       .from('user_search_viewed')
       .upsert(
         {
           user_id: user.id,
           query: normalizedQuery,
-          platform,
+          platform: platform as any,
           displayed_index: displayedIndex,
           viewed_at: new Date().toISOString(),
         },

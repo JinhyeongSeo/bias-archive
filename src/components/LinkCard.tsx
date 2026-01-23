@@ -39,6 +39,7 @@ const platformLabels: Record<Platform, string> = {
   'kgirls-issue': 'kgirls issue',
   selca: 'selca',
   instagram: 'Instagram',
+  tiktok: 'TikTok',
   generic: '웹사이트',
   other: '웹사이트',
 }
@@ -52,6 +53,7 @@ const platformColors: Record<Platform, string> = {
   'kgirls-issue': 'bg-purple-600',
   selca: 'bg-[--color-selca]',
   instagram: 'bg-gradient-to-r from-purple-500 to-pink-500',
+  tiktok: 'bg-black',
   generic: 'bg-muted-foreground',
   other: 'bg-muted-foreground',
 }

@@ -11,6 +11,7 @@ import {
   parseKgirls,
   parseGeneric,
   parseInstagram,
+  parseTikTok,
   type VideoMetadata,
 } from './parsers'
 import type { Platform } from '@/types/index'
@@ -99,6 +100,11 @@ export function detectPlatform(url: string): Platform {
       return 'instagram'
     }
 
+    // TikTok patterns
+    if (hostname.includes('tiktok.com') || hostname === 'vm.tiktok.com') {
+      return 'tiktok'
+    }
+
     return 'other'
   } catch {
     return 'other'
@@ -175,6 +181,8 @@ function getParser(platform: Platform): (url: string) => Promise<VideoMetadata> 
       return parseGeneric
     case 'instagram':
       return parseInstagram
+    case 'tiktok':
+      return parseTikTok
     default:
       return parseGeneric
   }

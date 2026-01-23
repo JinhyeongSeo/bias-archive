@@ -28,7 +28,9 @@ export async function GET(request: NextRequest) {
       .gte('cached_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
 
     if (platform) {
-      dbQuery = dbQuery.eq('platform', platform)
+      // Cast platform to any to handle types not yet in DB schema
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      dbQuery = dbQuery.eq('platform', platform as any)
     }
 
     const { data, error } = await dbQuery
@@ -91,12 +93,14 @@ export async function POST(request: NextRequest) {
     const normalizedQuery = query.trim().toLowerCase()
 
     // Upsert cache entry
+    // Cast platform to any to handle types not yet in DB schema (e.g., tiktok)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await supabase
       .from('search_cache')
       .upsert(
         {
           query: normalizedQuery,
-          platform,
+          platform: platform as any,
           results,
           next_cursor: nextCursor || null,
           next_page_token: nextPageToken || null,

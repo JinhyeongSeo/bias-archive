@@ -1,29 +1,31 @@
 /**
  * Supported platforms in the application
  */
-export type Platform = 
-  | 'youtube' 
-  | 'twitter' 
-  | 'weverse' 
-  | 'heye' 
-  | 'kgirls' 
-  | 'kgirls-issue' 
-  | 'selca' 
+export type Platform =
+  | 'youtube'
+  | 'twitter'
+  | 'weverse'
+  | 'heye'
+  | 'kgirls'
+  | 'kgirls-issue'
+  | 'selca'
   | 'instagram'
+  | 'tiktok'
   | 'generic'
   | 'other';
 
 /**
  * Platforms supported by the search cache
  */
-export type SearchCachePlatform = 
-  | 'youtube' 
-  | 'twitter' 
-  | 'heye' 
-  | 'kgirls' 
-  | 'kgirls-issue' 
-  | 'selca' 
-  | 'instagram';
+export type SearchCachePlatform =
+  | 'youtube'
+  | 'twitter'
+  | 'heye'
+  | 'kgirls'
+  | 'kgirls-issue'
+  | 'selca'
+  | 'instagram'
+  | 'tiktok';
 
 /**
  * Media types supported
@@ -95,6 +97,17 @@ export interface SelcaResult {
  * Instagram search result item
  */
 export interface InstagramResult {
+  url: string;
+  title: string;
+  thumbnailUrl: string | null;
+  author: string;
+  media?: ParsedMedia[];
+}
+
+/**
+ * TikTok search result item
+ */
+export interface TikTokResult {
   url: string;
   title: string;
   thumbnailUrl: string | null;

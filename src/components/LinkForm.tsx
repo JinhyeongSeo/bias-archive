@@ -22,8 +22,11 @@ const platformLabels: Record<Platform, string> = {
   weverse: 'Weverse',
   heye: 'heye.kr',
   kgirls: 'kgirls.net',
+  'kgirls-issue': 'kgirls issue',
   selca: 'selca.kastden.org',
   instagram: 'Instagram',
+  tiktok: 'TikTok',
+  generic: '웹사이트',
   other: '웹사이트',
 }
 
@@ -33,8 +36,11 @@ const platformColors: Record<Platform, string> = {
   weverse: 'bg-[--color-weverse]',
   heye: 'bg-[--color-heye]',
   kgirls: 'bg-[--color-kgirls]',
+  'kgirls-issue': 'bg-purple-600',
   selca: 'bg-[--color-selca]',
   instagram: 'bg-[--color-instagram]',
+  tiktok: 'bg-black',
+  generic: 'bg-muted-foreground',
   other: 'bg-muted-foreground',
 }
 
