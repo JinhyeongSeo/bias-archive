@@ -55,6 +55,7 @@ None
 - [x] **Phase 34: Internet Archive Backup** - 링크 백업 및 폴백 시스템 (archive.org 연동) ✓
 - [x] **Phase 35: Instagram Search** - Instagram 카테고리 추가 및 검색 기능 ✓
 - [x] **Phase 36: Search & Parser Refactoring** - 검색/파서 코드 리팩토링 및 버그 수정 ✓
+- [x] **Phase 37: TikTok Search** - TikTok 검색 및 링크 저장 기능 추가 ✓
 
 Plans:
 
@@ -790,6 +791,29 @@ Plans:
 **Details:**
 Phase 36 완료 - 중복 코드 제거, 타입 통일, Instagram API 버그 수정 (2026-01-19)
 
+### Phase 37: TikTok Search
+
+**Goal**: TikTok 플랫폼 검색 및 링크 저장 기능 추가
+**Depends on**: Phase 36
+**Research**: Likely (TikTok API 또는 스크래핑 방법 조사 필요)
+**Plans**: TBD
+
+**기능 설명:**
+
+- 통합검색에 TikTok 탭 추가 (YouTube, Twitter, Instagram과 동일한 방식)
+- TikTok 영상 검색 기능 (아이돌 이름 기반)
+- 검색 결과를 아카이브에 저장 (동영상 지원)
+- LinkCard에서 TikTok 플랫폼 아이콘 표시
+- TikTok URL 파서 추가 (메타데이터 추출)
+
+Plans:
+
+- [x] 37-01: Platform 타입, TikTok 파서, 검색 API, ExternalSearch 탭 ✓
+
+**Details:**
+Phase 37 완료 - TikTok 검색 및 링크 저장 기능 구현 완료 (2026-01-23)
+RapidAPI tiktok-scraper7 사용, 환경변수 RAPIDAPI_KEY 필요
+
 ## Progress
 
 **Execution Order:**
@@ -833,3 +857,4 @@ Phases execute in numeric order: 1 → 2 → ... → 15 → 16
 | 34. Internet Archive Backup | - | 3/3 | Complete | 2026-01-19 |
 | 35. Instagram Search | - | 1/1 | Complete | 2026-01-19 |
 | 36. Search & Parser Refactoring | - | 2/2 | Complete | 2026-01-19 |
+| 37. TikTok Search | - | 1/1 | Complete | 2026-01-23 |

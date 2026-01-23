@@ -4,17 +4,45 @@
 
 ### TikTok API/Scraping Options
 
-**Chosen: Apify TikTok Scraper**
-- Actor: `apidojo/tiktok-scraper` (87K users, regularly updated)
-- 기존 Instagram과 동일한 Apify 패턴 사용 가능
-- Pricing: $0.03/actor start, $0.004/dataset item
-- 이미 `APIFY_API_TOKEN` 환경 변수 설정되어 있음
+**Chosen: RapidAPI TikTok Scraper**
+- Endpoint: `tiktok-scraper7.p.rapidapi.com`
+- Basic Plan (무료): 월 300회 요청
+- Rate Limit: 분당 120회
+- 환경 변수: `RAPIDAPI_KEY`
 
-**Apify TikTok Scraper 기능:**
-- Hashtag 검색
-- Profile 검색
-- Video 검색
-- 추출 데이터: author, video URL, description, likes, comments, play count, music metadata
+**응답 구조 (feed/search):**
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "videos": [{
+      "video_id": "7332487397235494149",
+      "title": "#karina #karinaaespa #aespa",
+      "cover": "https://p16-sign-va.tiktokcdn.com/...",
+      "play": "https://v77.tiktokcdn.com/...",
+      "author": {
+        "unique_id": "_loitora",
+        "nickname": "loitora",
+        "avatar": "https://..."
+      },
+      "play_count": 28449406,
+      "digg_count": 3590717,
+      "create_time": 1707227761
+    }],
+    "cursor": 10,
+    "hasMore": true
+  }
+}
+```
+
+**API 호출 예시:**
+```bash
+curl --request GET \
+  --url 'https://tiktok-scraper7.p.rapidapi.com/feed/search?keywords=카리나&region=kr&count=10' \
+  --header 'x-rapidapi-host: tiktok-scraper7.p.rapidapi.com' \
+  --header 'x-rapidapi-key: YOUR_KEY'
+```
 
 ### TikTok URL 패턴
 
@@ -41,7 +69,7 @@
 
 1. **Platform 타입 추가**: `src/types/platforms.ts`에 `'tiktok'` 추가
 2. **TikTok Parser**: `src/lib/parsers/tiktok.ts` 생성
-3. **TikTok Search API**: `src/app/api/search/tiktok/route.ts` 생성
+3. **TikTok Search API**: `src/app/api/search/tiktok/route.ts` 생성 (RapidAPI)
 4. **ExternalSearch UI**: TikTok 탭 추가
 
 ### 번역 키 (messages/*.json)
