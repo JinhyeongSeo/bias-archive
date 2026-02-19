@@ -409,6 +409,14 @@ export function EmbedViewer({ url, platform, media }: EmbedViewerProps) {
     }
   }
 
+  // TikTok - show media gallery (videos)
+  if (platform === 'tiktok') {
+    const hasMedia = media && media.some(m => m.media_type === 'video' || m.media_type === 'image')
+    if (hasMedia) {
+      return <MediaGallery media={media!} />
+    }
+  }
+
   // Fallback for unsupported platforms
   return <FallbackEmbed url={url} />
 }

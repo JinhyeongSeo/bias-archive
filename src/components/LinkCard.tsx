@@ -335,7 +335,8 @@ export function LinkCard({
     platform === 'kgirls' ||
     platform === 'kgirls-issue' ||
     platform === 'instagram' ||
-    platform === 'selca'
+    platform === 'selca' ||
+    platform === 'tiktok'
 
   // Handle thumbnail click to open viewer or navigate to link
   const handleThumbnailClick = () => {
