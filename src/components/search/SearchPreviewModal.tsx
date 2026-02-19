@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
@@ -221,6 +221,10 @@ function YouTubePreviewEmbed({ url }: { url: string }) {
 }
 
 export function SearchPreviewModal({ result, isOpen, onClose, onSave }: SearchPreviewModalProps) {
+  const [fetchedMedia, setFetchedMedia] = useState<ParsedMedia[] | null>(null)
+  const [isLoadingMedia, setIsLoadingMedia] = useState(false)
+  const fetchedUrlRef = useRef<string | null>(null)
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose()
@@ -238,6 +242,46 @@ export function SearchPreviewModal({ result, isOpen, onClose, onSave }: SearchPr
     }
   }, [isOpen, handleKeyDown])
 
+  // Lazy fetch media when modal opens and result has no media (skip YouTube)
+  useEffect(() => {
+    if (!isOpen || !result) return
+    if (result.platform === 'youtube') return
+    if (result.media && result.media.length > 0) return
+    if (fetchedUrlRef.current === result.url) return // already fetched
+
+    let cancelled = false
+    setIsLoadingMedia(true)
+    setFetchedMedia(null)
+
+    fetch('/api/metadata', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: result.url }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (cancelled) return
+        fetchedUrlRef.current = result.url
+        if (data.media && Array.isArray(data.media) && data.media.length > 0) {
+          setFetchedMedia(data.media)
+        }
+        setIsLoadingMedia(false)
+      })
+      .catch(() => {
+        if (!cancelled) setIsLoadingMedia(false)
+      })
+
+    return () => { cancelled = true }
+  }, [isOpen, result])
+
+  // Reset fetched media when result changes
+  useEffect(() => {
+    if (result && fetchedUrlRef.current !== result.url) {
+      setFetchedMedia(null)
+      fetchedUrlRef.current = null
+    }
+  }, [result])
+
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose()
@@ -246,13 +290,28 @@ export function SearchPreviewModal({ result, isOpen, onClose, onSave }: SearchPr
 
   if (typeof window === 'undefined' || !result) return null
 
-  const hasMedia = result.media && result.media.length > 0
-  const linkMedia = hasMedia ? toLinkMedia(result.media!) : []
+  // Use fetched media if available, otherwise use result.media
+  const mediaToUse = (result.media && result.media.length > 0) ? result.media : fetchedMedia
+  const hasMedia = mediaToUse && mediaToUse.length > 0
+  const linkMedia = hasMedia ? toLinkMedia(mediaToUse!) : []
 
   const renderContent = () => {
     // YouTube: embed player
     if (result.platform === 'youtube') {
       return <YouTubePreviewEmbed url={result.url} />
+    }
+
+    // Loading media
+    if (isLoadingMedia) {
+      return (
+        <div className="flex flex-col items-center justify-center p-12 text-zinc-500 dark:text-zinc-400">
+          <svg className="w-8 h-8 animate-spin mb-3" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <p className="text-sm">미디어 로딩 중...</p>
+        </div>
+      )
     }
 
     // Platforms with media: show gallery
@@ -331,7 +390,11 @@ export function SearchPreviewModal({ result, isOpen, onClose, onSave }: SearchPr
                 {!result.isSaved && (
                   <motion.button
                     onClick={() => {
-                      onSave(result)
+                      // Include fetched media in the result when saving
+                      const resultWithMedia = fetchedMedia && fetchedMedia.length > 0 && (!result.media || result.media.length === 0)
+                        ? { ...result, media: fetchedMedia }
+                        : result
+                      onSave(resultWithMedia)
                       onClose()
                     }}
                     disabled={result.isSaving}
