@@ -12,6 +12,7 @@ import {
   parseGeneric,
   parseInstagram,
   parseTikTok,
+  parseSelcaMetadata,
   type VideoMetadata,
 } from './parsers'
 import type { Platform } from '@/types/index'
@@ -178,7 +179,7 @@ function getParser(platform: Platform): (url: string) => Promise<VideoMetadata> 
     case 'kgirls-issue':
       return parseKgirls
     case 'selca':
-      return parseGeneric
+      return parseSelcaMetadata
     case 'instagram':
       return parseInstagram
     case 'tiktok':

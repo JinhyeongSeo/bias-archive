@@ -401,6 +401,14 @@ export function EmbedViewer({ url, platform, media }: EmbedViewerProps) {
     }
   }
 
+  // selca.kastden.org - show media gallery (images)
+  if (platform === 'selca') {
+    const hasMedia = media && media.some(m => m.media_type === 'image')
+    if (hasMedia) {
+      return <MediaGallery media={media!} />
+    }
+  }
+
   // Fallback for unsupported platforms
   return <FallbackEmbed url={url} />
 }

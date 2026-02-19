@@ -329,12 +329,13 @@ export function LinkCard({
   const hasVideo = platform === 'youtube' ||
     (platform === 'twitter' && link.media?.some(m => m.media_type === 'video'))
 
-  const supportsViewer = platform === 'youtube' || 
-    platform === 'twitter' || 
-    platform === 'heye' || 
-    platform === 'kgirls' || 
-    platform === 'kgirls-issue' || 
-    platform === 'instagram'
+  const supportsViewer = platform === 'youtube' ||
+    platform === 'twitter' ||
+    platform === 'heye' ||
+    platform === 'kgirls' ||
+    platform === 'kgirls-issue' ||
+    platform === 'instagram' ||
+    platform === 'selca'
 
   // Handle thumbnail click to open viewer or navigate to link
   const handleThumbnailClick = () => {
