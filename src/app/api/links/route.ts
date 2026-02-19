@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase-server";
 import { createLogger } from "@/lib/logger";
 import { handleApiError, badRequest, unauthorized, ApiError } from "@/lib/api-error";
 import { extractMetadata } from "@/lib/metadata";
+import { isR2Configured } from "@/lib/r2";
 
 const logger = createLogger("Links API");
 
@@ -300,6 +301,16 @@ export async function POST(request: NextRequest) {
         .from('links')
         .update({ archive_status: 'queued' })
         .eq('id', link.id);
+    }
+
+    // R2 미디어 백업 (fire-and-forget)
+    if (isR2Configured() && savedMedia.length > 0) {
+      const baseUrl = request.nextUrl.origin;
+      fetch(`${baseUrl}/api/r2/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Cookie': request.headers.get('cookie') || '' },
+        body: JSON.stringify({ linkId: link.id }),
+      }).catch(err => logger.error('R2 upload trigger failed:', err));
     }
 
     // Return link with tags and media

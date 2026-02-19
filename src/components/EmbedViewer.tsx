@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Image from 'next/image'
 import type { Platform } from '@/lib/metadata'
 import type { LinkMedia } from '@/types/database'
-import { getProxiedImageUrl, getProxiedVideoUrl } from '@/lib/proxy'
+import { getProxiedImageUrl, getProxiedVideoUrl, getR2Url } from '@/lib/proxy'
 import { useMediaViewer } from '@/hooks/useMediaViewer'
 
 // Download a single media file
@@ -216,6 +216,15 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
   const currentItem = items[currentIndex]
   const isVideo = currentItem.media_type === 'video'
 
+  // R2 URL 우선, 없으면 프록시 URL 폴백
+  const getMediaUrl = (item: LinkMedia) => {
+    const r2Url = getR2Url(item.r2_key)
+    if (r2Url) return r2Url
+    return item.media_type === 'video'
+      ? getProxiedVideoUrl(item.media_url)
+      : getProxiedImageUrl(item.media_url)
+  }
+
   return (
     <div
       className="relative w-full touch-pan-y"
@@ -228,7 +237,7 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
         {isVideo ? (
           <video
             key={currentItem.media_url}
-            src={getProxiedVideoUrl(currentItem.media_url)}
+            src={getMediaUrl(currentItem)}
             controls
             autoPlay
             loop
@@ -238,7 +247,7 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
           />
         ) : (
           <Image
-            src={getProxiedImageUrl(currentItem.media_url)}
+            src={getMediaUrl(currentItem)}
             alt={`Media ${currentIndex + 1} of ${items.length}`}
             fill
             className="object-contain rounded sm:rounded-lg"
@@ -301,9 +310,7 @@ function MediaGallery({ media }: { media: LinkMedia[] }) {
       <button
         onClick={() => {
           const item = items[currentIndex]
-          const url = item.media_type === 'video'
-            ? getProxiedVideoUrl(item.media_url)
-            : getProxiedImageUrl(item.media_url)
+          const url = getMediaUrl(item)
           const filename = getFilenameFromUrl(item.media_url, currentIndex, item.media_type)
           downloadMedia(url, filename)
         }}

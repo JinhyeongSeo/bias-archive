@@ -216,6 +216,7 @@ export type Database = {
           media_type: 'image' | 'video' | 'gif'
           position: number
           user_id: string | null
+          r2_key: string | null
           created_at: string
         }
         Insert: {
@@ -225,6 +226,7 @@ export type Database = {
           media_type: 'image' | 'video' | 'gif'
           position?: number
           user_id?: string | null
+          r2_key?: string | null
           created_at?: string
         }
         Update: {
@@ -234,6 +236,7 @@ export type Database = {
           media_type?: 'image' | 'video' | 'gif'
           position?: number
           user_id?: string | null
+          r2_key?: string | null
         }
         Relationships: [
           {

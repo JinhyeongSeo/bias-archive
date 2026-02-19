@@ -121,6 +121,9 @@ export function LinkCard({
   // heye, kgirls는 전신 직캠이 많아서 상단(얼굴) 기준으로 크롭
   const useTopCrop = platform === 'heye' || platform === 'kgirls'
 
+  // R2 백업 상태 확인
+  const hasR2Backup = link.media && link.media.some(m => m.r2_key)
+
   const handleSaveMemo = useCallback(async () => {
     setSavingMemo(true)
     try {
@@ -438,11 +441,20 @@ export function LinkCard({
           )}
 
           {/* Platform badge */}
-          <span
-            className={`absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-medium text-white ${platformColors[platform]}`}
-          >
-            {platformLabels[platform]}
-          </span>
+          <div className="absolute top-2 left-2 flex items-center gap-1">
+            <span
+              className={`px-2 py-0.5 rounded text-xs font-medium text-white ${platformColors[platform]}`}
+            >
+              {platformLabels[platform]}
+            </span>
+            {hasR2Backup && (
+              <span className="p-0.5 rounded bg-emerald-500/80 text-white" title="R2 백업 완료">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                </svg>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Content */}
@@ -800,11 +812,20 @@ export function LinkCard({
         )}
 
         {/* Platform badge */}
-        <span
-          className={`absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-medium text-white ${platformColors[platform]}`}
-        >
-          {platformLabels[platform]}
-        </span>
+        <div className="absolute top-2 left-2 flex items-center gap-1">
+          <span
+            className={`px-2 py-0.5 rounded text-xs font-medium text-white ${platformColors[platform]}`}
+          >
+            {platformLabels[platform]}
+          </span>
+          {hasR2Backup && (
+            <span className="p-0.5 rounded bg-emerald-500/80 text-white" title="R2 백업 완료">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+              </svg>
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Content */}

@@ -11,6 +11,9 @@ const HOTLINK_PROTECTED_DOMAINS = ['heye.kr', 'kgirls.net', 'twimg.com', 'cdnins
 // Falls back to original URL if not set (graceful degradation)
 const VIDEO_PROXY_BASE_URL = process.env.NEXT_PUBLIC_VIDEO_PROXY_URL || 'https://video-proxy.jh4clover.workers.dev'
 
+// R2 public URL for media backup
+const R2_PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL
+
 /**
  * Decode HTML entities in URL (handles &amp; from Instagram/other sources)
  */
@@ -129,6 +132,16 @@ export function getWaybackFallbackUrl(originalUrl: string, archiveUrl?: string |
     return archiveUrl
   }
   return null
+}
+
+/**
+ * R2 key로 퍼블릭 URL 생성
+ * R2가 설정되지 않으면 null 반환
+ */
+export function getR2Url(r2Key: string | null | undefined): string | null {
+  if (!r2Key || !R2_PUBLIC_URL) return null
+  const baseUrl = R2_PUBLIC_URL.replace(/\/$/, '')
+  return `${baseUrl}/${r2Key}`
 }
 
 /**
