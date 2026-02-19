@@ -114,8 +114,8 @@ export async function POST(request: NextRequest) {
 
     logger.debug(`Saving link: ${url}, initial platform: ${platform}`);
 
-    // Always extract full metadata on the server to get all media items
-    // especially for community platforms (kgirls, heye) where search results only give thumbnails
+    // Skip metadata extraction if we already have sufficient data from search
+    // (title + media with 2+ items means search already fetched everything)
     let finalTitle = title;
     let finalDescription = description;
     let finalThumbnailUrl = thumbnailUrl;
@@ -124,32 +124,40 @@ export async function POST(request: NextRequest) {
     let finalAuthorName = authorName;
     let finalMedia = media;
 
-    try {
-      const extracted = await extractMetadata(url);
-      logger.debug(`Extracted metadata for ${url}:`, { platform: extracted.platform, title: extracted.title });
-      if (extracted) {
-        finalTitle = extracted.title || finalTitle;
-        finalDescription = extracted.description || finalDescription;
-        finalThumbnailUrl = extracted.thumbnailUrl || finalThumbnailUrl;
-        
-        if (extracted.platform && extracted.platform !== "other" && extracted.platform !== "generic") {
-          finalPlatform = extracted.platform;
-        } else if (!finalPlatform) {
-          finalPlatform = extracted.platform;
-        }
+    const hasRichMedia = Array.isArray(media) && media.length >= 2;
+    const hasBasicMetadata = title && platform;
+    const shouldSkipExtraction = hasRichMedia && hasBasicMetadata;
 
-        finalOriginalDate = extracted.originalDate || finalOriginalDate;
-        finalAuthorName = extracted.authorName || finalAuthorName;
-        
-        // Use extracted media if provided media is empty or just a thumbnail
-        if (!finalMedia || !Array.isArray(finalMedia) || finalMedia.length <= 1) {
-          if (extracted.media && extracted.media.length > 0) {
-            finalMedia = extracted.media;
+    if (shouldSkipExtraction) {
+      logger.debug(`Skipping metadata extraction for ${url} (already have ${media.length} media items)`);
+    } else {
+      try {
+        const extracted = await extractMetadata(url);
+        logger.debug(`Extracted metadata for ${url}:`, { platform: extracted.platform, title: extracted.title });
+        if (extracted) {
+          finalTitle = extracted.title || finalTitle;
+          finalDescription = extracted.description || finalDescription;
+          finalThumbnailUrl = extracted.thumbnailUrl || finalThumbnailUrl;
+
+          if (extracted.platform && extracted.platform !== "other" && extracted.platform !== "generic") {
+            finalPlatform = extracted.platform;
+          } else if (!finalPlatform) {
+            finalPlatform = extracted.platform;
+          }
+
+          finalOriginalDate = extracted.originalDate || finalOriginalDate;
+          finalAuthorName = extracted.authorName || finalAuthorName;
+
+          // Use extracted media if provided media is empty or just a thumbnail
+          if (!finalMedia || !Array.isArray(finalMedia) || finalMedia.length <= 1) {
+            if (extracted.media && extracted.media.length > 0) {
+              finalMedia = extracted.media;
+            }
           }
         }
+      } catch (error) {
+        logger.error("Metadata extraction failed during save, falling back to provided data:", error);
       }
-    } catch (error) {
-      logger.error("Metadata extraction failed during save, falling back to provided data:", error);
     }
 
     // Create link with authenticated server client
@@ -218,20 +226,21 @@ export async function POST(request: NextRequest) {
     const extractedTagNames = extractAutoTags(combinedText, biases);
 
     // Create and link extracted tags using authenticated client
+    // Fetch all existing tags once (avoid N+1 queries)
+    const { data: allExistingTags } = await supabase.from("tags").select("*");
+    const existingTagMap = new Map(
+      (allExistingTags ?? []).map((t) => [t.name.toLowerCase(), t])
+    );
+
     const linkedTags = [];
+    const linkTagInserts: { link_id: string; tag_id: string; user_id: string }[] = [];
+
     for (const tagName of extractedTagNames) {
       try {
-        // Try to find existing tag
         const tagNameLower = tagName.toLowerCase();
-        const { data: existingTags } = await supabase.from("tags").select("*");
-        const existingTag = (existingTags ?? []).find(
-          (t) => t.name.toLowerCase() === tagNameLower
-        );
+        let tag = existingTagMap.get(tagNameLower);
 
-        let tag;
-        if (existingTag) {
-          tag = existingTag;
-        } else {
+        if (!tag) {
           // Create new tag
           const { data: newTag, error: tagError } = await supabase
             .from("tags")
@@ -240,25 +249,47 @@ export async function POST(request: NextRequest) {
             .single();
           if (tagError) throw tagError;
           tag = newTag;
+          existingTagMap.set(tagNameLower, tag);
         }
 
-        // Link tag to link
-        await supabase
-          .from("link_tags")
-          .insert([{ link_id: link.id, tag_id: tag.id, user_id: user.id }]);
         linkedTags.push(tag);
+        linkTagInserts.push({ link_id: link.id, tag_id: tag.id, user_id: user.id });
       } catch (error) {
-        // If it's a duplicate key error (23505), it means the link_tag already exists, so we can ignore it.
-        // Otherwise, log the error.
         if (
           error &&
           typeof error === "object" &&
           "code" in error &&
           error.code === "23505"
         ) {
-          // console.log(`Link tag already exists for link ${link.id} and tag ${tag?.id}. Skipping.`);
+          // Duplicate tag, skip
         } else {
-          logger.error(`Error linking tag "${tagName}":`, error);
+          logger.error(`Error creating tag "${tagName}":`, error);
+        }
+      }
+    }
+
+    // Batch insert all link-tag associations
+    if (linkTagInserts.length > 0) {
+      try {
+        await supabase.from("link_tags").insert(linkTagInserts);
+      } catch (error) {
+        // Handle duplicates gracefully
+        if (
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          error.code === "23505"
+        ) {
+          // Some link_tags already exist, insert one by one as fallback
+          for (const insert of linkTagInserts) {
+            try {
+              await supabase.from("link_tags").insert([insert]);
+            } catch {
+              // skip duplicates
+            }
+          }
+        } else {
+          logger.error("Error batch inserting link_tags:", error);
         }
       }
     }
