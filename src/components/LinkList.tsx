@@ -48,6 +48,7 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
 
   const [batchModalMode, setBatchModalMode] = useState<'add' | 'remove' | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Reels viewer state
@@ -133,6 +134,35 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
     } finally {
       setDeleting(false)
       setShowDeleteConfirm(false)
+    }
+  }
+
+  const handleBatchRefresh = async () => {
+    if (selectedIds.size === 0) return
+    setRefreshing(true)
+    try {
+      const response = await fetch('/api/links/batch/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ linkIds: Array.from(selectedIds) })
+      })
+
+      if (response.status === 401) {
+        window.location.href = `/${locale}/login`
+        return
+      }
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(`${data.refreshed}개 갱신 완료${data.failed > 0 ? `, ${data.failed}개 실패` : ''}`)
+        fetchLinks()
+        clearSelection()
+        refreshAll()
+      }
+    } catch (err) {
+      console.error('Batch refresh error:', err)
+    } finally {
+      setRefreshing(false)
     }
   }
 
@@ -309,8 +339,10 @@ export function LinkList({ refreshTrigger, searchQuery, tagId, platform, onLinks
             onAddTag={() => setBatchModalMode('add')}
             onRemoveTag={() => setBatchModalMode('remove')}
             onDelete={() => setShowDeleteConfirm(true)}
+            onRefresh={handleBatchRefresh}
             onCancel={handleCancelSelection}
             deleting={deleting}
+            refreshing={refreshing}
           />
         )}
       </AnimatePresence>

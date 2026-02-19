@@ -197,6 +197,8 @@
     "selectTagError": "태그를 선택해주세요",
     "processing": "처리 중...",
     "error": "오류가 발생했습니다",
+    "refresh": "새로고침",
+    "refreshing": "갱신 중...",
     "confirmDeleteTitle": "일괄 삭제 확인",
     "confirmDeleteDescription": "{count}개의 링크를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
   },

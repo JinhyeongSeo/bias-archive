@@ -197,6 +197,8 @@
     "selectTagError": "Please select a tag",
     "processing": "Processing...",
     "error": "An error occurred",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing...",
     "confirmDeleteTitle": "Confirm Batch Delete",
     "confirmDeleteDescription": "Delete {count} links? This action cannot be undone."
   },

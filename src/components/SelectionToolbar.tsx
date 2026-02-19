@@ -12,8 +12,10 @@ interface SelectionToolbarProps {
   onAddTag: () => void
   onRemoveTag: () => void
   onDelete: () => void
+  onRefresh: () => void
   onCancel: () => void
   deleting?: boolean
+  refreshing?: boolean
 }
 
 export function SelectionToolbar({
@@ -24,8 +26,10 @@ export function SelectionToolbar({
   onAddTag,
   onRemoveTag,
   onDelete,
+  onRefresh,
   onCancel,
-  deleting = false
+  deleting = false,
+  refreshing = false,
 }: SelectionToolbarProps) {
   const t = useTranslations('batch')
   const allSelected = selectedCount === totalCount && totalCount > 0
@@ -79,6 +83,19 @@ export function SelectionToolbar({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
           </svg>
           {t('removeTag')}
+        </motion.button>
+
+        {/* Refresh metadata */}
+        <motion.button
+          onClick={onRefresh}
+          disabled={selectedCount === 0 || refreshing}
+          className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-card hover:bg-accent text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-smooth shadow-sm"
+          whileTap={{ scale: 0.95 }}
+        >
+          <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          {refreshing ? t('refreshing') : t('refresh')}
         </motion.button>
 
         {/* Delete */}
