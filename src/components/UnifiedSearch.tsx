@@ -52,6 +52,7 @@ const PLATFORMS: {
   { id: "kgirls-issue", label: "kgirls issue", color: "text-purple-600 dark:text-purple-400", bgColor: "bg-purple-100 dark:bg-purple-900/50", ringColor: "ring-purple-500/20" },
   { id: "selca", label: "Selca", color: "text-purple-700 dark:text-purple-300", bgColor: "bg-purple-100 dark:bg-purple-900/50", ringColor: "ring-purple-500/20" },
   { id: "instagram", label: "Instagram", color: "text-pink-600 dark:text-pink-400", bgColor: "bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/50 dark:to-pink-900/50", ringColor: "ring-pink-500/20" },
+  { id: "tiktok", label: "TikTok", color: "text-zinc-900 dark:text-zinc-100", bgColor: "bg-zinc-100 dark:bg-zinc-800", ringColor: "ring-zinc-500/20" },
 ];
 
 export function UnifiedSearch({
@@ -79,7 +80,7 @@ export function UnifiedSearch({
   const dropdownButtonRef = useRef<HTMLButtonElement>(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const [enabledPlatforms, setEnabledPlatforms] = useState<Set<Platform>>(
-    new Set(["youtube", "twitter", "heye", "kgirls", "kgirls-issue", "selca", "instagram"])
+    new Set(["youtube", "twitter", "heye", "kgirls", "kgirls-issue", "selca", "instagram", "tiktok"])
   );
   const [previewResult, setPreviewResult] = useState<EnrichedResult | null>(null);
 

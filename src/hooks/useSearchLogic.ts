@@ -9,8 +9,9 @@ import type {
   TwitterResult, 
   HeyeResult, 
   KgirlsResult, 
-  SelcaResult, 
+  SelcaResult,
   InstagramResult,
+  TikTokResult,
   SearchCachePlatform
 } from '@/types/index';
 import { 
@@ -204,6 +205,18 @@ export function useSearchLogic({ query, savedUrls, biases, groups, enabledPlatfo
     };
   };
 
+  const searchTikTok = async (q: string): Promise<SearchResultBase> => {
+    const params = new URLSearchParams({ q, limit: String(API_FETCH_COUNT) });
+    const res = await fetch(`/api/search/tiktok?${params}`);
+    const data = await res.json();
+    if (data.notConfigured) throw new Error("TikTok 미설정");
+    if (!res.ok) throw new Error(data.error || "TikTok 검색 실패");
+    return {
+      results: ((data.results || []) as TikTokResult[]).map(item => ({ url: item.url, title: item.title, thumbnailUrl: item.thumbnailUrl, author: item.author, platform: "tiktok", isSaved: checkIfSaved(item.url), isSaving: false, media: item.media })),
+      hasMore: data.hasMore || false
+    };
+  };
+
   const processPlatformSearch = async (platform: Platform, cached: CachedPlatformResult | undefined, searchFn: () => Promise<SearchResultBase>) => {
     const dIdx = cached?.displayedIndex ?? 0;
     const cRes = cached?.results ?? [];
@@ -247,6 +260,7 @@ export function useSearchLogic({ query, savedUrls, biases, groups, enabledPlatfo
     if (enabledPlatforms.has("kgirls-issue")) promises.push(processPlatformSearch("kgirls-issue", cached?.platforms["kgirls-issue"], () => searchCommunity('kgirls-issue', query, cached?.platforms["kgirls-issue"]?.currentPage ?? 1, cached?.platforms["kgirls-issue"]?.currentOffset ?? 0)));
     if (enabledPlatforms.has("selca")) promises.push(processPlatformSearch("selca", cached?.platforms.selca, () => searchSelca(query, cached?.platforms.selca?.currentPage ?? 1, cached?.platforms.selca?.nextMaxTimeId)));
     if (enabledPlatforms.has("instagram")) promises.push(processPlatformSearch("instagram", cached?.platforms.instagram, () => searchInstagram(query)));
+    if (enabledPlatforms.has("tiktok")) promises.push(processPlatformSearch("tiktok", cached?.platforms.tiktok, () => searchTikTok(query)));
     await Promise.allSettled(promises);
     setShowCached(new Map());
     setIsSearching(false);
@@ -318,6 +332,10 @@ export function useSearchLogic({ query, savedUrls, biases, groups, enabledPlatfo
         }
       } else if (p === "instagram") {
         const api = await searchInstagram(query);
+        const filtered = api.results.filter(r => !new Set(cur.results.map(x => x.url)).has(r.url));
+        res = { results: filtered.slice(0, RESULTS_PER_PLATFORM), hasMore: api.hasMore || filtered.length > RESULTS_PER_PLATFORM };
+      } else if (p === "tiktok") {
+        const api = await searchTikTok(query);
         const filtered = api.results.filter(r => !new Set(cur.results.map(x => x.url)).has(r.url));
         res = { results: filtered.slice(0, RESULTS_PER_PLATFORM), hasMore: api.hasMore || filtered.length > RESULTS_PER_PLATFORM };
       } else return;
