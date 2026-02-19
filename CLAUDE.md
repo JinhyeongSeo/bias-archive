@@ -108,6 +108,7 @@ return handleApiError(error)      // catch 블록에서 사용
 | Search | `/api/search/cache`, `/api/search/viewed` | 검색 캐시/조회 기록 |
 | YouTube | `/api/youtube/search` | YouTube 검색 |
 | K-pop | `/api/kpop/groups`, `/api/kpop/members` | 아이돌 데이터 |
+| R2 | `/api/r2/upload` | R2 미디어 백업 업로드 |
 | Util | `/api/metadata`, `/api/proxy/image` | 메타데이터/프록시 |
 | Data | `/api/import`, `/api/export` | 데이터 임포트/내보내기 |
 
@@ -120,11 +121,24 @@ YOUTUBE_API_KEY=           # YouTube Data API
 SCRAPEBADGER_API_KEY=      # ScrapeBadger (Twitter 실시간 검색, 권장)
 GOOGLE_CSE_API_KEY=        # Google Custom Search (Twitter 검색 폴백용)
 GOOGLE_CSE_ID=
+R2_ACCOUNT_ID=             # Cloudflare R2 (미디어 백업, 선택)
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET_NAME=
+NEXT_PUBLIC_R2_PUBLIC_URL= # R2 퍼블릭 URL (커스텀 도메인 or r2.dev)
 ```
 
 ### Twitter 검색 API 우선순위
 1. **ScrapeBadger** (설정 시 우선 사용): 실시간 검색, $0.10/1,000 트윗
 2. **Google CSE** (폴백): 인덱싱된 과거 트윗만 검색, 무료
+
+### Cloudflare R2 미디어 백업
+미디어 파일을 R2에 자동 백업하여 원본 삭제 시에도 스트리밍 가능. 설정은 `docs/r2-setup.md` 참고.
+- 클라이언트: `src/lib/r2.ts` (S3 호환 API)
+- 업로드 API: `src/app/api/r2/upload/route.ts`
+- 링크 저장 시 fire-and-forget으로 자동 업로드
+- `link_media.r2_key`에 R2 key 저장, 뷰어에서 R2 URL 우선 사용
+- R2 미설정 시 기존 프록시 방식으로 동작 (폴백)
 
 ## Development Notes
 
