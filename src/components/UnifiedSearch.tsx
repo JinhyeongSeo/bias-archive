@@ -215,6 +215,23 @@ export function UnifiedSearch({
     });
   };
 
+  const handleSelectAllPlatform = (platform: Platform) => {
+    const platformData = platformResults.get(platform);
+    if (!platformData) return;
+    const selectableInPlatform = platformData.results.filter((r) => !r.isSaved);
+    const allSelected = selectableInPlatform.length > 0 && selectableInPlatform.every((r) => selectedUrls.has(r.url));
+
+    setSelectedUrls((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        selectableInPlatform.forEach((r) => next.delete(r.url));
+      } else {
+        selectableInPlatform.forEach((r) => next.add(r.url));
+      }
+      return next;
+    });
+  };
+
   const handleBatchSave = async () => {
     if (selectedUrls.size === 0) return;
     setIsBatchSaving(true);
@@ -358,6 +375,7 @@ export function UnifiedSearch({
                   toggleShowCached={toggleShowCached}
                   onSave={handleSaveResult}
                   onToggleSelect={toggleUrlSelection}
+                  onSelectAllPlatform={handleSelectAllPlatform}
                   selectedUrls={selectedUrls}
                   handleLoadMore={handleLoadMore}
                   platformsConfig={PLATFORMS}

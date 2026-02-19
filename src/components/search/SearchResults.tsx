@@ -11,6 +11,7 @@ interface SearchResultsProps {
   toggleShowCached: (platform: Platform) => void;
   onSave: (result: EnrichedResult) => void;
   onToggleSelect: (url: string) => void;
+  onSelectAllPlatform: (platform: Platform) => void;
   selectedUrls: Set<string>;
   handleLoadMore: (platform: Platform) => void;
   platformsConfig: {
@@ -29,6 +30,7 @@ export function SearchResults({
   toggleShowCached,
   onSave,
   onToggleSelect,
+  onSelectAllPlatform,
   selectedUrls,
   handleLoadMore,
   platformsConfig,
@@ -43,6 +45,10 @@ export function SearchResults({
 
           const cached = cachedResults.get(platformConfig.id);
           const showCachedPlatform = showCached.get(platformConfig.id) || false;
+
+          const selectableInPlatform = platformData.results.filter((r) => !r.isSaved);
+          const selectedInPlatform = selectableInPlatform.filter((r) => selectedUrls.has(r.url));
+          const allSelectedInPlatform = selectableInPlatform.length > 0 && selectedInPlatform.length === selectableInPlatform.length;
 
           return (
             <div key={platformConfig.id} className="space-y-2">
@@ -63,6 +69,15 @@ export function SearchResults({
                     </span>
                   )}
                 </div>
+
+                {selectableInPlatform.length > 0 && !platformData.isLoading && (
+                  <button
+                    onClick={() => onSelectAllPlatform(platformConfig.id)}
+                    className="text-[10px] sm:text-xs text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  >
+                    {allSelectedInPlatform ? '선택 해제' : '전체 선택'}
+                  </button>
+                )}
               </div>
 
               {platformData.error && (
