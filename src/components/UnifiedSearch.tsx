@@ -21,6 +21,7 @@ import { useSearchLogic } from "@/hooks/useSearchLogic";
 import { SearchInput } from "./search/SearchInput";
 import { SearchFilters } from "./search/SearchFilters";
 import { SearchResults } from "./search/SearchResults";
+import { SearchPreviewModal } from "./search/SearchPreviewModal";
 
 // Selection type for idol dropdown
 type Selection =
@@ -80,6 +81,7 @@ export function UnifiedSearch({
   const [enabledPlatforms, setEnabledPlatforms] = useState<Set<Platform>>(
     new Set(["youtube", "twitter", "heye", "kgirls", "kgirls-issue", "selca", "instagram"])
   );
+  const [previewResult, setPreviewResult] = useState<EnrichedResult | null>(null);
 
   const {
     platformResults,
@@ -286,6 +288,7 @@ export function UnifiedSearch({
   if (!isOpen) return null;
 
   return (
+    <>
     <AnimatePresence>
       <motion.div
         initial="initial" animate="animate" exit="exit" variants={modalOverlay}
@@ -376,6 +379,7 @@ export function UnifiedSearch({
                   onSave={handleSaveResult}
                   onToggleSelect={toggleUrlSelection}
                   onSelectAllPlatform={handleSelectAllPlatform}
+                  onPreview={setPreviewResult}
                   selectedUrls={selectedUrls}
                   handleLoadMore={handleLoadMore}
                   platformsConfig={PLATFORMS}
@@ -397,5 +401,13 @@ export function UnifiedSearch({
         </motion.div>
       </motion.div>
     </AnimatePresence>
+
+    <SearchPreviewModal
+      result={previewResult}
+      isOpen={!!previewResult}
+      onClose={() => setPreviewResult(null)}
+      onSave={handleSaveResult}
+    />
+    </>
   );
 }

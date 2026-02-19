@@ -12,6 +12,7 @@ interface SearchResultsProps {
   onSave: (result: EnrichedResult) => void;
   onToggleSelect: (url: string) => void;
   onSelectAllPlatform: (platform: Platform) => void;
+  onPreview: (result: EnrichedResult) => void;
   selectedUrls: Set<string>;
   handleLoadMore: (platform: Platform) => void;
   platformsConfig: {
@@ -31,6 +32,7 @@ export function SearchResults({
   onSave,
   onToggleSelect,
   onSelectAllPlatform,
+  onPreview,
   selectedUrls,
   handleLoadMore,
   platformsConfig,
@@ -117,6 +119,7 @@ export function SearchResults({
                             result={result}
                             onSave={onSave}
                             onToggleSelect={onToggleSelect}
+                            onPreview={onPreview}
                             isSelected={selectedUrls.has(result.url)}
                           />
                         ))}
@@ -133,6 +136,7 @@ export function SearchResults({
                     result={result}
                     onSave={onSave}
                     onToggleSelect={onToggleSelect}
+                    onPreview={onPreview}
                     isSelected={selectedUrls.has(result.url)}
                   />
                 ))}

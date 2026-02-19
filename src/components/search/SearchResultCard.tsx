@@ -7,6 +7,7 @@ interface SearchResultCardProps {
   result: EnrichedResult;
   onSave: (result: EnrichedResult) => void;
   onToggleSelect: (url: string) => void;
+  onPreview: (result: EnrichedResult) => void;
   isSelected: boolean;
 }
 
@@ -14,6 +15,7 @@ export function SearchResultCard({
   result,
   onSave,
   onToggleSelect,
+  onPreview,
   isSelected,
 }: SearchResultCardProps) {
   return (
@@ -37,31 +39,45 @@ export function SearchResultCard({
         />
       </div>
 
-      {/* Thumbnail */}
-      {result.thumbnailUrl ? (
-        isVideoUrl(result.thumbnailUrl) ? (
-          <video
-            src={result.thumbnailUrl}
-            className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
-            muted
-            playsInline
-            preload="metadata"
-          />
+      {/* Thumbnail - click to preview */}
+      <div
+        className="flex-shrink-0 cursor-pointer relative group"
+        onClick={(e) => {
+          e.stopPropagation();
+          onPreview(result);
+        }}
+      >
+        {result.thumbnailUrl ? (
+          isVideoUrl(result.thumbnailUrl) ? (
+            <video
+              src={result.thumbnailUrl}
+              className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded"
+              muted
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={result.thumbnailUrl}
+              alt=""
+              className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded"
+            />
+          )
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={result.thumbnailUrl}
-            alt=""
-            className="w-16 h-12 sm:w-20 sm:h-14 object-cover rounded flex-shrink-0"
-          />
-        )
-      ) : (
-        <div className="w-16 h-12 sm:w-20 sm:h-14 bg-zinc-200 dark:bg-zinc-700 rounded flex-shrink-0 flex items-center justify-center">
-          <span className="text-[10px] sm:text-xs text-zinc-400">
-            No img
-          </span>
+          <div className="w-16 h-12 sm:w-20 sm:h-14 bg-zinc-200 dark:bg-zinc-700 rounded flex items-center justify-center">
+            <span className="text-[10px] sm:text-xs text-zinc-400">
+              No img
+            </span>
+          </div>
+        )}
+        {/* Preview overlay icon */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 rounded transition-colors flex items-center justify-center">
+          <svg className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+          </svg>
         </div>
-      )}
+      </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
