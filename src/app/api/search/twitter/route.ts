@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       const type: SearchType =
         typeParam && VALID_SEARCH_TYPES.includes(typeParam)
           ? (typeParam as SearchType)
-          : 'top'
+          : 'media'
 
       const response = await searchTwitterWithScrapeBadger(query, {
         type,

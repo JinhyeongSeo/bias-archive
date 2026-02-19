@@ -71,6 +71,9 @@ export interface ScrapeBadgerSearchOptions {
 
 const BASE_URL = 'https://scrapebadger.com/v1/twitter'
 
+/** Minimum engagement threshold to filter out spam/bot tweets */
+const MIN_ENGAGEMENT = 3 // likes + retweets >= 3
+
 /**
  * Search Twitter using ScrapeBadger API
  * Provides real-time search results (unlike Google CSE which only indexes past tweets)
@@ -83,7 +86,7 @@ export async function searchTwitterWithScrapeBadger(
   query: string,
   options: ScrapeBadgerSearchOptions = {}
 ): Promise<TwitterSearchResponse> {
-  const { type = 'top', cursor, count } = options
+  const { type = 'media', cursor, count } = options
 
   const apiKey = process.env.SCRAPEBADGER_API_KEY
 
@@ -135,8 +138,14 @@ export async function searchTwitterWithScrapeBadger(
       console.log('[ScrapeBadger] First tweet media:', JSON.stringify(data.data[0].media))
     }
 
+    // Filter out low-engagement spam/bot tweets, then transform
+    const filteredTweets = (data.data || []).filter((tweet) => {
+      const engagement = tweet.favorite_count + tweet.retweet_count
+      return engagement >= MIN_ENGAGEMENT
+    })
+
     // Transform ScrapeBadger response to our format
-    const results: TwitterSearchResult[] = (data.data || []).map((tweet) => {
+    const results: TwitterSearchResult[] = filteredTweets.map((tweet) => {
       // Get thumbnail URL from media
       // For videos/gifs: use preview_image_url
       // For photos: use url (but filter out t.co short links)
